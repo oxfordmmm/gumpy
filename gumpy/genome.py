@@ -143,8 +143,8 @@ class Genome(object):
 
                             mask=gene_mask+promoter_mask
 
-                            # be paranoid and set even though the default value is True
-                            self.reverse[mask]=True
+                            # be paranoid and set even though the default value is False
+                            self.reverse[mask]=False
 
                             promoter_coding_position=self.index[promoter_mask]-gene_start-1
 
@@ -201,21 +201,15 @@ class Genome(object):
                         self.gene_type[gene_name]=gene_type
                         self.gene_index_start[gene_name]=gene_start
                         self.gene_index_end[gene_name]=gene_end
-                        self.gene_codes_protein=gene_codes_protein
+                        self.gene_codes_protein[gene_name]=gene_codes_protein
 
             # store a list of all the gene names
             self.gene_names=numpy.unique(self.gene[self.gene!=""])
             self.is_gene_or_promoter=self.is_gene+self.is_promoter
             self.gene_or_promoter=numpy.core.defchararray.add(self.gene,self.promoter)
 
-            for i in tqdm(self.gene_names):
-                if self.gene_type[i] in ["GENE",'LOCUS']:
-                    cds=True
-                else:
-                    cds=False
-                mask=self.gene_or_promoter==i
-                self.moo[i]=Gene(gene_name=i,sequence=self.coding_sequence[mask],index=self.index[mask],position=self.coding_position[mask],codes_protein=cds)
-
+            # pass ALL the gene names to create all the Gene objects for the first time
+            self._recreate_genes(self.gene_names,show_progress_bar=True)
 
         # otherwise there must be a FASTA file so load that instead
         elif fasta_file is not None:
@@ -243,6 +237,15 @@ class Genome(object):
 
         # store the sequence as integers 0,1,2,3 with which bases they refer to in bases_integer_lookup
         self.bases_integer_lookup, self.integers = numpy.unique(self.sequence, return_inverse=True)
+
+    def _recreate_genes(self,list_of_genes,show_progress_bar=False):
+
+        for gene in tqdm(list_of_genes,disable=not(show_progress_bar)):
+
+            mask=self.gene_or_promoter==gene
+
+            self.moo[gene]=Gene(gene_name=gene,sequence=self.coding_sequence[mask],index=self.index[mask],position=self.coding_position[mask],codes_protein=self.gene_codes_protein[gene])
+
 
     def __repr__(self):
 
@@ -363,6 +366,9 @@ class Genome(object):
         # assume that the sample name is the filestem and remember
         self.sample_name=self.vcf_file_stem
 
+        self.genes_mutated=[]
+
+
         # open the supplied VCF file
         # note that this will read in bgzip compressed vcf files (from htslib) but not gzip compressed files
         # even though the file extension is the same
@@ -395,9 +401,7 @@ class Genome(object):
                 # return the call
                 ref_bases,index,alt_bases = self._get_variant_for_genotype_in_vcf_record(genotype, record)
 
-
-
-                # bypass for speed if this is a REF call
+                # bypass (for speed) if this is a REF call
                 if alt_bases=="":
                     continue
 
@@ -518,10 +522,18 @@ class Genome(object):
         # ..and then replace with any relevant sections that code from the complementary strand
         self.coding_sequence[self.reverse]=self.complementary_sequence[self.reverse]
 
+        self._recreate_genes(self.genes_mutated)
+
     def _set_sequence_metadata(self,idx,sample_info):
 
+        mask=self.index==idx
+
+        altered_gene=self.gene_or_promoter[mask][0]
+
+        if altered_gene!="" and altered_gene not in self.genes_mutated:
+            self.genes_mutated.append(altered_gene)
+
         if self.metadata_fields is not None:
-            mask=self.index==idx
             for field in self.metadata_fields:
                 if field in sample_info.keys():
                     self.sequence_metadata[field][mask]=sample_info[field]
