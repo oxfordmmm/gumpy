@@ -7,91 +7,96 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self,gene_name=None,sequence=None,index=None,position=None,codes_protein=False,first_amino_acid_position=1,first_nucleotide_index=None,promoter_sequence=None):
+    def __init__(self,gene_name=None,sequence=None,index=None,numbering=None,codes_protein=True,feature_type=None):
 
         assert gene_name is not None, "must provide a gene name!"
         self.gene_name=gene_name
 
-        assert codes_protein in [True,False], gene_name+": coding_region must be True or False!"
-
-        assert isinstance(sequence,numpy.ndarray), gene_name+": open reading frame sequence must be a Numpy array!"
-        assert isinstance(index,numpy.ndarray), gene_name+": genome indices must be a Numpy array!"
-        assert isinstance(position,numpy.ndarray), gene_name+": gene positions must be a Numpy array!"
-
-        assert numpy.issubdtype(position.dtype.type,numpy.integer)
-        assert numpy.issubdtype(index.dtype.type,numpy.integer)
-
-        sequence=numpy.char.lower(sequence)
-        assert numpy.count_nonzero(numpy.isin(sequence,['a','t','c','g','x','z']))==len(sequence)
-
-        promoter_mask=position<0
-        cds_mask=position>0
-
-        if position[0]<position[-1]:
-
-            self.reverse_strand=False
-            self.gene_sequence=sequence[cds_mask]
-            self.gene_position=position[cds_mask]
-            self.gene_index=index[cds_mask]
-            self.promoter_sequence=sequence[promoter_mask]
-            self.promoter_position=position[promoter_mask]
-            self.promoter_index=index[promoter_mask]
-        else:
-            self.reverse_strand=True
-            self.gene_sequence=sequence[cds_mask][::-1]
-            self.gene_position=position[cds_mask][::-1]
-            self.gene_index=index[cds_mask][::-1]
-            self.promoter_sequence=sequence[promoter_mask][::-1]
-            self.promoter_position=position[promoter_mask][::-1]
-            self.promoter_index=index[promoter_mask][::-1]
-
-        self.gene_number_nucleotides=len(self.gene_sequence)
-        self.promoter_number_nucleotides=len(self.promoter_sequence)
-        self.total_number_nucleotides=len(sequence)
-
-        # self.orf_first_nucleotide_index=self.orf_index[0]-1
-        # self.orf_last_nucleotide_index=self.orf_index[-1]
-
+        assert codes_protein in [True,False], gene_name+": codes_protein must be True or False!"
         self.codes_protein=codes_protein
 
-        self._setup_conversion_dicts()
+        assert isinstance(sequence,numpy.ndarray), gene_name+": sequence of bases must be a Numpy array!"
+
+        assert isinstance(index,numpy.ndarray), gene_name+": genome indices must be a Numpy array of integers!"
+        assert numpy.issubdtype(index.dtype.type,numpy.integer), gene_name+": genome indices must be a Numpy array of integers!"
+
+        assert isinstance(numbering,numpy.ndarray), gene_name+": gene numbering must be a Numpy array of integers!"
+        assert numpy.issubdtype(numbering.dtype.type,numpy.integer), gene_name+": gene numbering must be a Numpy array of integers!"
+
+        sequence=numpy.char.lower(sequence)
+        assert numpy.count_nonzero(numpy.isin(sequence,['a','t','c','g','x','z']))==len(sequence), gene_name+": sequence can only contain a,t,c,g,z,x"
+
+        promoter_mask=numbering<0
+        cds_mask=numbering>0
+
+        if numbering[0]<numbering[-1]:
+            self.on_noncoding_strand=False
+            self.sequence=sequence
+            self.numbering=numbering
+            self.index=index
+            self.is_cds=cds_mask
+            self.is_promoter=promoter_mask
+        else:
+            self.on_noncoding_strand=True
+            self.sequence=sequence[::-1]
+            self.numbering=numbering[::-1]
+            self.index=index[::-1]
+            self.is_cds=cds_mask[::-1]
+            self.is_promoter=promoter_mask[::-1]
+
+        self.cds_index_start=numpy.min(self.index[self.is_cds])
+        self.cds_index_end=numpy.max(self.index[self.is_cds])
+        self.cds_number_nucleotides=len(self.sequence[self.is_cds])
+
+        if numpy.count_nonzero(self.is_promoter)>0:
+            self.promoter_index_start=numpy.min(self.index[self.is_promoter])
+            self.promoter_index_end=numpy.max(self.index[self.is_promoter])
+            self.promoter_number_nucleotides=len(self.sequence[self.is_promoter])
+        else:
+            self.promoter_index_start=None
+            self.promoter_index_end=None
+            self.promoter_number_nucleotides=0
+
+        self.total_number_nucleotides=len(sequence)
+
 
         if self.codes_protein:
-            # assert (self.gene_number_nucleotides%3)==0, gene_name+": must have an exact multiple of three bases in the open reading frame sequence array!"
-            # remaining_bases=self.gene_number_nucleotides%3
 
-            # if remaining_bases>0:
-            #     self.gene_sequence=self.gene_sequence[:-remaining_bases]
-            #     self.gene_position=self.gene_position[:-remaining_bases]
-            #     self.gene_index=self.gene_index[:-remaining_bases]
+            self._setup_conversion_dicts()
             self._translate_sequence()
+
         else:
-            self.amino_acids=None
-            self.amino_acids_position=None
-            self.triplets=None
+
+            self.amino_acid_sequence=None
+            self.amino_acid_numbering=None
+            self.codons=None
 
     def _translate_sequence(self):
 
-        self.amino_acids_position=numpy.unique(self.gene_position)
+        # this will ensure that only amino acids with all three bases present
+        unique,counts=numpy.unique(self.numbering[self.is_cds],return_counts=True)
+        self.amino_acid_numbering=unique[counts==3]
 
-        tmp=[]
-        for resid in self.amino_acids_position:
-            triplet=''.join(i for i in self.gene_sequence[self.gene_position==resid])
-            if len(triplet)==3:
-                tmp.append(triplet)
+        # try to optimize!
+        shorter_numbering=self.numbering[self.is_cds]
+        shorter_sequence=self.sequence[self.is_cds]
+        trip=[]
+        for resid in self.amino_acid_numbering:
+            triplet=''.join(i for i in shorter_sequence[shorter_numbering==resid])
+            trip.append(triplet)
 
-        self.triplets=numpy.array(tmp)
+        self.codons=numpy.array(trip)
 
         # now translate the triplets into amino acids using this new dictionary
-        self.amino_acids=numpy.array([self.triplet_to_amino_acid[i] for i in self.triplets])
+        self.amino_acid_sequence=numpy.array([self.codon_to_amino_acid[i] for i in self.codons])
 
     def _setup_conversion_dicts(self):
 
         bases = ['t', 'c', 'a', 'g', 'x', 'z']
         aminoacids = 'FFLLXZSSSSXZYY!!XZCC!WXZXXXXXXZZZZXZLLLLXZPPPPXZHHQQXZRRRRXZXXXXXXZZZZXZIIIMXZTTTTXZNNKKXZSSRRXZXXXXXXZZZZXZVVVVXZAAAAXZDDEEXZGGGGXZXXXXXXZZZZXZXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZZZZZXZZZZZXZZZZZXZXXXXXXZZZZXZ'
-        self.codons = numpy.array([a+b+c for a in bases for b in bases for c in bases])
-        self.triplet_to_amino_acid = dict(zip(self.codons, aminoacids))
-        self.amino_acids_of_codons=numpy.array([self.triplet_to_amino_acid[i] for i in self.codons])
+        all_codons = numpy.array([a+b+c for a in bases for b in bases for c in bases])
+        self.codon_to_amino_acid = dict(zip(all_codons, aminoacids))
+        # self.amino_acids_of_codons=numpy.array([self.codon_to_amino_acid[i] for i in all_codons])
 
     def __repr__(self):
 
@@ -103,34 +108,38 @@ class Gene(object):
             output+=", codes for protein\n"
         else:
             output+="\n"
-        if self.promoter_sequence.size!=0:
-            output+="".join(i for i in self.promoter_sequence[:string_length])
+        promoter_sequence=self.sequence[self.is_promoter]
+        if promoter_sequence.size!=0:
+            output+="".join(i for i in promoter_sequence[:string_length])
             output+="..."
-            output+="".join(i for i in self.promoter_sequence[-string_length:])
+            output+="".join(i for i in promoter_sequence[-string_length:])
             output+="\n"
-            output+="".join(str(i)+" " for i in self.promoter_position[:string_length])
+            promoter_numbering=self.numbering[self.is_promoter]
+            output+="".join(str(i)+" " for i in promoter_numbering[:string_length])
             output+="..."
-            output+="".join(str(i)+" " for i in self.promoter_position[-string_length:])
+            output+="".join(str(i)+" " for i in promoter_numbering[-string_length:])
             output+="\n"
         else:
-            output+="promoter found in adjacent gene(s)\n"
+            output+="promoter likely in adjacent gene(s)\n"
         if self.codes_protein:
-            output+="".join(i for i in self.amino_acids[:string_length])
+            output+="".join(i for i in self.amino_acid_sequence[:string_length])
             output+="..."
-            output+="".join(i for i in self.amino_acids[-string_length:])
+            output+="".join(i for i in self.amino_acid_sequence[-string_length:])
             output+="\n"
-            output+="".join(str(i)+" " for i in self.amino_acids_position[:string_length])
+            output+="".join(str(i)+" " for i in self.amino_acid_numbering[:string_length])
             output+="..."
-            output+="".join(str(i)+" " for i in self.amino_acids_position[-string_length:])
+            output+="".join(str(i)+" " for i in self.amino_acid_numbering[-string_length:])
             output+="\n"
         else:
-            output+="".join(i for i in self.gene_sequence[:string_length])
+            gene_sequence=self.sequence[self.is_cds]
+            output+="".join(i for i in gene_sequence[:string_length])
             output+="..."
-            output+="".join(i for i in self.gene_sequence[-string_length:])
+            output+="".join(i for i in gene_sequence[-string_length:])
             output+="\n"
-            output+="".join(str(i)+" " for i in self.gene_position[:string_length])
+            gene_numbering=self.numbering[self.is_cds]
+            output+="".join(str(i)+" " for i in gene_numbering[:string_length])
             output+="..."
-            output+="".join(str(i)+" " for i in self.gene_position[-string_length:])
+            output+="".join(str(i)+" " for i in gene_numbering[-string_length:])
             output+="\n"
 
         if output.strip()=="":
@@ -148,15 +157,33 @@ class Gene(object):
         assert self.gene_name==other.gene_name, "both genes must be identical!"
         assert self.codes_protein==other.codes_protein, "both genes must be identical!"
 
-        promoter_mask=self.promoter_sequence!=other.promoter_sequence
+        mutations=[]
         if self.codes_protein:
-            gene_mask=self.amino_acids!=other.amino_acids
-            tmp=self.amino_acids_position[gene_mask]
-        else:
-            gene_mask=self.gene_sequence!=other.gene_sequence
-            tmp=self.gene_position[gene_mask]
+            mask=self.amino_acid_sequence!=other.amino_acid_sequence
+            pos=self.amino_acid_numbering[mask]
+            ref=self.amino_acid_sequence[mask]
+            alt=other.amino_acid_sequence[mask]
 
-        return(self.promoter_index[promoter_mask],tmp)
+            for (r,p,a) in zip(ref,pos,alt):
+                mutations.append(r+str(p)+a)
+
+            mask=(self.sequence!=other.sequence) & self.is_promoter
+            pos=self.numbering[mask]
+            ref=self.sequence[mask]
+            alt=other.sequence[mask]
+            for (r,p,a) in zip(ref,pos,alt):
+                mutations.append(r+str(p)+a)
+        else:
+            mask=self.sequence!=other.sequence
+            pos=self.numbering[mask]
+            ref=self.sequence[mask]
+            alt=other.sequence[mask]
+            for (r,p,a) in zip(ref,pos,alt):
+                mutations.append(r+str(p)+a)
+
+        if not mutations:
+            mutations=None
+        return(mutations)
 
     def valid_element(self, element=None):
 
