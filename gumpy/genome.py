@@ -339,9 +339,9 @@ class Genome(object):
         # for Clockwork these will be GT_CONF and GT_CONF_PERCENTILE
         self.metadata_fields=metadata_fields
         if self.metadata_fields is not None:
-            self.genome_coding_strand_metadata={}
+            self.genome_sequence_metadata={}
             for field in self.metadata_fields:
-                self.genome_coding_strand_metadata[field]=numpy.zeros(self.genome_length,float)
+                self.genome_sequence_metadata[field]=numpy.zeros(self.genome_length,float)
 
         # to deal with HET calls we need to setup some diploid arrays
         self.het_variations=numpy.zeros((self.genome_length,2),str)
@@ -530,7 +530,7 @@ class Genome(object):
         if self.metadata_fields is not None:
             for field in self.metadata_fields:
                 if field in sample_info.keys():
-                    self.genome_coding_strand_metadata[field][mask]=sample_info[field]
+                    self.genome_sequence_metadata[field][mask]=sample_info[field]
 
     def _permute_sequence(self,idx,coverage,after=None,indel_length=0,indel_bases=(None,None)):
 

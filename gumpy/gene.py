@@ -166,6 +166,7 @@ class Gene(object):
 
             for (r,p,a) in zip(ref,pos,alt):
                 mutations.append(r+str(p)+a)
+            positions=pos
 
             mask=(self.sequence!=other.sequence) & self.is_promoter
             pos=self.numbering[mask]
@@ -173,6 +174,10 @@ class Gene(object):
             alt=other.sequence[mask]
             for (r,p,a) in zip(ref,pos,alt):
                 mutations.append(r+str(p)+a)
+            if positions!=[]:
+                positions=numpy.append(positions,pos)
+            else:
+                positions=pos
         else:
             mask=self.sequence!=other.sequence
             pos=self.numbering[mask]
@@ -180,10 +185,15 @@ class Gene(object):
             alt=other.sequence[mask]
             for (r,p,a) in zip(ref,pos,alt):
                 mutations.append(r+str(p)+a)
+            positions=pos
 
         if not mutations:
             mutations=None
-        return(mutations)
+        # return(mutations)
+
+        # if positions!=[]:
+        #     positions=None
+        return(positions)
 
     def valid_element(self, element=None):
 
