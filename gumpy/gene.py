@@ -147,6 +147,42 @@ class Gene(object):
 
         return(output)
 
+    def list_mutations_wrt(self,other):
+
+        assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
+        assert self.gene_name==other.gene_name, "both genes must be identical!"
+        assert self.codes_protein==other.codes_protein, "both genes must be identical!"
+
+        mutations=[]
+        if self.codes_protein:
+            mask=self.amino_acid_sequence!=other.amino_acid_sequence
+            pos=self.amino_acid_numbering[mask]
+            ref=other.amino_acid_sequence[mask]
+            alt=self.amino_acid_sequence[mask]
+
+            for (r,p,a) in zip(ref,pos,alt):
+                mutations.append(r+str(p)+a)
+
+            mask=(self.sequence!=other.sequence) & self.is_promoter
+            pos=self.numbering[mask]
+            ref=other.sequence[mask]
+            alt=self.sequence[mask]
+            for (r,p,a) in zip(ref,pos,alt):
+                mutations.append(r+str(p)+a)
+        else:
+            mask=self.sequence!=other.sequence
+            pos=self.numbering[mask]
+            ref=other.sequence[mask]
+            alt=self.sequence[mask]
+            for (r,p,a) in zip(ref,pos,alt):
+                mutations.append(r+str(p)+a)
+
+        if not mutations:
+            mutations=None
+
+        return(mutations)
+
+
     def __sub__(self,other):
 
         """
@@ -157,42 +193,25 @@ class Gene(object):
         assert self.gene_name==other.gene_name, "both genes must be identical!"
         assert self.codes_protein==other.codes_protein, "both genes must be identical!"
 
-        mutations=[]
+        positions=[]
         if self.codes_protein:
             mask=self.amino_acid_sequence!=other.amino_acid_sequence
-            pos=self.amino_acid_numbering[mask]
-            ref=self.amino_acid_sequence[mask]
-            alt=other.amino_acid_sequence[mask]
-
-            for (r,p,a) in zip(ref,pos,alt):
-                mutations.append(r+str(p)+a)
+            pos=list(self.amino_acid_numbering[mask])
             positions=pos
 
             mask=(self.sequence!=other.sequence) & self.is_promoter
-            pos=self.numbering[mask]
-            ref=self.sequence[mask]
-            alt=other.sequence[mask]
-            for (r,p,a) in zip(ref,pos,alt):
-                mutations.append(r+str(p)+a)
-            if positions!=[]:
-                positions=numpy.append(positions,pos)
+            pos=list(self.numbering[mask])
+            if positions is not None:
+                positions=positions+pos
             else:
                 positions=pos
         else:
             mask=self.sequence!=other.sequence
-            pos=self.numbering[mask]
-            ref=self.sequence[mask]
-            alt=other.sequence[mask]
-            for (r,p,a) in zip(ref,pos,alt):
-                mutations.append(r+str(p)+a)
-            positions=pos
+            positions=list(self.numbering[mask])
 
-        if not mutations:
-            mutations=None
-        # return(mutations)
+        if not positions:
+            positions=None
 
-        # if positions!=[]:
-        #     positions=None
         return(positions)
 
     def valid_element(self, element=None):

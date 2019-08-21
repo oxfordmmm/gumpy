@@ -260,6 +260,22 @@ class Genome(object):
 
         return(output)
 
+    def list_variants_wrt(self,other):
+
+        assert self.genome_length==other.genome_length, "genomes must have the same length!"
+
+        mask=self.genome_sequence!=other.genome_sequence
+
+        ref=other.genome_sequence[mask]
+        idx=self.genome_index[mask]
+        alt=self.genome_sequence[mask]
+
+        variants=[]
+        for (r,i,a) in zip(ref,idx,alt):
+            variants.append(r+str(i)+a)
+        return(variants)
+
+
     def __sub__(self,other):
 
         """
