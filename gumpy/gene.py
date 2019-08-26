@@ -12,6 +12,7 @@ class Gene(object):
         assert gene_name is not None, "must provide a gene name!"
         self.gene_name=gene_name
 
+        self.gene_type=feature_type
         assert codes_protein in [True,False], gene_name+": codes_protein must be True or False!"
         self.codes_protein=codes_protein
 
@@ -58,7 +59,6 @@ class Gene(object):
             self.promoter_number_nucleotides=0
 
         self.total_number_nucleotides=len(sequence)
-
 
         if self.codes_protein:
 
@@ -210,9 +210,9 @@ class Gene(object):
             positions=list(self.numbering[mask])
 
         if not positions:
-            positions=None
+            return None
 
-        return(positions)
+        return(numpy.array(positions))
 
     def valid_element(self, element=None):
 

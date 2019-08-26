@@ -201,6 +201,8 @@ class Genome(object):
 
             header,nucleotide_sequence=self._load_fastafile(fasta_file)
 
+            nucleotide_sequence=nucleotide_sequence.lower()
+            
             cols=header[1:].split("|")
             if len(cols)>1:
                 self.id=cols[0]
@@ -211,7 +213,7 @@ class Genome(object):
 
             self.genome_coding_strand=numpy.array(list(nucleotide_sequence))
 
-            self.genome_noncoding_strand=numpy.array([self._complementary_bases[i] for i in self.genome_coding_strand])
+            self.genome_noncoding_strand=self._complement(self.genome_coding_strand)
 
             # store the length of the genome
             self.genome_length=len(self.genome_coding_strand)
@@ -586,7 +588,7 @@ class Genome(object):
             filename (str): path of the output file without the file extension
         '''
 
-        numpy.savez_compressed(filename,sequence=self.genome_coding_strand)
+        numpy.savez_compressed(filename,sequence=self.genome_sequence)
 
     def save_fasta(self,filename=None,compression=False,compresslevel=2,chars_per_line=70,nucleotides_uppercase=True):
 
