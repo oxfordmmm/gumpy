@@ -202,7 +202,7 @@ class Genome(object):
             header,nucleotide_sequence=self._load_fastafile(fasta_file)
 
             nucleotide_sequence=nucleotide_sequence.lower()
-            
+
             cols=header[1:].split("|")
             if len(cols)>1:
                 self.id=cols[0]
@@ -539,6 +539,7 @@ class Genome(object):
     def _set_sequence_metadata(self,idx,sample_info):
 
         mask=self.genome_index==idx
+        assert numpy.count_nonzero(mask)>0, idx
 
         altered_gene=self.genome_feature_name[mask][0]
 
