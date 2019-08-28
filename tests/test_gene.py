@@ -1,5 +1,5 @@
 import pytest, copy, numpy
-from piezo import Gene
+from gumpy import Gene
 
 test_nucleotide_string="aaatttcccggg"
 test_promoter_string="atcg"
