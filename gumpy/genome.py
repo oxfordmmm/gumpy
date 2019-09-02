@@ -679,34 +679,6 @@ class Genome(object):
 
         OUTPUT.close()
 
-    def valid_mutation(self,mutation):
-
-        '''
-        Simply checks to see if the specified mutation validates against the supplied reference genbank file.
-
-        Args:
-            mutation (str) e.g. katG_S315T, katG_c-15t, katG_200_ins_3
-            nucleotide_mutation (bool). Set to True if this is an RNA encoding gene (rather than encoding amino acids)
-
-        Returns:
-            True/False
-        '''
-
-        # find out what the type of gene it is
-        gene_name=mutation.split("_")[0]
-
-        assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
-
-        # find out if it is a GENE, LOCUS or RNA
-        gene_type=self._gene_type[gene_name]
-
-        if gene_type=="RNA":
-            (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,True)
-        else:
-            (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,False)
-
-        print(gene_name,before,position,after,wildcard,promoter,mutation_type)
-
     @staticmethod
     def _get_variant_for_genotype_in_vcf_record(
         genotype: Genotype, record: pysam.VariantRecord
@@ -806,8 +778,34 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
 
+    def valid_mutation(self,mutation):
 
-    def _parse_mutation(mutation,nucleotide_mutation):
+        '''
+        Simply checks to see if the specified mutation validates against the supplied reference genbank file.
+
+        Args:
+            mutation (str) e.g. katG_S315T, katG_c-15t, katG_200_ins_3
+            nucleotide_mutation (bool). Set to True if this is an RNA encoding gene (rather than encoding amino acids)
+
+        Returns:
+            True/False
+        '''
+
+        # find out what the type of gene it is
+        gene_name=mutation.split("_")[0]
+
+        assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
+
+
+
+        if gene_type=="RNA":
+            (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,True)
+        else:
+            (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,False)
+
+        print(gene_name,before,position,after,wildcard,promoter,mutation_type)
+
+    def _parse_mutation(self,mutation,nucleotide_mutation):
         '''
         Parse the mutation and return a collection of variables and Booleans.
 
@@ -837,6 +835,9 @@ class Genome(object):
 
         # the gene/locus name should always be the first component
         gene_name=cols[0]
+
+        # find out if it is a GENE, LOCUS or RNA
+        gene_type=self._gene_type[gene_name]
 
         # determine if this is a CDS or PROMOTER SNP mutation
         if len(cols)==2:
