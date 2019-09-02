@@ -215,5 +215,6 @@ class Gene(object):
         return(numpy.array(positions))
 
     def valid_element(self, element=None):
+        if self.codes_protein:
 
         return(True)

@@ -1,4 +1,4 @@
-import gzip, os, pickle, time, copy
+import gzip, os, pickle, time, copy, re
 from collections import defaultdict
 
 import numpy, h5py
@@ -24,7 +24,7 @@ class Genome(object):
             fasta_file (str): path to the FASTA file to build the reference genome
         '''
 
-        assert ((genbank_file is not None) or (fasta_file is not None)), "one of a GenBank file or a FASTA file must be specified!"
+        assert ((genbank_file is not None) or (fasta_file is not None)), "one of a GenBank file or a FASTA file  must be specified!"
         assert default_promoter_length>=0, "the promoter length must be a positive integer!"
         assert isinstance(default_promoter_length,int), "the promoter length must be a positive integer!"
         assert name is not None, "you must specify a name for this genome!"
@@ -292,6 +292,11 @@ class Genome(object):
 
     @staticmethod
     def _complement(nucleotides_array):
+        """
+        Simple private method for returning the complement of an array of bases.
+
+        Note that takes account of HET and NULL calls via z and x, respectively
+        """
 
         complementary_bases = {'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'x':'x', 'z':'z'}
 
@@ -300,6 +305,15 @@ class Genome(object):
         return(numpy.array(complement))
 
     def contains_gene(self,gene_name):
+        '''
+        Simply checks to see if the specified gene exists in the Genome object.
+
+        Args:
+            gene_name (str) e.g. katG
+
+        Returns:
+            True/False
+        '''
 
         if gene_name in self.gene_names:
             return True
@@ -578,6 +592,20 @@ class Genome(object):
             self.indel_ref[mask]=indel_bases[0]
             self.indel_alt[mask]=indel_bases[1]
 
+    def save_pickle(self,filename=None,compression=True,compresslevel=1):
+
+        assert compression in [True,False]
+        assert filename is not None
+        assert compresslevel in range(1,10), "compresslevel must be in range 1-9!"
+
+        if compression:
+            OUTPUT=gzip.open(filename+".gz",'wb',compresslevel=compresslevel)
+        else:
+            OUTPUT=open(filename,'wb')
+
+        pickle.dump(self,OUTPUT)
+        OUTPUT.close()
+
     def save_sequence(self,filename=None):
 
         '''
@@ -650,6 +678,34 @@ class Genome(object):
             OUTPUT.write(output_string)
 
         OUTPUT.close()
+
+    def valid_mutation(self,mutation):
+
+        '''
+        Simply checks to see if the specified mutation validates against the supplied reference genbank file.
+
+        Args:
+            mutation (str) e.g. katG_S315T, katG_c-15t, katG_200_ins_3
+            nucleotide_mutation (bool). Set to True if this is an RNA encoding gene (rather than encoding amino acids)
+
+        Returns:
+            True/False
+        '''
+
+        # find out what the type of gene it is
+        gene_name=mutation.split("_")[0]
+
+        assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
+
+        # find out if it is a GENE, LOCUS or RNA
+        gene_type=self._gene_type[gene_name]
+
+        if gene_type=="RNA":
+            (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,True)
+        else:
+            (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,False)
+
+        print(gene_name,before,position,after,wildcard,promoter,mutation_type)
 
     @staticmethod
     def _get_variant_for_genotype_in_vcf_record(
@@ -749,3 +805,124 @@ class Genome(object):
         assert len(string)>1, "string is too short!"
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
+
+
+    def _parse_mutation(mutation,nucleotide_mutation):
+        '''
+        Parse the mutation and return a collection of variables and Booleans.
+
+        Args:
+            mutation (str) e.g. katG_S315T, katG_c-15t, katG_200_ins_3
+
+        Returns:
+            gene_name (str): the name of the gene
+            before (str): the amino acid or base in the reference genomes
+            position (int or str): the numerical position of either the amino acid or base
+            after (str): the mutated amino acid or base
+            wildcard (bool): whether the mutation applies to all positions or not
+            promoter (bool): whether the mutation applies to the promoter of a gene
+            mutation_type (str): either PROMOTER, SNP or INDEL
+        '''
+
+        # first, parse the mutation
+        cols=mutation.split("_")
+
+        before=None
+        after=None
+        wildcard=False
+        promoter=False
+
+        # check the mutation at least comprises the expected number of sections
+        assert len(cols) in [2,3,4], "mutation "+mutation+" not in correct format!"
+
+        # the gene/locus name should always be the first component
+        gene_name=cols[0]
+
+        # determine if this is a CDS or PROMOTER SNP mutation
+        if len(cols)==2:
+
+            if '*' in cols[1]:
+
+                # there can be no 'before' amino acid if there is a wildcard at position
+                wildcard=True
+
+                if cols[1][0]=='-':
+                    promoter=True
+                    position=str(cols[1][1:-1])
+                else:
+                    promoter=False
+                    position=str(cols[1][0:-1])
+
+                # all the positions should be a wildcard otherwise something is wrong..
+                assert position=='*', mutation+' has a * but not formatted like a wildcard'
+            else:
+
+                wildcard=False
+
+                before=cols[1][0]
+                position=int(cols[1][1:-1])
+
+                if position<0:
+                    promoter=True
+                else:
+                    promoter=False
+
+            # they all have the after amino acid in the same place
+            after=cols[1][-1]
+
+            # if it is a promoter mutation
+            if promoter:
+
+                if not wildcard:
+                    assert before in ['c','t','g','a'], before+" is not a nucleotide!"
+
+                assert after in ['c','t','g','a','?','z'], after+" is not a nucleotide!"
+
+                mutation_type="PROMOTER"
+
+            # ..otherwise it is an amino acid SNP
+            else:
+
+                if nucleotide_mutation:
+
+                    if not wildcard:
+                        assert before in ['c','t','g','a'], before+" is not a nucleotide!"
+
+                    assert after in ['c','t','g','a','?','z'], after+" is not a nucleotide!"
+
+                else:
+
+                    if not wildcard:
+                        assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid!"
+
+                    assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], after+" is not an amino acid!"
+
+                mutation_type="SNP"
+
+        # otherwise it must be an INDEL, which is always nucleotide based
+        else:
+
+            # deal with wildcards in the position
+            if cols[1] in ["*","-*"]:
+
+                wildcard=True
+
+            else:
+
+                wildcard=False
+
+                position=int(cols[1])
+
+                # be defensive here also!
+                assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format rpoB_1300_ins_1 i.e. the third element must be ins or del, not "+cols[2]
+
+                if len(cols)==4:
+                    if cols[3].isnumeric():
+                        assert int(cols[3])>0, "number of nucleotides inserted or deleted must be >0"
+                    else:
+                        assert bool(re.match('^[catg]+$', cols[3])), "INDEL contains bases other than a,t,c,g"
+
+                # only then allow this to be an INDEL!
+                mutation_type="INDEL"
+
+        return(gene_name,before,position,after,wildcard,promoter,mutation_type)
