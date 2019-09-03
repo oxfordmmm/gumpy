@@ -2,7 +2,7 @@ import pytest, numpy, copy
 
 from pathlib import Path
 
-from gumpy import Genome
+from gumpy.genome import Genome
 
 TEST_CASE_DIR = "tests/test-cases/"
 
@@ -263,7 +263,7 @@ def test_Genome_list_variants_wrt():
 
 
 def test_Genome__complement():
-    
+
     test_sequence=numpy.array(['a','c','t','g','z','x'])
 
     assert numpy.array_equal(reference._complement(test_sequence),numpy.array(['t','g','a','c','z','x']))
