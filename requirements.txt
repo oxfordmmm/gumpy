@@ -1,6 +1,6 @@
 numpy
 h5py
 pysam
-Bio
+biopython
 tqdm
 pytest
