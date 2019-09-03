@@ -214,7 +214,19 @@ class Gene(object):
 
         return(numpy.array(positions))
 
-    # def valid_element(self, element=None):
-    #     if self.codes_protein:
-    #
-    #     return(True)
+    def valid_mutation(self, mutation=None):
+
+        assert mutation is not None, "mutation must be specified! e.g. S315T"
+
+        # if self.codes_protein:
+
+        return(True)
+
+
+    def valid_variant(self, variant=None):
+
+        assert variant is not None, "variant must be specified! e.g. FIXME"
+
+        # if self.codes_protein:
+
+        return(True)

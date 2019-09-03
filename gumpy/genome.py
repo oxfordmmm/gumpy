@@ -778,7 +778,50 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
 
-    def valid_mutation(self,mutation):
+    def valid_genome_variant(self,genome_variant=None):
+
+        assert genome_variant is not None, "a genome_variant must be specified! e.g. FIXME"
+
+        assert len(genome_variant)>=3, "a genome variant must have at least 3 characters e.g. a3c"
+
+        before=genome_variant[0]
+        after=genome_variant[-1]
+
+        try:
+            position=int(genome_variant[1:-1])
+        except:
+            raise TypeError("position "+genome_variant[1:-1]+" is not an integer!")
+
+        # check that the specified base is actually a base!
+        assert before in ['c','t','g','a'], before+" is not a valid nucleotide!"
+
+        # having checked that position is an integer, make a mask
+        mask=self.genome_index==position
+
+        # if the mask contains anything other than a single True, the position is not in the genome
+        assert numpy.count_nonzero(mask)==1, "position specified not in the genome!"
+
+        # confirm that the given base matches what is in the genome
+        assert before==self.genome_sequence[mask][0], "base in genome is "+self.genome_sequence[mask][0]+" but specified base is "+before
+
+        # check that the base to be mutated to is valid (z=het, ?=any other base according to the grammar)
+        assert after in ['c','t','g','a','?','z'], after+" is not a valid nucleotide!"
+
+        return True
+
+    def valid_gene_variant(self,gene_variant=None):
+
+        assert gene_variant is not None, "a gene_variant must be specified! e.g. FIXME"
+
+        # find out what the type of gene it is
+        gene_name=gene_mutation.split("_")[0]
+
+        assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
+
+        return (self.genes[gene_name].valid_variant())
+
+
+    def valid_gene_mutation(self,gene_mutation=None):
 
         '''
         Simply checks to see if the specified mutation validates against the supplied reference genbank file.
@@ -791,19 +834,21 @@ class Genome(object):
             True/False
         '''
 
+        assert gene_mutation is not None, "a gene_mutation must be specified! e.g. katG_S315T"
+
         # find out what the type of gene it is
-        gene_name=mutation.split("_")[0]
+        gene_name=gene_mutation.split("_")[0]
 
         assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
 
+        return (self.genes[gene_name].valid_mutation())
 
-
-        if gene_type=="RNA":
-            (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,True)
-        else:
-            (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,False)
-
-        print(gene_name,before,position,after,wildcard,promoter,mutation_type)
+        # if gene_type=="RNA":
+        #     (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,True)
+        # else:
+        #     (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,False)
+        #
+        # print(gene_name,before,position,after,wildcard,promoter,mutation_type)
 
     def _parse_mutation(self,mutation,nucleotide_mutation):
         '''
