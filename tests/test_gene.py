@@ -1,5 +1,5 @@
 import pytest, copy, numpy
-from gumpy import Gene
+# from gumpy.gene import Gene
 
 test_nucleotide_string="aaatttcccggg"
 test_promoter_string="atcg"
