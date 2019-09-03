@@ -79,7 +79,7 @@ class Genome(object):
 
             self.is_indel=numpy.zeros(self.genome_length,dtype=bool)
             self.indel_length=numpy.zeros(self.genome_length,int)
-            
+
             previous_gene_reversed=False
 
             # go through the GenBank file record-by-record
@@ -970,7 +970,7 @@ class Genome(object):
                 except:
                     raise TypeError("the position "+cols[1]+" is not an integer!")
 
-                mask=self.genes[gene_name].position==position
+                mask=self.genes[gene_name].positions==position
 
                 assert numpy.count_nonzero(mask)==1, "specified position "+cols[1]+" not in the gene"
 

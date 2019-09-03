@@ -221,6 +221,10 @@ class Gene(object):
             mask=self.sequence!=other.sequence
             positions=list(self.numbering[mask])
 
+        mask=self.is_indel
+        pos=list(self.positions[mask])
+        positions=positions+pos
+
         if not positions:
             return None
 

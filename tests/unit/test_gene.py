@@ -16,9 +16,9 @@ def test_Gene_instantiation():
     assert test_gene.numbering[0]==-100
     assert test_gene.numbering[-1]==540
     assert test_gene.numbering[-2]==540
-    assert test_gene.index[test_gene.position==1]==3067
-    assert test_gene.index[test_gene.position==2]==3068
-    assert test_gene.index[test_gene.position==-1]==3066
+    assert test_gene.index[test_gene.positions==1]==3067
+    assert test_gene.index[test_gene.positions==2]==3068
+    assert test_gene.index[test_gene.positions==-1]==3066
     assert test_gene.sequence[0]=='a'
     assert test_gene.sequence[-1]=='g'
     assert test_gene.sequence[-2]=='a'
@@ -35,7 +35,7 @@ def test_Gene_instantiation():
 #     assert test_gene.__repr__()==expected_output
 
 new_gene=copy.deepcopy(test_gene)
-new_gene.sequence[new_gene.position==1]='t'
+new_gene.sequence[new_gene.positions==1]='t'
 new_gene._translate_sequence()
 
 def test_Gene_list_mutations_wrt_1():
@@ -47,8 +47,8 @@ def test_Gene___sub__1():
     assert new_gene-test_gene==[1]
 
 new_gene2=copy.deepcopy(test_gene)
-new_gene2.sequence[new_gene2.position==1]='c'
-new_gene2.sequence[new_gene2.position==4]='c'
+new_gene2.sequence[new_gene2.positions==1]='c'
+new_gene2.sequence[new_gene2.positions==4]='c'
 new_gene2._translate_sequence()
 
 def test_Gene_list_mutations_wrt_2():
@@ -62,9 +62,9 @@ def test_Gene___sub__2():
 
 # mutate it away, and then back again
 new_gene3=copy.deepcopy(test_gene)
-new_gene3.sequence[new_gene3.position==1]='t'
+new_gene3.sequence[new_gene3.positions==1]='t'
 new_gene3._translate_sequence()
-new_gene3.sequence[new_gene3.position==1]='a'
+new_gene3.sequence[new_gene3.positions==1]='a'
 new_gene3._translate_sequence()
 
 def test_Gene_list_mutations_wrt_3():
