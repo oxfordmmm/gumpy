@@ -337,6 +337,7 @@ class Genome(object):
     def at_index(self,index):
 
         assert index > 0, "index must be a positive integer!"
+        assert isinstance(index,int), "index must be a positive integer!"
         assert index <= self.genome_length, "index must be less than the length of the genome!"
 
         mask=self.genome_index==index
@@ -976,6 +977,7 @@ class Genome(object):
                     if cols[3].isnumeric():
                         assert int(cols[3])>0, "number of nucleotides inserted or deleted must be >0"
                     else:
+                        assert cols[2]=="ins", "can only specify precise bases for an insertion!"
                         assert bool(re.match('^[catg]+$', cols[3])), "INDEL contains bases other than a,t,c,g"
 
                 return True

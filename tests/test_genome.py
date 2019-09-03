@@ -57,7 +57,6 @@ def test_Genome_instantiate_fasta():
     assert reference2.genome_coding_strand[0]=='a'
     assert reference2.genome_coding_strand[-1]=='t'
 
-
 def test_Genome_valid_gene_mutation_snps():
 
     # correct protein SNPs
@@ -69,39 +68,56 @@ def test_Genome_valid_gene_mutation_snps():
     assert reference.valid_gene_mutation("M2_*?")
     assert reference.valid_gene_mutation("M2_-*?")
 
+    # just badly formed
     with pytest.raises(Exception):
-
-        # just badly formed
         assert reference.valid_gene_mutation("____")
-        assert reference.valid_gene_mutation("")
-        assert reference.valid_gene_mutation("flkgjslkjg")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("o_o_o_o_9")
+    with pytest.raises(Exception):
+        assert reference.valid_gene_mutation("flkgjslkjg")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("o_i9k")
 
-        # genes not present
+    # genes not present
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("lkdfjlksdjf_P1N")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("rpoB_P76L")
 
-        # incorrect reference amino acids
+    # incorrect reference amino acids
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_P1N")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("M2_P76L")
 
-        # bad reference amino acids
+    # bad reference amino acids
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_;1N")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_B1N")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_81N")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("M2_J76L")
 
-        # bad positions
+    # bad positions
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_PKN")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_P-2N")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_P1000N")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_P:N")
 
-        # bad target amino acids
+    # bad target amino acids
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_P1O")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_PKB")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_PK;")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_PKJ")
 
 
@@ -114,27 +130,30 @@ def test_Genome_valid_gene_mutation_indels():
     assert reference.valid_gene_mutation("F_1_ins_3")
     assert reference.valid_gene_mutation("F_1_ins_ctga")
     assert reference.valid_gene_mutation("F_1_fs")
+    assert reference.valid_gene_mutation("F_1_del_3")
+    assert reference.valid_gene_mutation("F_-1_indel")
 
+    # bad grammar
     with pytest.raises(Exception):
-
-        # bad grammar
         assert reference.valid_gene_mutation("F_1_indl")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_1_frameshift")
-        assert reference.valid_gene_mutation("F_1_del_3")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_1_del_acgt")
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_1_ins_ggaf")
 
-        # wrong ordering
+    # wrong ordering
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_indel_1")
 
-        # incorrect gene
+    # incorrect gene
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F1_1_indel")
 
-        # in promoter
-        assert reference.valid_gene_mutation("F_-1_indel")
-
-        # not in gene
-        assert reference.valid_gene_mutation("F_1000_indel")
+    # not in gene
+    with pytest.raises(Exception):
+        assert reference.valid_gene_mutation("F_2000_indel")
 
 def test_Genome_valid_genome_variant():
 
@@ -143,30 +162,44 @@ def test_Genome_valid_genome_variant():
     assert reference.valid_genome_variant("g3a")
     assert reference.valid_genome_variant("t13335g")
 
+    # incorrect reference base
     with pytest.raises(Exception):
-
-        # incorrect reference base
         assert reference.valid_genome_variant("t1c")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("a2g")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("t3a")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("c13335g")
 
-        # badly formed reference base
+    # badly formed reference base
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("11c")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("?2g")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("P3a")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant(" 13335g")
 
-        # out of range index
+    # out of range index
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("a0c")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("c-1g")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("g-2a")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("t13336g")
 
-        # badly formed index
+    # badly formed index
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("a1.1c")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("c2fg")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("gya")
+    with pytest.raises(Exception):
         assert reference.valid_genome_variant("tg")
 
 def test_Genome_gbk_fasta_identical():
@@ -220,13 +253,16 @@ def test_Genome_at_index():
     assert reference.at_index(7033)!="F"
     assert reference.at_index(7033) is not None
 
+    # bad position
     with pytest.raises(Exception):
-
-        # bad position
         reference.at_index(-2)
+    with pytest.raises(Exception):
         reference.at_index(0)
+    with pytest.raises(Exception):
         reference.at_index(1.3)
+    with pytest.raises(Exception):
         reference.at_index('gh')
+    with pytest.raises(Exception):
         reference.at_index(13336)
 
 def test_Genome_calculate_snp_distance():
