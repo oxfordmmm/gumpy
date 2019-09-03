@@ -2,10 +2,10 @@ language: python
 python:
  - "3.5"
 before_install:
- - pip install --user codecov
+ - pip install codecov
 install:
  - pip install -r requirements.txt
-after_success:
- - codecov --file coverage/lcov.info --disable search
 script: 
  - python -m pytest
+after_success:
+ - codecov 
