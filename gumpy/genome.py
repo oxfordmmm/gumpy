@@ -7,7 +7,6 @@ import pysam
 from Bio import SeqIO
 from tqdm import tqdm
 
-import gumpy
 from gumpy import Gene
 from gumpy import Genotype
 
