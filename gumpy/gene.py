@@ -7,7 +7,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self,gene_name=None,sequence=None,index=None,numbering=None,codes_protein=True,feature_type=None):
+    def __init__(self,gene_name=None,sequence=None,index=None,numbering=None,positions=None,codes_protein=True,feature_type=None):
 
         assert gene_name is not None, "must provide a gene name!"
         self.gene_name=gene_name
@@ -34,6 +34,7 @@ class Gene(object):
             self.on_noncoding_strand=False
             self.sequence=sequence
             self.numbering=numbering
+            self.position=positions
             self.index=index
             self.is_cds=cds_mask
             self.is_promoter=promoter_mask
@@ -41,6 +42,7 @@ class Gene(object):
             self.on_noncoding_strand=True
             self.sequence=sequence[::-1]
             self.numbering=numbering[::-1]
+            self.position=positions[::-1]
             self.index=index[::-1]
             self.is_cds=cds_mask[::-1]
             self.is_promoter=promoter_mask[::-1]
@@ -214,19 +216,37 @@ class Gene(object):
 
         return(numpy.array(positions))
 
-    def valid_mutation(self, mutation=None):
 
-        assert mutation is not None, "mutation must be specified! e.g. S315T"
-
-        # if self.codes_protein:
-
-        return(True)
-
-
-    def valid_variant(self, variant=None):
+    def valid_variant(self, variant):
 
         assert variant is not None, "variant must be specified! e.g. FIXME"
 
-        # if self.codes_protein:
+        # since the smallest variant is 'a1c'
+        assert len(variant)>=3, "a variant must have at least 3 characters e.g. a3c"
 
-        return(True)
+        before=variant[0]
+        after=variant[-1]
+
+        assert before!=after, "before and after are identical hence this is not a variant!"
+
+        try:
+            position=int(variant[1:-1])
+        except:
+            raise TypeError("position "+variant[1:-1]+" is not an integer!")
+
+        # check that the specified base is actually a base!
+        assert before in ['c','t','g','a'], before+" is not a valid nucleotide!"
+
+        # having checked that position is an integer, make a mask
+        mask=self.position==position
+
+        # if the mask contains anything other than a single True, the position is not in the genome
+        assert numpy.count_nonzero(mask)==1, "position specified not in the genome!"
+
+        # confirm that the given base matches what is in the genome
+        assert before==self.sequence[mask][0], "base in genome is "+self.sequence[mask][0]+" but specified base is "+before
+
+        # check that the base to be mutated to is valid (z=het, ?=any other base according to the grammar)
+        assert after in ['c','t','g','a','?','z'], after+" is not a valid nucleotide!"
+
+        return True

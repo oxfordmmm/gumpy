@@ -76,6 +76,7 @@ class Genome(object):
 
             self.genome_sequence=copy.deepcopy(self.genome_coding_strand)
             self.genome_numbering=numpy.zeros(self.genome_length,int)
+            self.genome_positions=numpy.zeros(self.genome_length,int)
 
             previous_gene_reversed=False
 
@@ -140,12 +141,14 @@ class Genome(object):
 
                             self.genome_sequence[mask]=self.genome_coding_strand[mask]
 
-                            promoter_coding_position=self.genome_index[promoter_mask]-gene_start-1
+                            promoter_coding_numbering=self.genome_index[promoter_mask]-gene_start-1
 
                             if codes_protein:
-                                gene_coding_position=numpy.floor_divide(self.genome_index[gene_mask]-gene_start+2,3)
+                                gene_coding_numbering=numpy.floor_divide(self.genome_index[gene_mask]-gene_start+2,3)
                             else:
-                                gene_coding_position=self.genome_index[gene_mask]-gene_start
+                                gene_coding_numbering=self.genome_index[gene_mask]-gene_start
+
+                            gene_coding_position=self.genome_index[gene_mask]-gene_start
 
                         elif record.strand==-1:
 
@@ -166,13 +169,14 @@ class Genome(object):
                             # replace the coding sequence with the complement
                             self.genome_sequence[mask]=self.genome_noncoding_strand[mask]
 
-                            promoter_coding_position=-1*(self.genome_index[promoter_mask]-gene_end)
+                            promoter_coding_numbering=-1*(self.genome_index[promoter_mask]-gene_end)
 
                             if codes_protein:
-                                gene_coding_position=-1*(numpy.floor_divide(self.genome_index[gene_mask]-gene_end-1,3))
+                                gene_coding_numbering=-1*(numpy.floor_divide(self.genome_index[gene_mask]-gene_end-1,3))
                             else:
-                                gene_coding_position=-1*(self.genome_index[gene_mask]-gene_end)
+                                gene_coding_numbering=-1*(self.genome_index[gene_mask]-gene_end)
 
+                            gene_coding_position=-1*(self.genome_index[gene_mask]-gene_end)
                         else:
                             raise TypeError("gene in GenBank file has strand that is not 1 or -1")
 
@@ -180,8 +184,13 @@ class Genome(object):
                         self.genome_feature_type[mask]=type
                         self.genome_feature_name[mask]=gene_name
 
-                        self.genome_numbering[gene_mask]=gene_coding_position
-                        self.genome_numbering[promoter_mask]=promoter_coding_position
+                        self.genome_numbering[gene_mask]=gene_coding_numbering
+                        self.genome_numbering[promoter_mask]=promoter_coding_numbering
+
+                        promoter_coding_position=promoter_coding_numbering
+
+                        self.genome_positions[gene_mask]=gene_coding_position
+                        self.genome_positions[promoter_mask]=promoter_coding_position
 
                         self.genome_is_cds[gene_mask]=True
                         self.genome_is_promoter[gene_mask]=False
@@ -238,6 +247,7 @@ class Genome(object):
                                     sequence=self.genome_sequence[mask],\
                                     index=self.genome_index[mask],\
                                     numbering=self.genome_numbering[mask],\
+                                    positions=self.genome_positions[mask],
                                     codes_protein=self._gene_codes_protein[gene],\
                                     feature_type=self._gene_type[gene]  )
 
@@ -315,10 +325,15 @@ class Genome(object):
             True/False
         '''
 
-        if gene_name in self.gene_names:
-            return True
+        # convert from numpy array to Python list to avoid FutureWarning about comparing numpy arrays and Python objects
+        # https://stackoverflow.com/questions/40659212/futurewarning-elementwise-comparison-failed-returning-scalar-but-in-the-futur
+        list_of_genes=list(self.gene_names)
+
+        if gene_name in list_of_genes:
+            return(True)
         else:
-            return False
+            return(False)
+
 
     def at_index(self,index):
 
@@ -778,14 +793,26 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
 
-    def valid_genome_variant(self,genome_variant=None):
+    def valid_genome_variant(self,genome_variant):
+        '''
+        Check whether the supplied genome_variant is valid and correctly formed.
+
+        Args:
+            genome_variant (str): in the format a100t (at genome index 100 mutate the adenosine to thymine )
+
+        Returns:
+            either fails an assertion or is True
+        '''
 
         assert genome_variant is not None, "a genome_variant must be specified! e.g. FIXME"
 
+        # since the smallest variant is 'a1c'
         assert len(genome_variant)>=3, "a genome variant must have at least 3 characters e.g. a3c"
 
         before=genome_variant[0]
         after=genome_variant[-1]
+
+        assert before!=after, "before and after are identical hence this is not a variant!"
 
         try:
             position=int(genome_variant[1:-1])
@@ -809,48 +836,8 @@ class Genome(object):
 
         return True
 
-    def valid_gene_variant(self,gene_variant=None):
 
-        assert gene_variant is not None, "a gene_variant must be specified! e.g. FIXME"
-
-        # find out what the type of gene it is
-        gene_name=gene_mutation.split("_")[0]
-
-        assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
-
-        return (self.genes[gene_name].valid_variant())
-
-
-    def valid_gene_mutation(self,gene_mutation=None):
-
-        '''
-        Simply checks to see if the specified mutation validates against the supplied reference genbank file.
-
-        Args:
-            mutation (str) e.g. katG_S315T, katG_c-15t, katG_200_ins_3
-            nucleotide_mutation (bool). Set to True if this is an RNA encoding gene (rather than encoding amino acids)
-
-        Returns:
-            True/False
-        '''
-
-        assert gene_mutation is not None, "a gene_mutation must be specified! e.g. katG_S315T"
-
-        # find out what the type of gene it is
-        gene_name=gene_mutation.split("_")[0]
-
-        assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
-
-        return (self.genes[gene_name].valid_mutation())
-
-        # if gene_type=="RNA":
-        #     (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,True)
-        # else:
-        #     (gene_name,before,position,after,wildcard,promoter,mutation_type)=self._parse_mutation(mutation,False)
-        #
-        # print(gene_name,before,position,after,wildcard,promoter,mutation_type)
-
-    def _parse_mutation(self,mutation,nucleotide_mutation):
+    def valid_gene_mutation(self,mutation):
         '''
         Parse the mutation and return a collection of variables and Booleans.
 
@@ -873,7 +860,6 @@ class Genome(object):
         before=None
         after=None
         wildcard=False
-        promoter=False
 
         # check the mutation at least comprises the expected number of sections
         assert len(cols) in [2,3,4], "mutation "+mutation+" not in correct format!"
@@ -881,8 +867,15 @@ class Genome(object):
         # the gene/locus name should always be the first component
         gene_name=cols[0]
 
+        assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
+
         # find out if it is a GENE, LOCUS or RNA
         gene_type=self._gene_type[gene_name]
+
+        if gene_type=="RNA":
+            nucleotide_mutation=True
+        else:
+            nucleotide_mutation=False
 
         # determine if this is a CDS or PROMOTER SNP mutation
         if len(cols)==2:
@@ -893,14 +886,16 @@ class Genome(object):
                 wildcard=True
 
                 if cols[1][0]=='-':
-                    promoter=True
+                    nucleotide_mutation=True
                     position=str(cols[1][1:-1])
                 else:
-                    promoter=False
+                    nucleotide_mutation=False
                     position=str(cols[1][0:-1])
 
                 # all the positions should be a wildcard otherwise something is wrong..
                 assert position=='*', mutation+' has a * but not formatted like a wildcard'
+
+
             else:
 
                 wildcard=False
@@ -908,42 +903,49 @@ class Genome(object):
                 before=cols[1][0]
                 position=int(cols[1][1:-1])
 
-                if position<0:
-                    promoter=True
-                else:
-                    promoter=False
+                if position<0 or before.islower():
+                    nucleotide_mutation=True
 
             # they all have the after amino acid in the same place
             after=cols[1][-1]
 
-            # if it is a promoter mutation
-            if promoter:
+            if after.islower():
+                nucleotide_mutation=True
 
-                if not wildcard:
-                    assert before in ['c','t','g','a'], before+" is not a nucleotide!"
+            # if it is a promoter mutation
+            if nucleotide_mutation:
 
                 assert after in ['c','t','g','a','?','z'], after+" is not a nucleotide!"
 
-                mutation_type="PROMOTER"
+                if wildcard:
+                    return(True)
+
+                else:
+                    assert before in ['c','t','g','a'], before+" is not a nucleotide!"
+
+                    return(self.genes[gene_name].valid_variant(cols[1]))
 
             # ..otherwise it is an amino acid SNP
             else:
 
-                if nucleotide_mutation:
+                assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], after+" is not an amino acid!"
 
-                    if not wildcard:
-                        assert before in ['c','t','g','a'], before+" is not a nucleotide!"
+                if not wildcard:
 
-                    assert after in ['c','t','g','a','?','z'], after+" is not a nucleotide!"
+                    assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid!"
 
-                else:
+                    try:
+                        position=int(cols[1][1:-1])
+                    except:
+                        raise TypeError("position "+cols[1]+" is not an integer")
 
-                    if not wildcard:
-                        assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid!"
+                    mask=self.genes[gene_name].amino_acid_numbering==position
 
-                    assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], after+" is not an amino acid!"
+                    assert numpy.count_nonzero(mask)==1, "position "+str(position)+" is not in the genome"
 
-                mutation_type="SNP"
+                    assert before==self.genes[gene_name].amino_acid_sequence[mask][0], "specified amino acid is "+before+" but is "+self.genes[gene_name].amino_acid_sequence[mask][0]+" in the reference genome"
+
+                return(True)
 
         # otherwise it must be an INDEL, which is always nucleotide based
         else:
@@ -951,13 +953,22 @@ class Genome(object):
             # deal with wildcards in the position
             if cols[1] in ["*","-*"]:
 
-                wildcard=True
+                assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format katG_*_fs i.e. the third element must be ins or del, not "+cols[2]
+
+                return(True)
 
             else:
 
-                wildcard=False
+                assert "*" not in cols[1], "mutation "+mutation+" contains a wildcard (*) but is badly formed"
 
-                position=int(cols[1])
+                try:
+                    position=int(cols[1])
+                except:
+                    raise TypeError("the position "+cols[1]+" is not an integer!")
+
+                mask=self.genes[gene_name].position==position
+
+                assert numpy.count_nonzero(mask)==1, "specified position "+cols[1]+" not in the gene"
 
                 # be defensive here also!
                 assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format rpoB_1300_ins_1 i.e. the third element must be ins or del, not "+cols[2]
@@ -968,7 +979,4 @@ class Genome(object):
                     else:
                         assert bool(re.match('^[catg]+$', cols[3])), "INDEL contains bases other than a,t,c,g"
 
-                # only then allow this to be an INDEL!
-                mutation_type="INDEL"
-
-        return(gene_name,before,position,after,wildcard,promoter,mutation_type)
+                return True
