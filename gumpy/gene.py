@@ -7,7 +7,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self,gene_name=None,sequence=None,index=None,numbering=None,positions=None,codes_protein=True,feature_type=None):
+    def __init__(self,gene_name=None,sequence=None,index=None,numbering=None,positions=None,is_indel=None,indel_length=None,codes_protein=True,feature_type=None):
 
         assert gene_name is not None, "must provide a gene name!"
         self.gene_name=gene_name
@@ -34,7 +34,9 @@ class Gene(object):
             self.on_noncoding_strand=False
             self.sequence=sequence
             self.numbering=numbering
-            self.position=positions
+            self.positions=positions
+            self.is_indel=is_indel
+            self.indel_length=indel_length
             self.index=index
             self.is_cds=cds_mask
             self.is_promoter=promoter_mask
@@ -42,7 +44,9 @@ class Gene(object):
             self.on_noncoding_strand=True
             self.sequence=sequence[::-1]
             self.numbering=numbering[::-1]
-            self.position=positions[::-1]
+            self.positions=positions[::-1]
+            self.is_indel=is_indel[::-1]
+            self.indel_length=indel_length[::-1]
             self.index=index[::-1]
             self.is_cds=cds_mask[::-1]
             self.is_promoter=promoter_mask[::-1]
@@ -157,7 +161,7 @@ class Gene(object):
 
         mutations=[]
         if self.codes_protein:
-            mask=self.amino_acid_sequence!=other.amino_acid_sequence
+            mask=(self.amino_acid_sequence!=other.amino_acid_sequence)
             pos=self.amino_acid_numbering[mask]
             ref=other.amino_acid_sequence[mask]
             alt=self.amino_acid_sequence[mask]
@@ -178,6 +182,12 @@ class Gene(object):
             alt=self.sequence[mask]
             for (r,p,a) in zip(ref,pos,alt):
                 mutations.append(r+str(p)+a)
+
+        mask=self.is_indel
+        pos=list(self.positions[mask])
+        length=list(self.indel_length[mask])
+        for (p,l) in zip(pos,length):
+            mutations.append(str(p)+"_indel_"+str(l))
 
         if not mutations:
             mutations=None
@@ -238,7 +248,7 @@ class Gene(object):
         assert before in ['c','t','g','a'], before+" is not a valid nucleotide!"
 
         # having checked that position is an integer, make a mask
-        mask=self.position==position
+        mask=self.positions==position
 
         # if the mask contains anything other than a single True, the position is not in the genome
         assert numpy.count_nonzero(mask)==1, "position specified not in the genome!"

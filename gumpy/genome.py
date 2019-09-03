@@ -77,6 +77,9 @@ class Genome(object):
             self.genome_numbering=numpy.zeros(self.genome_length,int)
             self.genome_positions=numpy.zeros(self.genome_length,int)
 
+            self.is_indel=numpy.zeros(self.genome_length,dtype=bool)
+            self.indel_length=numpy.zeros(self.genome_length,int)
+            
             previous_gene_reversed=False
 
             # go through the GenBank file record-by-record
@@ -247,6 +250,8 @@ class Genome(object):
                                     index=self.genome_index[mask],\
                                     numbering=self.genome_numbering[mask],\
                                     positions=self.genome_positions[mask],
+                                    is_indel=self.is_indel[mask],
+                                    indel_length=self.indel_length[mask],
                                     codes_protein=self._gene_codes_protein[gene],\
                                     feature_type=self._gene_type[gene]  )
 
@@ -371,7 +376,6 @@ class Genome(object):
 
         # since we are now applying a VCF file, it makes sense to create these numpy arrays
         self.coverage=numpy.zeros(self.genome_length,int)
-        self.indel_length=numpy.zeros(self.genome_length,int)
         self.indel_ref=numpy.zeros(self.genome_length,dtype='<U50')
         self.indel_alt=numpy.zeros(self.genome_length,dtype='<U50')
 
@@ -380,7 +384,7 @@ class Genome(object):
         self.is_null=numpy.zeros(self.genome_length,dtype=bool)
         self.is_het=numpy.zeros(self.genome_length,dtype=bool)
         self.is_snp=numpy.zeros(self.genome_length,dtype=bool)
-        self.is_indel=numpy.zeros(self.genome_length,dtype=bool)
+
 
         # set up a dictionary for the metadata since the field names will vary between calling calling codes
         # for Clockwork these will be GT_CONF and GT_CONF_PERCENTILE
