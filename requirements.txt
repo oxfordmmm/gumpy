@@ -4,3 +4,4 @@ pysam
 biopython
 tqdm
 pytest
+pytest-cov
