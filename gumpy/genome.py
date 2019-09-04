@@ -316,6 +316,8 @@ class Genome(object):
 
         mask=self.genome_coding_strand!=other.genome_coding_strand
 
+        mask+=self.indel_length!=0
+
         return(self.genome_index[mask])
 
     @staticmethod

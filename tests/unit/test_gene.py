@@ -57,7 +57,7 @@ def test_Gene_list_mutations_wrt_2():
 
 def test_Gene___sub__2():
 
-    assert list(new_gene2-test_gene)==[1,2]
+    assert list(new_gene2-test_gene)==[1,4]
 
 
 # mutate it away, and then back again
