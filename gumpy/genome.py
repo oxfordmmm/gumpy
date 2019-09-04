@@ -821,7 +821,7 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
 
-    def valid_genome_variant(self,genome_variant):
+    def valid_genome_variant(self,genome_variant: str):
         '''
         Check whether the supplied genome_variant is valid and correctly formed.
 
@@ -864,6 +864,73 @@ class Genome(object):
         assert after in ['c','t','g','a','?','z'], after+" is not a valid nucleotide!"
 
         return True
+
+    def convert_variant_to_mutation(self,gene_variant: str):
+        """
+        Function for converting a nucleotide gene variant to an amino acid mutation
+
+        This is necessary since the TB genetic catalogues "speak" gene_mutations not gene_variants
+
+        E.g. rpoB_c1349t -> rpoB_S450L
+
+        Args:
+            gene_variant (str): must be in the form e.g. rpoB_c1349t
+
+        Returns:
+            gene_mutation (str): e.g. rpoB_S450L
+        """
+
+
+        # break apart the gene variant
+        cols=gene_variant.split("_")
+
+        # check it is in the format we expect
+        assert len(cols)==2, "a gene_variant can only contain two elements"
+
+        # retrieve the gene name
+        gene_name=cols[0]
+
+        # check the gene is found in this genome
+        assert self.contains_gene(gene_name), "gene not in the genome!"
+
+        # make a copy of the gene so we can mutate it to get at the answer
+        tmp_gene=copy.deepcopy(self.genes[gene_name])
+
+        # split apart the variant
+        ref_base=cols[1][0]
+        assert ref_base in ['a','c','t','g'], 'reference base is not a, t, c or g!'
+
+        alt_base=cols[1][-1]
+        assert alt_base in ['a','c','t','g','x','z'], 'alt base is not a, t, c, g, z or x!'
+
+        try:
+            position=int(cols[1][1:-1])
+        except:
+            raise TypeError("the position "+cols[1][1:-1]+" is not an integer!")
+
+        # now we can make the mask based on the nucleotide position
+        mask=tmp_gene.positions==position
+
+        # more paranoia and check the provided reference base matches what is in the gene
+        assert tmp_gene.sequence[mask]==ref_base, 'provided reference base '+ref_base+' does not match '+tmp_gene.sequence[mask][0]+" which is what is in the genome"
+
+        # find out the amino acid numbering
+        amino_acid_position=tmp_gene.numbering[mask][0]
+
+        # find out the reference amino acid
+        ref=tmp_gene.amino_acid_sequence[tmp_gene.amino_acid_numbering==amino_acid_position][0]
+
+        # now mutate the base
+        tmp_gene.sequence[mask]=alt_base
+
+        # retranslate the amino acid sequence
+        tmp_gene._translate_sequence()
+
+        # now find out the new amino acid
+        alt=tmp_gene.amino_acid_sequence[tmp_gene.amino_acid_numbering==amino_acid_position][0]
+
+        # and return the gene_mutation
+        return(gene_name+"_"+ref+str(amino_acid_position)+alt)
 
 
     def valid_gene_mutation(self,mutation):
