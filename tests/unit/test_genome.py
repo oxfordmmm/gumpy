@@ -202,6 +202,10 @@ def test_Genome_valid_genome_variant():
     with pytest.raises(Exception):
         assert reference.valid_genome_variant("tg")
 
+# def test_Genome_convert_variant_to_mutation():
+#
+#     assert reference.convert_variant_to_mutation("M2_t1g")=='brian'
+
 def test_Genome_gbk_fasta_identical():
 
     assert reference.genome_length==reference2.genome_length
