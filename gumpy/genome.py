@@ -826,18 +826,19 @@ class Genome(object):
 
         assert genome_variant is not None, "a genome_variant must be specified! e.g. FIXME"
 
-        # since the smallest variant is 'a1c'
-        assert len(genome_variant)>=3, "a genome variant must have at least 3 characters e.g. a3c"
+        # since the smallest variant is '1a>c'
+        assert len(genome_variant)>=4, "a genome variant must have at least 4 characters e.g. 3a>c"
+        assert genome_variant[-2]=='>', "a genome variant must be of the form 3a>c where 3 is the 1-based position in the genome"
 
-        before=genome_variant[0]
+        before=genome_variant[-3]
         after=genome_variant[-1]
 
         assert before!=after, "before and after are identical hence this is not a variant!"
 
         try:
-            position=int(genome_variant[1:-1])
+            position=int(genome_variant[:-3])
         except:
-            raise TypeError("position "+genome_variant[1:-1]+" is not an integer!")
+            raise TypeError("position "+genome_variant[:-3]+" is not an integer!")
 
         # check that the specified base is actually a base!
         assert before in ['c','t','g','a'], before+" is not a valid nucleotide!"

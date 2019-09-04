@@ -157,48 +157,48 @@ def test_Genome_valid_gene_mutation_indels():
 
 def test_Genome_valid_genome_variant():
 
-    assert reference.valid_genome_variant("a1c")
-    assert reference.valid_genome_variant("c2g")
-    assert reference.valid_genome_variant("g3a")
-    assert reference.valid_genome_variant("t13335g")
+    assert reference.valid_genome_variant("1a>c")
+    assert reference.valid_genome_variant("2c>g")
+    assert reference.valid_genome_variant("3g>a")
+    assert reference.valid_genome_variant("13335t>g")
 
     # incorrect reference base
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("t1c")
+        assert reference.valid_genome_variant("1t>c")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("a2g")
+        assert reference.valid_genome_variant("2a>g")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("t3a")
+        assert reference.valid_genome_variant("3t>a")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("c13335g")
+        assert reference.valid_genome_variant("13335c>g")
 
     # badly formed reference base
     with pytest.raises(Exception):
         assert reference.valid_genome_variant("11c")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("?2g")
+        assert reference.valid_genome_variant("2?>g")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("P3a")
+        assert reference.valid_genome_variant("3P>a")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant(" 13335g")
+        assert reference.valid_genome_variant("13335 >g")
 
     # out of range index
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("a0c")
+        assert reference.valid_genome_variant("0a>c")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("c-1g")
+        assert reference.valid_genome_variant("-1c>g")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("g-2a")
+        assert reference.valid_genome_variant("-2g>a")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("t13336g")
+        assert reference.valid_genome_variant("13336t>g")
 
     # badly formed index
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("a1.1c")
+        assert reference.valid_genome_variant("1.1a>c")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("c2fg")
+        assert reference.valid_genome_variant("2c>fg")
     with pytest.raises(Exception):
-        assert reference.valid_genome_variant("gya")
+        assert reference.valid_genome_variant("yg>a")
     with pytest.raises(Exception):
         assert reference.valid_genome_variant("tg")
 
