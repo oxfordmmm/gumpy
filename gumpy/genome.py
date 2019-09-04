@@ -51,6 +51,8 @@ class Genome(object):
             # create an array of the genome indices
             self.genome_index=numpy.arange(1,self.genome_length+1)
 
+            self.version=reference_genome.annotations['accessions'][0]+"."+str(reference_genome.annotations['sequence_version'])
+
             # store some of the metadata, if it is present
             self.id=reference_genome.id
 
@@ -752,12 +754,18 @@ class Genome(object):
 
     def _is_record_invalid(self, ignore_filter: bool, record: pysam.VariantRecord) -> bool:
         """
-        Simple private method for parsing VCF record
+        Simple private method for parsing VCF record.
+
+        Args:
+            ignore_filter (bool):  ignore the FILTER column in the VCF file?
+            record (pysam.VariantRecord): the record object from the VCF file to consider
+
+        Returns:
+            True/False
         """
         return ( not ignore_filter and "PASS" not in record.filter.keys() )
 
     def _minos_gt_in_wrong_position_fix(self,record, sample_idx):
-
         """
         Hacky private method to fix a minos mistake
 
@@ -798,7 +806,7 @@ class Genome(object):
         return(header,nucleotide_sequence)
 
     @staticmethod
-    def _insert_newlines(string, every=70):
+    def _insert_newlines(string: str, every=70):
         '''
         Simple private method for inserting a carriage return every N characters into a long string.
 
