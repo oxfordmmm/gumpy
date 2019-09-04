@@ -239,11 +239,25 @@ class Genome(object):
         self.bases_to_integer, self.genome_coding_integers = numpy.unique(self.genome_coding_strand, return_inverse=True)
 
     def _recreate_genes(self,list_of_genes,show_progress_bar=False):
+        """
+        Private method to re-instantiate the passed list Genes.
 
+        This translates the nucleotide sequence into amino acids (if the gene codes protein) and is
+        hence necessary after applying a vcf file, albeit only for those genes whose sequence has been altered.
+
+        Args:
+            list_of_genes (list)            list of genes to recreate
+            show_progress_bar (True/False)  whether to show the (tqdm) progress bar
+
+        Returns:
+            None
+        """
         # pass ALL the gene names to create all the Gene objects for the first time
         for gene in tqdm(list_of_genes,disable=not(show_progress_bar)):
 
             mask=self.genome_feature_name==gene
+
+            assert numpy.count_nonzero(mask)>0, "gene not found in genome!"
 
             self.genes[gene]=Gene(  gene_name=gene,\
                                     sequence=self.genome_sequence[mask],\

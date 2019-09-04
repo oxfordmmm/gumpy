@@ -161,7 +161,11 @@ class Gene(object):
 
         mutations=[]
         if self.codes_protein:
-            mask=(self.amino_acid_sequence!=other.amino_acid_sequence)
+
+            # deal first with the coding sequence, which we will view at the amino acid level
+
+            # using codons rather than amino acids will detect synonymous mutations as well
+            mask=(self.codons!=other.codons)
             pos=self.amino_acid_numbering[mask]
             ref=other.amino_acid_sequence[mask]
             alt=self.amino_acid_sequence[mask]
@@ -206,20 +210,22 @@ class Gene(object):
         assert self.codes_protein==other.codes_protein, "both genes must be identical!"
 
         positions=[]
-        if self.codes_protein:
-            mask=self.amino_acid_sequence!=other.amino_acid_sequence
-            pos=list(self.amino_acid_numbering[mask])
-            positions=pos
-
-            mask=(self.sequence!=other.sequence) & self.is_promoter
-            pos=list(self.numbering[mask])
-            if positions is not None:
-                positions=positions+pos
-            else:
-                positions=pos
-        else:
-            mask=self.sequence!=other.sequence
-            positions=list(self.numbering[mask])
+        # if self.codes_protein:
+        #
+        #     # using codons rather than amino acids will detect synonymous mutations as well
+        #     mask=self.codons!=other.codons
+        #     pos=list(self.positions[mask])
+        #     positions=pos
+        #
+        #     mask=(self.sequence!=other.sequence) & self.is_promoter
+        #     pos=list(self.positions[mask])
+        #     if positions is not None:
+        #         positions=positions+pos
+        #     else:
+        #         positions=pos
+        # else:
+        mask=self.sequence!=other.sequence
+        positions=list(self.positions[mask])
 
         mask=self.is_indel
         pos=list(self.positions[mask])
