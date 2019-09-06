@@ -132,15 +132,15 @@ def test_Genome_valid_gene_mutation_indels():
     assert reference.valid_gene_mutation("F_1_fs")
     assert reference.valid_gene_mutation("F_1_del_3")
     assert reference.valid_gene_mutation("F_-1_indel")
+    assert reference.valid_gene_mutation("F_1_del_acgt")
+
 
     # bad grammar
     with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_1_indl")
     with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_1_frameshift")
-    with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_1_del_acgt")
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):    
         assert reference.valid_gene_mutation("F_1_ins_ggaf")
 
     # wrong ordering
