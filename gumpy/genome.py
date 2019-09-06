@@ -1070,10 +1070,16 @@ class Genome(object):
                 assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format rpoB_1300_ins_1 i.e. the third element must be ins or del, not "+cols[2]
 
                 if len(cols)==4:
-                    if cols[3].isnumeric():
-                        assert int(cols[3])>0, "number of nucleotides inserted or deleted must be >0"
-                    else:
-                        assert cols[2]=="ins", "can only specify precise bases for an insertion!"
-                        assert bool(re.match('^[catg]+$', cols[3])), "INDEL contains bases other than a,t,c,g"
+                    try:
+                        number_nucleotides=int(cols[3])
+                        assert number_nucleotides!=0, "an INDEL must be a non-zero number of bases"
+                    except:
+                        assert bool(re.match('^[catg]+$', cols[3])), cols[3]+" INDEL contains bases other than a,t,c,g"
+
+                    # if cols[3].isnumeric():
+                    #     assert int(cols[3])>0, "number of nucleotides inserted or deleted must be >0"
+                    # else:
+                    #     assert cols[2] in ["ins","indel"], cols[2]+" can only specify precise bases for an insertion!"
+
 
                 return True
