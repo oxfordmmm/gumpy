@@ -388,7 +388,10 @@ class Genome(object):
 
         # if we are showing a TQDM progress bar, count the rows in the VCF file (0.3s overhead)
         if show_progress_bar:
-            lines_in_vcf=len(open(vcf_file).readlines())
+            try:
+                lines_in_vcf=len(open(vcf_file).readlines())
+            except:
+                lines_in_vcf=None
         else:
             lines_in_vcf=None
 
