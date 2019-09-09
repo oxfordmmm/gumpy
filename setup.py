@@ -16,6 +16,6 @@ setup(
     ],
     license=None,
     long_description=open('README.md').read(),
-    scripts=['bin/gumpy-save-genome.py',\
+    scripts=['bin/gumpy-save-genome.py'],\
     zip_safe=False
 )
