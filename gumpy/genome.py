@@ -883,7 +883,6 @@ class Genome(object):
             gene_mutation (str): e.g. rpoB_S450L
         """
 
-
         # break apart the gene variant
         cols=gene_variant.split("_")
 

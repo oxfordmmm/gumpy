@@ -140,7 +140,7 @@ def test_Genome_valid_gene_mutation_indels():
         assert reference.valid_gene_mutation("F_1_indl")
     with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_1_frameshift")
-    with pytest.raises(Exception):    
+    with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F_1_ins_ggaf")
 
     # wrong ordering
@@ -202,9 +202,29 @@ def test_Genome_valid_genome_variant():
     with pytest.raises(Exception):
         assert reference.valid_genome_variant("tg")
 
-# def test_Genome_convert_variant_to_mutation():
-#
-#     assert reference.convert_variant_to_mutation("M2_t1g")=='brian'
+def test_Genome_convert_variant_to_mutation():
+
+    assert reference.convert_variant_to_mutation("N_a1g")=='N_M1V'
+    assert reference.convert_variant_to_mutation("N_a1c")=='N_M1L'
+    assert reference.convert_variant_to_mutation("N_a1t")=='N_M1L'
+    assert reference.convert_variant_to_mutation("N_t2c")=='N_M1T'
+    assert reference.convert_variant_to_mutation("N_t2a")=='N_M1K'
+    assert reference.convert_variant_to_mutation("N_t2g")=='N_M1R'
+
+    with pytest.raises(Exception):
+        assert reference.convert_variant_to_mutation("N_a1g")=='N_M1L'
+    with pytest.raises(Exception):
+        assert reference.convert_variant_to_mutation("N1_a1g")=='N_M1V'
+    with pytest.raises(Exception):
+        assert reference.convert_variant_to_mutation("N_a1g_3")=='N_M1L'
+    with pytest.raises(Exception):
+        assert reference.convert_variant_to_mutation("N_t1g")=='N_M1L'
+    with pytest.raises(Exception):
+        assert reference.convert_variant_to_mutation("N_y1g")=='N_M1L'
+    with pytest.raises(Exception):
+        assert reference.convert_variant_to_mutation("N_a1o")=='N_M1L'
+    with pytest.raises(Exception):
+        assert reference.convert_variant_to_mutation("N_a-1g")=='N_M1L'
 
 def test_Genome_gbk_fasta_identical():
 
