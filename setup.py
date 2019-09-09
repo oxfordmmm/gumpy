@@ -16,8 +16,6 @@ setup(
     ],
     license=None,
     long_description=open('README.md').read(),
+    scripts=['bin/gumpy-save-genome.py',\
     zip_safe=False
 )
-
-#     scripts=['bin/piezo-vcf-parse.py'],
-#         "PyVCF >= 0.6.8",
