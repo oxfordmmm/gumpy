@@ -5,3 +5,4 @@ gumpy
    :maxdepth: 4
 
    gumpy
+   setup

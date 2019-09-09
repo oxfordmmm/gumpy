@@ -15,7 +15,6 @@ setup(
         "tqdm >= 4.19.5"
     ],
     license=None,
-    long_description=open('README.md').read(),
     scripts=['bin/gumpy-save-genome.py'],\
     zip_safe=False
 )
