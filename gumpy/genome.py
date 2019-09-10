@@ -304,7 +304,15 @@ class Genome(object):
 
         variants=[]
         for (r,i,a) in zip(ref,idx,alt):
-            variants.append(r+str(i)+a)
+            variants.append(str(i)+r+">"+a)
+
+        mask=self.is_indel
+        idx=self.genome_index[mask]
+        length=self.indel_length[mask]
+
+        for (i,l) in zip(idx,length):
+            variants.append(str(i)+"_indel_"+str(l))
+
         return(variants)
 
 
