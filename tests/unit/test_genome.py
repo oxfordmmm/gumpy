@@ -319,7 +319,7 @@ def test_Genome_apply_vcf():
 
 def test_Genome_list_variants_wrt():
 
-    assert sample_01.list_variants_wrt(reference)==['t4687c']
+    assert sample_01.list_variants_wrt(reference)==['4687t>c']
 
 
 def test_Genome__complement():
