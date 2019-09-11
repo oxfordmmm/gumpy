@@ -10,11 +10,12 @@ setup(
     package_data={'': ['../config/*']},
     install_requires=[
         "numpy >= 1.13",
-        "pandas >= 0.23.1",
+        "pytest >= 4.0.0",
         "Biopython >= 1.70",
-        "tqdm >= 4.19.5"
+        "tqdm >= 4.19.5",
+        "pysam >= 0.15.2"
     ],
-    license=None,
+    license="University of Oxford, see LICENCE.md",
     scripts=['bin/gumpy-save-genome.py'],\
     zip_safe=False
 )
