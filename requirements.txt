@@ -1,5 +1,4 @@
 numpy
-h5py
 pysam
 biopython
 tqdm

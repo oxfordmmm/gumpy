@@ -1,7 +1,7 @@
 import gzip, os, pickle, time, copy, re
 from collections import defaultdict
 
-import numpy, h5py
+import numpy
 
 import pysam
 from Bio import SeqIO
