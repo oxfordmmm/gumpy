@@ -21,6 +21,7 @@ project = 'gumpy'
 copyright = '2019, Philip Fowler'
 author = 'Philip Fowler'
 
+master_doc = 'index'
 
 # -- General configuration ---------------------------------------------------
 
