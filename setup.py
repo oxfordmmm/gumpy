@@ -6,8 +6,14 @@ setup(
     version=__version__,
     author='Philip W Fowler',
     author_email="philip.fowler@ndm.ox.ac.uk",
+    description="Genetics with Numpy",
+    url="https://github.com/philipwfowler/gumpy",
     packages=['gumpy'],
     package_data={'': ['../config/*']},
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Operating System :: OS Independent"],
+    python_requires='>=3.5',
     install_requires=[
         "numpy >= 1.13",
         "pytest >= 4.0.0",
