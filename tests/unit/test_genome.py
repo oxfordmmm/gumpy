@@ -20,7 +20,7 @@ def test_Genome_instantiate_genbank():
     assert reference.genome_coding_strand[0]=='a'
     assert reference.genome_coding_strand[-1]=='t'
 
-    assert len(reference.gene_names)==8
+    assert len(reference.gene_names)==9
 
     # try a normal gene
     mask=reference.genome_feature_name=="M2"
@@ -29,19 +29,48 @@ def test_Genome_instantiate_genbank():
     first_codon="".join(i for i in sequence[:3])
     assert first_codon=="tta"
     last_codon="".join(i for i in sequence[-3:])
-    assert last_codon=="tag"
+    assert last_codon=="aca"
 
     sequence=reference.genome_noncoding_strand[mask]
     first_codon="".join(i for i in sequence[:3])
     assert first_codon=="aat"
     last_codon="".join(i for i in sequence[-3:])
-    assert last_codon=="atc"
+    assert last_codon=="tgt"
 
     sequence=reference.genome_sequence[mask]
     first_codon="".join(i for i in sequence[:3])
     assert first_codon=="tta"
     last_codon="".join(i for i in sequence[-3:])
+    assert last_codon=="aca"
+
+    m2_sequence="".join(sequence)
+    assert m2_sequence=='ttaattaaaaataaaataaaatttgggacaaatcataatgtctcgcaaggctccatgcaaatatgaagtgcggggcaaatgcaacagaggaagtgagtgtaagtttaaccacaattactggagttggccagatagatacttattaataagatcaaactatctattaaatcagcttttaaggaacactgatagagctgatggcctatcaataatatcaggcgcaggcagagaagacagaacgcaagattttgttctaggttccaccaatgtggttcaaggttatattgatgataaccaaagcataacaaaagctgcagcctgctacagtctacacaacataatcaagcaactacaagaagttgaagttaggcaggctagagatagcaaactatctgacagcaagcatgtggcactccataacttaatcttatcttacatggagatgagcaaaactcccgcatctttaatcaacaatctcaaaagactgccgagagaaaaactgaaaaaattagcaaagctgataattgacttatcagcaggcgctgaca'
+
+    # try a normal gene
+    mask=reference.genome_feature_name=="M2_2"
+
+    sequence=reference.genome_coding_strand[mask]
+    first_codon="".join(i for i in sequence[:3])
+    assert first_codon=="atg"
+    last_codon="".join(i for i in sequence[-3:])
     assert last_codon=="tag"
+
+    sequence=reference.genome_noncoding_strand[mask]
+    first_codon="".join(i for i in sequence[:3])
+    assert first_codon=="tac"
+    last_codon="".join(i for i in sequence[-3:])
+    assert last_codon=="atc"
+
+    sequence=reference.genome_sequence[mask]
+    first_codon="".join(i for i in sequence[:3])
+    assert first_codon=="atg"
+    last_codon="".join(i for i in sequence[-3:])
+    assert last_codon=="tag"
+
+    m2_2_sequence="".join(sequence)
+
+    assert m2_2_sequence=='atgactcttcatatgccctgcaagacagtgaaagcattaatcaagtgcagtgagcatggtcctgttttcattactatagaggttgatgaaatgatatggactcaaaaagaattaaaagaagctttgtccgatgggatagtgaagtctcacaccaacatttacaattgttatttagaaaacatagaaattatatatgtcaaggcttacttaagttag'
+
 
 reference2=Genome(fasta_file="config/NC_004148.2.fasta.gz",name="HMPV")
 
@@ -265,8 +294,8 @@ def test_Genome_at_index():
 
     assert reference.at_index(4686)=='F'
     assert reference.at_index(4687)=='M2'
-    assert reference.at_index(5293)=='M2'
-    assert reference.at_index(5450)=='M2'
+    assert reference.at_index(5293)=='M2_2'
+    assert reference.at_index(5450)=='M2_2'
     assert reference.at_index(5451)=='SH'
     assert reference.at_index(7032) is None
     assert reference.at_index(7033)=="L"
