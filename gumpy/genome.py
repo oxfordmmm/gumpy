@@ -84,6 +84,8 @@ class Genome(object):
 
             previous_gene_reversed=False
 
+            genes_found_so_far=[]
+
             # go through the GenBank file record-by-record
             for record in tqdm(reference_genome.features,disable=not(show_progress_bar)):
 
@@ -121,6 +123,16 @@ class Genome(object):
                             codes_protein=True
                         else:
                             codes_protein=False
+
+                        if gene_name not in genes_found_so_far:
+                            genes_found_so_far.append(gene_name)
+                        else:
+                            gene_name+="_2"
+                            genes_found_so_far.append(gene_name)
+
+                        
+                        # if gene_name=="M2":
+                        print(gene_name,gene_start,gene_end)
 
                         if record.strand==1:
 
