@@ -21,7 +21,7 @@ setup(
         "tqdm >= 4.19.5",
         "pysam >= 0.15.2"
     ],
-    license="University of Oxford, see LICENCE.md",
+    license="University of Oxford, see LICENSE.md",
     scripts=['bin/gumpy-save-genome.py'],\
     zip_safe=False
 )
