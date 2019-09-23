@@ -129,7 +129,7 @@ class Genome(object):
                         else:
                             gene_name+="_2"
                             genes_found_so_far.append(gene_name)
-                    
+
                         if record.strand==1:
 
                             # This is a bit hacky; we are assuming that the genes are being read from the Genbank file
