@@ -13,14 +13,18 @@ from gumpy import Genotype
 
 class Genome(object):
 
-    def __init__(self,genbank_file=None,fasta_file=None,show_progress_bar=False,default_promoter_length=100,name=None):
+    def __init__(self,genbank_file=None,fasta_file=None,show_progress_bar=False,default_promoter_length=100,name=None,gene_subset=None):
 
         '''
         Instantiates a genome object by loading a VCF file and storing the whole genome as a numpy array
 
         Args:
             genbank_file (str): path to the GenBank file to build the reference genome
+            name (str): a label for this genome
             fasta_file (str): path to the FASTA file to build the reference genome
+            show_progress_bar (bool): if specified, show the progress in STDOUT of first parsing the GenBank file, and then of working through the genes.
+            default_promoter_length (int): the number of bases upstream of a start codon that are considered the promoter of the gene. Default is 100.
+            gene_subset (list): only consider genes in this list. Mainly used for unit testing for speed - unlikely to be useful otherwise. Use with caution.
         '''
 
         assert ((genbank_file is not None) or (fasta_file is not None)), "one of a GenBank file or a FASTA file  must be specified!"
@@ -115,7 +119,7 @@ class Genome(object):
                     else:
                         continue
 
-                    if gene_name is not None:
+                    if gene_name is not None and (gene_subset is None or gene_name in gene_subset):
 
                         gene_start=int(record.location.start)
                         gene_end=int(record.location.end)
@@ -188,10 +192,14 @@ class Genome(object):
                             else:
                                 gene_coding_numbering=-1*(self.genome_index[gene_mask]-gene_end)
 
-                            gene_coding_position=-1*(self.genome_index[gene_mask]-gene_end)
+                            gene_coding_position=-1*(self.genome_index[gene_mask]-gene_end)+1
                         else:
                             raise TypeError("gene in GenBank file has strand that is not 1 or -1")
 
+
+                        if gene_subset is not None:
+                            print(gene_coding_position)
+                            print(promoter_coding_numbering)
 
                         self.genome_feature_type[mask]=type
                         self.genome_feature_name[mask]=gene_name
