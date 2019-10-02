@@ -349,7 +349,7 @@ class Genome(object):
         position=self.genome_numbering[mask]
         numbering=self.genome_positions[mask]
 
-        for (r,i,a,g,p) in zip(ref,idx,alt,genes,position,numbering):
+        for (r,i,a,g,p,n) in zip(ref,idx,alt,genes,position,numbering):
 
             VARIANTS_dict['REF'].append(r)
             VARIANTS_dict['ALT'].append(a)
@@ -357,6 +357,7 @@ class Genome(object):
             VARIANTS_dict['GENOME_INDEX'].append(i)
             VARIANTS_dict['GENE'].append(g)
             VARIANTS_dict['POSITION'].append(p)
+            VARIANTS_dict['NUCLEOTIDE_NUMBER'].append(n)
 
 
     def __sub__(self,other):
