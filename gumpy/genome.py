@@ -331,6 +331,33 @@ class Genome(object):
 
         return(variants)
 
+    def table_variants_wrt(self,other):
+
+        assert self.genome_length==other.genome_length, "genomes must have the same length!"
+
+        mask=self.genome_sequence!=other.genome_sequence
+
+        VARIANTS_dict={}
+        VARIANTS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
+        for cols in VARIANTS_columns:
+            VARIANTS_dict[cols]=[]
+
+        ref=other.genome_sequence[mask]
+        idx=self.genome_index[mask]
+        alt=self.genome_sequence[mask]
+        genes=self.genome_feature_name[mask]
+        position=self.genome_numbering[mask]
+        numbering=self.genome_positions[mask]
+
+        for (r,i,a,g,p) in zip(ref,idx,alt,genes,position,numbering):
+
+            VARIANTS_dict['REF'].append(r)
+            VARIANTS_dict['ALT'].append(a)
+            VARIANTS_dict['VARIANT'].append(r+str(i)+a)
+            VARIANTS_dict['GENOME_INDEX'].append(i)
+            VARIANTS_dict['GENE'].append(g)
+            VARIANTS_dict['POSITION'].append(p)
+
 
     def __sub__(self,other):
 

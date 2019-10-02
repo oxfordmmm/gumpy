@@ -237,7 +237,7 @@ class Gene(object):
                 MUTATIONS_dict['IN_PROMOTER'].append(False)
                 MUTATIONS_dict['INDEL_LENGTH'].append(None)
                 MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
-                MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
+                MUTATIONS_dict['MUTATION_TYPE'].append('AAM')
                 MUTATIONS_dict['INDEL_1'].append(None)
                 MUTATIONS_dict['INDEL_2'].append(None)
 
