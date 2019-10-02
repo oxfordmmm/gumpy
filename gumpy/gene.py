@@ -181,7 +181,7 @@ class Gene(object):
                 mutations.append(r+str(p)+a)
         else:
             mask=self.sequence!=other.sequence
-            pos=self.numbering[mask]
+            pos=self.positions[mask]
             ref=other.sequence[mask]
             alt=self.sequence[mask]
             for (r,p,a) in zip(ref,pos,alt):
@@ -199,10 +199,113 @@ class Gene(object):
         return(mutations)
 
 
+    def describe_mutations_wrt(self,other):
+
+        assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
+        assert self.gene_name==other.gene_name, "both genes must be identical!"
+        assert self.codes_protein==other.codes_protein, "both genes must be identical!"
+
+        mutations={}
+        if self.codes_protein:
+
+            # deal first with the coding sequence, which we will view at the amino acid level
+
+            # using codons rather than amino acids will detect synonymous mutations as well
+            mask=(self.codons!=other.codons)
+            pos=self.amino_acid_numbering[mask]
+            ref=other.amino_acid_sequence[mask]
+            alt=self.amino_acid_sequence[mask]
+
+            for (r,p,a) in zip(ref,pos,alt):
+                mutations[r+str(p)+a]={ 'REF':r,\
+                                        'ALT':a,\
+                                        'POSITION': p,\
+                                        'AMINO_ACID_NUMBER': p,\
+                                        'BASE_NUMBER': None,\
+                                        'IS_SNP': True,\
+                                        'IS_INDEL':False,\
+                                        'IS_CDS': True,\
+                                        'IS_PROMOTER':False,\
+                                        'INDEL_LENGTH':None,\
+                                        'MUTATION_TYPE':'SNP'))
+
+            mask=(self.sequence!=other.sequence) & self.is_promoter
+            pos=self.numbering[mask]
+            ref=other.sequence[mask]
+            alt=self.sequence[mask]
+            for (r,p,a) in zip(ref,pos,alt):
+                mutations[r+str(p)+a]={ 'REF':r,\
+                                        'ALT':a,\
+                                        'POSITION': p,\
+                                        'AMINO_ACID_NUMBER': None,\
+                                        'BASE_NUMBER': p,\
+                                        'IS_SNP': True,\
+                                        'IS_INDEL':False,\
+                                        'IS_CDS': False,\
+                                        'IS_PROMOTER':True,\
+                                        'INDEL_LENGTH':None,
+                                        'MUTATION_TYPE':'SNP'))
+
+        else:
+            mask=self.sequence!=other.sequence
+            pos=self.positions[mask]
+            ref=other.sequence[mask]
+            alt=self.sequence[mask]
+            for (r,p,a) in zip(ref,pos,alt):
+                if p<0:
+                    is_promoter=True
+                    is_cds=False
+                else:
+                    is_promoter=False
+                    is_cds=True
+                mutations[r+str(p)+a]={ 'REF':r,\
+                                        'ALT':a,\
+                                        'POSITION': p,\
+                                        'AMINO_ACID_NUMBER': None,\
+                                        'BASE_NUMBER': p,\
+                                        'IS_SNP': True,\
+                                        'IS_INDEL':False,\
+                                        'IS_CDS': is_cds,\
+                                        'IS_PROMOTER':is_promoter,\
+                                        'INDEL_LENGTH':None,
+                                        'MUTATION_TYPE':'SNP'))
+
+
+        mask=self.is_indel
+        pos=list(self.positions[mask])
+        length=list(self.indel_length[mask])
+        for (p,l) in zip(pos,length):
+            if p<0:
+                is_promoter=True
+                is_cds=False
+            else:
+                is_promoter=False
+                is_cds=True
+            if l>0:
+                mut=str(p)+"_ins_"+str(l)
+            else:
+                mut=str(p)+"_del_"+str(-1*l)
+            mutations[mut]={'REF':None,\
+                            'ALT':None,\
+                            'POSITION': p,\
+                            'AMINO_ACID_NUMBER': None,\
+                            'BASE_NUMBER': p,\
+                            'IS_SNP': False,\
+                            'IS_INDEL':True,\
+                            'IS_CDS': is_cds,\
+                            'IS_PROMOTER':is_promoter,\
+                            'INDEL_LENGTH':l,
+                            'MUTATION_TYPE':'INDEL'))
+
+        if not mutations:
+            mutations=None
+
+        return(mutations)
+
     def __sub__(self,other):
 
         """
-        Overload the subtraction operator so it returns a tuple of the differences between the two genomes
+        Overload the subtraction operator so it returns a tuple of the differences between the two genes
         """
 
         assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
