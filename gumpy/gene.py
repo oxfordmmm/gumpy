@@ -206,7 +206,7 @@ class Gene(object):
         assert self.codes_protein==other.codes_protein, "both genes must be identical!"
 
         MUTATIONS_dict={}
-        MUTATIONS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IS_CDS','IS_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
+        MUTATIONS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
         for cols in MUTATIONS_columns:
             MUTATIONS_dict[cols]=[]
 
@@ -233,8 +233,8 @@ class Gene(object):
                 MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(None)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
-                MUTATIONS_dict['IS_CDS'].append(True)
-                MUTATIONS_dict['IS_PROMOTER'].append(False)
+                MUTATIONS_dict['IN_CDS'].append(True)
+                MUTATIONS_dict['IN_PROMOTER'].append(False)
                 MUTATIONS_dict['INDEL_LENGTH'].append(None)
                 MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
@@ -256,8 +256,8 @@ class Gene(object):
                 MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
-                MUTATIONS_dict['IS_CDS'].append(False)
-                MUTATIONS_dict['IS_PROMOTER'].append(True)
+                MUTATIONS_dict['IN_CDS'].append(False)
+                MUTATIONS_dict['IN_PROMOTER'].append(True)
                 MUTATIONS_dict['INDEL_LENGTH'].append(None)
                 MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
@@ -286,8 +286,8 @@ class Gene(object):
                 MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
-                MUTATIONS_dict['IS_CDS'].append(is_cds)
-                MUTATIONS_dict['IS_PROMOTER'].append(is_promoter)
+                MUTATIONS_dict['IN_CDS'].append(is_cds)
+                MUTATIONS_dict['IN_PROMOTER'].append(is_promoter)
                 MUTATIONS_dict['INDEL_LENGTH'].append(None)
                 MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
@@ -323,8 +323,8 @@ class Gene(object):
             MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
             MUTATIONS_dict['IS_SNP'].append(False)
             MUTATIONS_dict['IS_INDEL'].append(True)
-            MUTATIONS_dict['IS_CDS'].append(is_cds)
-            MUTATIONS_dict['IS_PROMOTER'].append(is_promoter)
+            MUTATIONS_dict['IN_CDS'].append(is_cds)
+            MUTATIONS_dict['IN_PROMOTER'].append(is_promoter)
             MUTATIONS_dict['INDEL_LENGTH'].append(l)
             MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
             MUTATIONS_dict['MUTATION_TYPE'].append('INDEL')
