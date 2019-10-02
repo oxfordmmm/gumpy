@@ -1,7 +1,7 @@
 import gzip, os, pickle, time, copy, re
 from collections import defaultdict
 
-import numpy
+import numpy, pandas
 
 import pysam
 from Bio import SeqIO
@@ -327,7 +327,7 @@ class Genome(object):
         length=self.indel_length[mask]
 
         for (i,l) in zip(idx,length):
-            variants.append(str(i)+"_indel_"+str(l))
+            variants.append(str(i)+"_indel")
 
         return(variants)
 
@@ -338,7 +338,8 @@ class Genome(object):
         mask=self.genome_sequence!=other.genome_sequence
 
         VARIANTS_dict={}
-        VARIANTS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
+        # VARIANTS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
+        VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','IS_SNP','IS_INDEL','INDEL_LENGTH','ELEMENT_TYPE','MUTATION_TYPE']
         for cols in VARIANTS_columns:
             VARIANTS_dict[cols]=[]
 
@@ -348,17 +349,66 @@ class Genome(object):
         genes=self.genome_feature_name[mask]
         position=self.genome_numbering[mask]
         numbering=self.genome_positions[mask]
+        element_type=self.genome_feature_type[mask]
 
-        for (r,i,a,g,p,n) in zip(ref,idx,alt,genes,position,numbering):
+        for (r,i,a,g,p,n,et) in zip(ref,idx,alt,genes,position,numbering,element_type):
 
             VARIANTS_dict['REF'].append(r)
             VARIANTS_dict['ALT'].append(a)
-            VARIANTS_dict['VARIANT'].append(r+str(i)+a)
+            VARIANTS_dict['VARIANT'].append(str(i)+r+">"+a)
             VARIANTS_dict['GENOME_INDEX'].append(i)
             VARIANTS_dict['GENE'].append(g)
             VARIANTS_dict['POSITION'].append(p)
             VARIANTS_dict['NUCLEOTIDE_NUMBER'].append(n)
+            VARIANTS_dict['IS_SNP'].append(True)
+            VARIANTS_dict['IS_INDEL'].append(False)
+            VARIANTS_dict['INDEL_LENGTH'].append(None)
+            VARIANTS_dict['ELEMENT_TYPE'].append(et)
+            VARIANTS_dict['MUTATION_TYPE'].append('SNP')
+            if et=="GENE" and p>0:
+                VARIANTS_dict['AMINO_ACID_NUMBER'].append(p)
+            else:
+                VARIANTS_dict['AMINO_ACID_NUMBER'].append(None)
+            print(n,p)
 
+
+        mask=self.is_indel
+        indel_ref=self.indel_ref[mask]
+        idx=self.genome_index[mask]
+        alt=self.indel_alt[mask]
+        genes=self.genome_feature_name[mask]
+        length=self.indel_length[mask]
+        position=self.genome_numbering[mask]
+        numbering=self.genome_positions[mask]
+        element_type=self.genome_feature_type[mask]
+        for (r,i,a,g,p,n,l,et) in zip(indel_ref,idx,alt,genes,position,numbering,length,element_type):
+
+            VARIANTS_dict['REF'].append(r)
+            VARIANTS_dict['ALT'].append(a)
+            VARIANTS_dict['VARIANT'].append(str(i)+"_indel")
+            VARIANTS_dict['GENOME_INDEX'].append(i)
+            VARIANTS_dict['GENE'].append(g)
+            VARIANTS_dict['POSITION'].append(n)
+            VARIANTS_dict['NUCLEOTIDE_NUMBER'].append(n)
+            VARIANTS_dict['IS_SNP'].append(False)
+            VARIANTS_dict['IS_INDEL'].append(True)
+            VARIANTS_dict['INDEL_LENGTH'].append(l)
+            VARIANTS_dict['ELEMENT_TYPE'].append(et)
+            VARIANTS_dict['MUTATION_TYPE'].append('INDEL')
+            if et=="GENE" and p>0:
+                VARIANTS_dict['AMINO_ACID_NUMBER'].append(p)
+            else:
+                VARIANTS_dict['AMINO_ACID_NUMBER'].append(None)
+
+        if not VARIANTS_dict:
+            VARIANTS_table=None
+        else:
+            VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
+            VARIANTS_table=VARIANTS_table[VARIANTS_columns]
+
+        print(VARIANTS_table)
+
+        return(VARIANTS_table)
 
     def __sub__(self,other):
 
