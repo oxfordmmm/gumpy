@@ -1,5 +1,5 @@
 
-import numpy
+import numpy, pandas
 
 # FIXME: problems with rrs, mfpB
 
@@ -199,13 +199,17 @@ class Gene(object):
         return(mutations)
 
 
-    def describe_mutations_wrt(self,other):
+    def table_mutations_wrt(self,other):
 
         assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
         assert self.gene_name==other.gene_name, "both genes must be identical!"
         assert self.codes_protein==other.codes_protein, "both genes must be identical!"
 
-        mutations={}
+        MUTATIONS_dict={}
+        MUTATIONS_columns=['MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','BASE_NUMBER','IS_SNP','IS_INDEL','IS_CDS','IS_PROMOTER','INDEL_LENGTH','MUTATION_TYPE','INDEL_1','INDEL_2']
+        for cols in MUTATIONS_columns:
+            MUTATIONS_dict[cols]=[]
+
         if self.codes_protein:
 
             # deal first with the coding sequence, which we will view at the amino acid level
@@ -215,36 +219,46 @@ class Gene(object):
             pos=self.amino_acid_numbering[mask]
             ref=other.amino_acid_sequence[mask]
             alt=self.amino_acid_sequence[mask]
+            ref_codon=other.codons[mask]
+            alt_codon=self.codons[mask]
 
-            for (r,p,a) in zip(ref,pos,alt):
-                mutations[r+str(p)+a]={ 'REF':r,\
-                                        'ALT':a,\
-                                        'POSITION': p,\
-                                        'AMINO_ACID_NUMBER': p,\
-                                        'BASE_NUMBER': None,\
-                                        'IS_SNP': True,\
-                                        'IS_INDEL':False,\
-                                        'IS_CDS': True,\
-                                        'IS_PROMOTER':False,\
-                                        'INDEL_LENGTH':None,\
-                                        'MUTATION_TYPE':'SNP' }
+            for (r,p,a,rc,ac) in zip(ref,pos,alt,ref_codon,alt_codon):
+                mut=r+str(p)+a
+                MUTATIONS_dict['MUTATION'].append(mut)
+                MUTATIONS_dict['REF'].append(rc)
+                MUTATIONS_dict['ALT'].append(ac)
+                MUTATIONS_dict['POSITION'].append(p)
+                MUTATIONS_dict['AMINO_ACID_NUMBER'].append(p)
+                MUTATIONS_dict['BASE_NUMBER'].append(None)
+                MUTATIONS_dict['IS_SNP'].append(True)
+                MUTATIONS_dict['IS_INDEL'].append(False)
+                MUTATIONS_dict['IS_CDS'].append(True)
+                MUTATIONS_dict['IS_PROMOTER'].append(False)
+                MUTATIONS_dict['INDEL_LENGTH'].append(None)
+                MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
+                MUTATIONS_dict['INDEL_1'].append(None)
+                MUTATIONS_dict['INDEL_2'].append(None)
 
             mask=(self.sequence!=other.sequence) & self.is_promoter
             pos=self.numbering[mask]
             ref=other.sequence[mask]
             alt=self.sequence[mask]
             for (r,p,a) in zip(ref,pos,alt):
-                mutations[r+str(p)+a]={ 'REF':r,\
-                                        'ALT':a,\
-                                        'POSITION': p,\
-                                        'AMINO_ACID_NUMBER': None,\
-                                        'BASE_NUMBER': p,\
-                                        'IS_SNP': True,\
-                                        'IS_INDEL':False,\
-                                        'IS_CDS': False,\
-                                        'IS_PROMOTER':True,\
-                                        'INDEL_LENGTH':None,
-                                        'MUTATION_TYPE':'SNP' }
+                mut=r+str(p)+a
+                MUTATIONS_dict['MUTATION'].append(mut)
+                MUTATIONS_dict['REF'].append(r)
+                MUTATIONS_dict['ALT'].append(a)
+                MUTATIONS_dict['POSITION'].append(p)
+                MUTATIONS_dict['AMINO_ACID_NUMBER'].append(None)
+                MUTATIONS_dict['BASE_NUMBER'].append(p)
+                MUTATIONS_dict['IS_SNP'].append(True)
+                MUTATIONS_dict['IS_INDEL'].append(False)
+                MUTATIONS_dict['IS_CDS'].append(False)
+                MUTATIONS_dict['IS_PROMOTER'].append(True)
+                MUTATIONS_dict['INDEL_LENGTH'].append(None)
+                MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
+                MUTATIONS_dict['INDEL_1'].append(None)
+                MUTATIONS_dict['INDEL_2'].append(None)
 
         else:
             mask=self.sequence!=other.sequence
@@ -258,49 +272,64 @@ class Gene(object):
                 else:
                     is_promoter=False
                     is_cds=True
-                mutations[r+str(p)+a]={ 'REF':r,\
-                                        'ALT':a,\
-                                        'POSITION': p,\
-                                        'AMINO_ACID_NUMBER': None,\
-                                        'BASE_NUMBER': p,\
-                                        'IS_SNP': True,\
-                                        'IS_INDEL':False,\
-                                        'IS_CDS': is_cds,\
-                                        'IS_PROMOTER':is_promoter,\
-                                        'INDEL_LENGTH':None,
-                                        'MUTATION_TYPE':'SNP' }
+                mut=r+str(p)+a
+                MUTATIONS_dict['MUTATION'].append(mut)
+                MUTATIONS_dict['REF'].append(r)
+                MUTATIONS_dict['ALT'].append(a)
+                MUTATIONS_dict['POSITION'].append(p)
+                MUTATIONS_dict['AMINO_ACID_NUMBER'].append(None)
+                MUTATIONS_dict['BASE_NUMBER'].append(p)
+                MUTATIONS_dict['IS_SNP'].append(True)
+                MUTATIONS_dict['IS_INDEL'].append(False)
+                MUTATIONS_dict['IS_CDS'].append(is_cds)
+                MUTATIONS_dict['IS_PROMOTER'].append(is_promoter)
+                MUTATIONS_dict['INDEL_LENGTH'].append(None)
+                MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
+                MUTATIONS_dict['INDEL_1'].append(None)
+                MUTATIONS_dict['INDEL_2'].append(None)
 
 
         mask=self.is_indel
         pos=list(self.positions[mask])
+        num=list(self.numbering[mask])
         length=list(self.indel_length[mask])
-        for (p,l) in zip(pos,length):
+        for (p,l,n) in zip(pos,length,num):
             if p<0:
                 is_promoter=True
                 is_cds=False
+                n=None
             else:
                 is_promoter=False
                 is_cds=True
+            mut0=str(p)+"_indel"
             if l>0:
-                mut=str(p)+"_ins_"+str(l)
+                mut1=str(p)+"_ins"
+                mut2=mut1+"_"+str(l)
             else:
-                mut=str(p)+"_del_"+str(-1*l)
-            mutations[mut]={'REF':None,\
-                            'ALT':None,\
-                            'POSITION': p,\
-                            'AMINO_ACID_NUMBER': None,\
-                            'BASE_NUMBER': p,\
-                            'IS_SNP': False,\
-                            'IS_INDEL':True,\
-                            'IS_CDS': is_cds,\
-                            'IS_PROMOTER':is_promoter,\
-                            'INDEL_LENGTH':l,
-                            'MUTATION_TYPE':'INDEL' }
+                mut1=str(p)+"_del"
+                mut2=mut1+"_"+str(-1*l)
+            MUTATIONS_dict['MUTATION'].append(mut0)
+            MUTATIONS_dict['REF'].append(None)
+            MUTATIONS_dict['ALT'].append(None)
+            MUTATIONS_dict['POSITION'].append(p)
+            MUTATIONS_dict['AMINO_ACID_NUMBER'].append(n)
+            MUTATIONS_dict['BASE_NUMBER'].append(p)
+            MUTATIONS_dict['IS_SNP'].append(False)
+            MUTATIONS_dict['IS_INDEL'].append(True)
+            MUTATIONS_dict['IS_CDS'].append(is_cds)
+            MUTATIONS_dict['IS_PROMOTER'].append(is_promoter)
+            MUTATIONS_dict['INDEL_LENGTH'].append(l)
+            MUTATIONS_dict['MUTATION_TYPE'].append('INDEL')
+            MUTATIONS_dict['INDEL_1'].append(mut1)
+            MUTATIONS_dict['INDEL_2'].append(mut2)
 
-        if not mutations:
-            mutations=None
+        if not MUTATIONS_dict:
+            MUTATIONS_table=None
+        else:
+            MUTATIONS_table=pandas.DataFrame(data=MUTATIONS_dict)
+            MUTATIONS_table=MUTATIONS_table[MUTATIONS_columns]
 
-        return(mutations)
+        return(MUTATIONS_table)
 
     def __sub__(self,other):
 

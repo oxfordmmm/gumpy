@@ -42,6 +42,23 @@ def test_Gene_list_mutations_wrt_1():
 
     assert new_gene.list_mutations_wrt(test_gene)==['M1L']
 
+def test_Gene_table_mutations_wrt_1():
+
+    MUTATIONS=new_gene.table_mutations_wrt(test_gene)
+
+    assert list(MUTATIONS['MUTATION'])==['M1L']
+    assert list(MUTATIONS['REF'])==['atg']
+    assert list(MUTATIONS['ALT'])==['ttg']
+    assert list(MUTATIONS['POSITION'])==[1]
+    assert list(MUTATIONS['AMINO_ACID_NUMBER'])==[1]
+    assert list(MUTATIONS['BASE_NUMBER'])==[None]
+    assert list(MUTATIONS['IS_SNP'])==[True]
+    assert list(MUTATIONS['IS_INDEL'])==[False]
+    assert list(MUTATIONS['IS_CDS'])==[True]
+    assert list(MUTATIONS['IS_PROMOTER'])==[False]
+    assert list(MUTATIONS['INDEL_LENGTH'])==[None]
+    assert list(MUTATIONS['MUTATION_TYPE'])==['SNP']
+
 def test_Gene___sub__1():
 
     assert new_gene-test_gene==[1]
@@ -59,6 +76,22 @@ def test_Gene___sub__2():
 
     assert list(new_gene2-test_gene)==[1,4]
 
+def test_Gene_table_mutations_wrt_2():
+
+    MUTATIONS=new_gene2.table_mutations_wrt(test_gene)
+
+    assert list(MUTATIONS['MUTATION'])==['M1L','S2P']
+    assert list(MUTATIONS['REF'])==['atg','tct']
+    assert list(MUTATIONS['ALT'])==['ctg','cct']
+    assert list(MUTATIONS['POSITION'])==[1,2]
+    assert list(MUTATIONS['AMINO_ACID_NUMBER'])==[1,2]
+    assert list(MUTATIONS['BASE_NUMBER'])==[None,None]
+    assert list(MUTATIONS['IS_SNP'])==[True,True]
+    assert list(MUTATIONS['IS_INDEL'])==[False,False]
+    assert list(MUTATIONS['IS_CDS'])==[True,True]
+    assert list(MUTATIONS['IS_PROMOTER'])==[False,False]
+    assert list(MUTATIONS['INDEL_LENGTH'])==[None,None]
+    assert list(MUTATIONS['MUTATION_TYPE'])==['SNP','SNP']
 
 # mutate it away, and then back again
 new_gene3=copy.deepcopy(test_gene)
@@ -70,6 +103,78 @@ new_gene3._translate_sequence()
 def test_Gene_list_mutations_wrt_3():
 
     assert new_gene3.list_mutations_wrt(test_gene) is None
+
+new_gene4=copy.deepcopy(test_gene)
+new_gene4.is_indel[new_gene4.positions==32]=True
+new_gene4.indel_length[new_gene4.positions==32]=-12
+new_gene4._translate_sequence()
+
+def test_Gene_table_mutations_wrt_4():
+
+    MUTATIONS=new_gene4.table_mutations_wrt(test_gene)
+
+    assert list(MUTATIONS['MUTATION'])==['32_indel']
+    assert list(MUTATIONS['REF'])==[None]
+    assert list(MUTATIONS['ALT'])==[None]
+    assert list(MUTATIONS['POSITION'])==[32]
+    assert list(MUTATIONS['AMINO_ACID_NUMBER'])==[11]
+    assert list(MUTATIONS['BASE_NUMBER'])==[32]
+    assert list(MUTATIONS['IS_SNP'])==[False]
+    assert list(MUTATIONS['IS_INDEL'])==[True]
+    assert list(MUTATIONS['IS_CDS'])==[True]
+    assert list(MUTATIONS['IS_PROMOTER'])==[False]
+    assert list(MUTATIONS['INDEL_LENGTH'])==[-12]
+    assert list(MUTATIONS['INDEL_1'])==['32_del']
+    assert list(MUTATIONS['INDEL_2'])==['32_del_12']
+    assert list(MUTATIONS['MUTATION_TYPE'])==['INDEL']
+
+new_gene5=copy.deepcopy(test_gene)
+new_gene5.is_indel[new_gene5.positions==-10]=True
+new_gene5.indel_length[new_gene5.positions==-10]=4
+new_gene5._translate_sequence()
+
+def test_Gene_table_mutations_wrt_5():
+
+    MUTATIONS=new_gene5.table_mutations_wrt(test_gene)
+
+    assert list(MUTATIONS['MUTATION'])==['-10_indel']
+    assert list(MUTATIONS['REF'])==[None]
+    assert list(MUTATIONS['ALT'])==[None]
+    assert list(MUTATIONS['POSITION'])==[-10]
+    assert list(MUTATIONS['AMINO_ACID_NUMBER'])==[None]
+    assert list(MUTATIONS['BASE_NUMBER'])==[-10]
+    assert list(MUTATIONS['IS_SNP'])==[False]
+    assert list(MUTATIONS['IS_INDEL'])==[True]
+    assert list(MUTATIONS['IS_CDS'])==[False]
+    assert list(MUTATIONS['IS_PROMOTER'])==[True]
+    assert list(MUTATIONS['INDEL_LENGTH'])==[4]
+    assert list(MUTATIONS['INDEL_1'])==['-10_ins']
+    assert list(MUTATIONS['INDEL_2'])==['-10_ins_4']
+    assert list(MUTATIONS['MUTATION_TYPE'])==['INDEL']
+
+new_gene6=copy.deepcopy(test_gene)
+new_gene6.sequence[new_gene6.positions==-1]='t'
+new_gene6._translate_sequence()
+
+def test_Gene_table_mutations_wrt_6():
+
+    MUTATIONS=new_gene6.table_mutations_wrt(test_gene)
+
+    assert list(MUTATIONS['MUTATION'])==['a-1t']
+    assert list(MUTATIONS['REF'])==['a']
+    assert list(MUTATIONS['ALT'])==['t']
+    assert list(MUTATIONS['POSITION'])==[-1]
+    assert list(MUTATIONS['AMINO_ACID_NUMBER'])==[None]
+    assert list(MUTATIONS['BASE_NUMBER'])==[-1]
+    assert list(MUTATIONS['IS_SNP'])==[True]
+    assert list(MUTATIONS['IS_INDEL'])==[False]
+    assert list(MUTATIONS['IS_CDS'])==[False]
+    assert list(MUTATIONS['IS_PROMOTER'])==[True]
+    assert list(MUTATIONS['INDEL_LENGTH'])==[None]
+    assert list(MUTATIONS['INDEL_1'])==[None]
+    assert list(MUTATIONS['INDEL_2'])==[None]
+    assert list(MUTATIONS['MUTATION_TYPE'])==['SNP']
+
 
 def test_Gene_valid_variant():
 
@@ -107,7 +212,7 @@ def test_Gene_valid_variant():
 
 
 # use the subset argument to speed up the genome creation
-h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB'])
+h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB','rrs'])
 
 
 
@@ -152,3 +257,42 @@ def test_rpoB_instantiation():
     amino_acids="LADSRQSKTAASPSPSRPQSSSNNSVPGAPNRVSFAKLREPLEVPGLLDVQTDSFEWLIGSPRWRESAAERGDVNPVGGLEEVLYELSPIEDFSGSMSLSFSDPRFDDVKAPVDECKDKDMTYAAPLFVTAEFINNNTGEIKSQTVFMGDFPMMTEKGTFIINGTERVVVSQLVRSPGVYFDETIDKSTDKTLHSVKVIPSRGAWLEFDVDKRDTVGVRIDRKRRQPVTVLLKALGWTSEQIVERFGFSEIMRSTLEKDNTVGTDEALLDIYRKLRPGEPPTKESAQTLLENLFFKEKRYDLARVGRYKVNKKLGLHVGEPITSSTLTEEDVVATIEYLVRLHEGQTTMTVPGGVEVPVETDDIDHFGNRRLRTVGELIQNQIRVGMSRMERVVRERMTTQDVEAITPQTLINIRPVVAAIKEFFGTSQLSQFMDQNNPLSGLTHKRRLSALGPGGLSRERAGLEVRDVHPSHYGRMCPIETPEGPNIGLIGSLSVYARVNPFGFIETPYRKVVDGVVSDEIVYLTADEEDRHVVAQANSPIDADGRFVEPRVLVRRKAGEVEYVPSSEVDYMDVSPRQMVSVATAMIPFLEHDDANRALMGANMQRQAVPLVRSEAPLVGTGMELRAAIDAGDVVVAEESGVIEEVSADYITVMHDNGTRRTYRMRKFARSNHGTCANQCPIVDAGDRVEAGQVIADGPCTDDGEMALGKNLLVAIMPWEGHNYEDAIILSNRLVEEDVLTSIHIEEHEIDARDTKLGAEEITRDIPNISDEVLADLDERGIVRIGAEVRDGDILVGKVTPKGETELTPEERLLRAIFGEKAREVRDTSLKVPHGESGKVIGIRVFSREDEDELPAGVNELVRVYVAQKRKISDGDKLAGRHGNKGVIGKILPVEDMPFLADGTPVDIILNTHGVPRRMNIGQILETHLGWCAHSGWKVDAAKGVPDWAARLPDELLEAQPNAIVSTPVFDGAQEAELQGLLSCTLPNRDGDVLVDADGKAMLFDGRSGEPFPYPVTVGYMYIMKLHHLVDDKIHARSTGPYSMITQQPLGGKAQFGGQRFGEMECWAMQAYGAAYTLQELLTIKSDDTVGRVKVYEAIVKGENIPEPGIPESFKVLLKELQSLCLNVEVLSSDGAAIELREGEDEDLERAAANLGINLSRNESASVEDLA!"
 
     assert amino_acids==''.join(test_gene.amino_acid_sequence)
+
+
+def test_rrs_instantiation():
+
+    test_gene=h37rv.genes['rrs']
+    assert test_gene.total_number_nucleotides==1637
+    assert test_gene.gene_name=="rrs"
+    assert test_gene.on_noncoding_strand==False
+    assert test_gene.numbering[0]==-100
+    assert test_gene.numbering[-1]==1537
+    assert test_gene.index[test_gene.positions==1]==1471846
+    assert test_gene.index[test_gene.positions==2]==1471847
+    assert test_gene.index[test_gene.positions==-1]==1471845
+
+    sequence="ggccatgctcttgatgccccgttgtcgggggcgtggccgtttgttttgtcaggatatttctaaatacctttggctcccttttccaaagggagtgtttgggttttgtttggagagtttgatcctggctcaggacgaacgctggcggcgtgcttaacacatgcaagtcgaacggaaaggtctcttcggagatactcgagtggcgaacgggtgagtaacacgtgggtgatctgccctgcacttcgggataagcctgggaaactgggtctaataccggataggaccacgggatgcatgtcttgtggtggaaagcgctttagcggtgtgggatgagcccgcggcctatcagcttgttggtggggtgacggcctaccaaggcgacgacgggtagccggcctgagagggtgtccggccacactgggactgagatacggcccagactcctacgggaggcagcagtggggaatattgcacaatgggcgcaagcctgatgcagcgacgccgcgtgggggatgacggccttcgggttgtaaacctctttcaccatcgacgaaggtccgggttctctcggattgacggtaggtggagaagaagcaccggccaactacgtgccagcagccgcggtaatacgtagggtgcgagcgttgtccggaattactgggcgtaaagagctcgtaggtggtttgtcgcgttgttcgtgaaatctcacggcttaactgtgagcgtgcgggcgatacgggcagactagagtactgcaggggagactggaattcctggtgtagcggtggaatgcgcagatatcaggaggaacaccggtggcgaaggcgggtctctgggcagtaactgacgctgaggagcgaaagcgtggggagcgaacaggattagataccctggtagtccacgccgtaaacggtgggtactaggtgtgggtttccttccttgggatccgtgccgtagctaacgcattaagtaccccgcctggggagtacggccgcaaggctaaaactcaaaggaattgacgggggcccgcacaagcggcggagcatgtggattaattcgatgcaacgcgaagaaccttacctgggtttgacatgcacaggacgcgtctagagataggcgttcccttgtggcctgtgtgcaggtggtgcatggctgtcgtcagctcgtgtcgtgagatgttgggttaagtcccgcaacgagcgcaacccttgtctcatgttgccagcacgtaatggtggggactcgtgagagactgccggggtcaactcggaggaaggtggggatgacgtcaagtcatcatgccccttatgtccagggcttcacacatgctacaatggccggtacaaagggctgcgatgccgcgaggttaagcgaatccttaaaagccggtctcagttcggatcggggtctgcaactcgaccccgtgaagtcggagtcgctagtaatcgcagatcagcaacgctgcggtgaatacgttcccgggccttgtacacaccgcccgtcacgtcatgaaagtcggtaacacccgaagccagtggcctaaccctcgggagggagctgtcgaaggtgggatcggcgattgggacgaagtcgtaacaaggtagccgtaccggaaggtgcggctggatcacctcctttct"
+
+    assert sequence==''.join(test_gene.sequence)
+    assert test_gene.amino_acid_sequence==None
+
+    new_gene=copy.deepcopy(test_gene)
+    new_gene.sequence[new_gene.positions==1]='c'
+    new_gene._translate_sequence()
+
+    MUTATIONS=new_gene.table_mutations_wrt(test_gene)
+
+    assert list(MUTATIONS['MUTATION'])==['t1c']
+    assert list(MUTATIONS['REF'])==['t']
+    assert list(MUTATIONS['ALT'])==['c']
+    assert list(MUTATIONS['POSITION'])==[1]
+    assert list(MUTATIONS['AMINO_ACID_NUMBER'])==[None]
+    assert list(MUTATIONS['BASE_NUMBER'])==[1]
+    assert list(MUTATIONS['IS_SNP'])==[True]
+    assert list(MUTATIONS['IS_INDEL'])==[False]
+    assert list(MUTATIONS['IS_CDS'])==[True]
+    assert list(MUTATIONS['IS_PROMOTER'])==[False]
+    assert list(MUTATIONS['INDEL_LENGTH'])==[None]
+    assert list(MUTATIONS['INDEL_1'])==[None]
+    assert list(MUTATIONS['INDEL_2'])==[None]
+    assert list(MUTATIONS['MUTATION_TYPE'])==['SNP']
