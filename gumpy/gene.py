@@ -206,7 +206,7 @@ class Gene(object):
         assert self.codes_protein==other.codes_protein, "both genes must be identical!"
 
         MUTATIONS_dict={}
-        MUTATIONS_columns=['MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','BASE_NUMBER','IS_SNP','IS_INDEL','IS_CDS','IS_PROMOTER','INDEL_LENGTH','MUTATION_TYPE','INDEL_1','INDEL_2']
+        MUTATIONS_columns=['MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IS_CDS','IS_PROMOTER','INDEL_LENGTH','MUTATION_TYPE','INDEL_1','INDEL_2']
         for cols in MUTATIONS_columns:
             MUTATIONS_dict[cols]=[]
 
@@ -229,7 +229,7 @@ class Gene(object):
                 MUTATIONS_dict['ALT'].append(ac)
                 MUTATIONS_dict['POSITION'].append(p)
                 MUTATIONS_dict['AMINO_ACID_NUMBER'].append(p)
-                MUTATIONS_dict['BASE_NUMBER'].append(None)
+                MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(None)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
                 MUTATIONS_dict['IS_CDS'].append(True)
@@ -250,7 +250,7 @@ class Gene(object):
                 MUTATIONS_dict['ALT'].append(a)
                 MUTATIONS_dict['POSITION'].append(p)
                 MUTATIONS_dict['AMINO_ACID_NUMBER'].append(None)
-                MUTATIONS_dict['BASE_NUMBER'].append(p)
+                MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
                 MUTATIONS_dict['IS_CDS'].append(False)
@@ -278,7 +278,7 @@ class Gene(object):
                 MUTATIONS_dict['ALT'].append(a)
                 MUTATIONS_dict['POSITION'].append(p)
                 MUTATIONS_dict['AMINO_ACID_NUMBER'].append(None)
-                MUTATIONS_dict['BASE_NUMBER'].append(p)
+                MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
                 MUTATIONS_dict['IS_CDS'].append(is_cds)
@@ -313,7 +313,7 @@ class Gene(object):
             MUTATIONS_dict['ALT'].append(None)
             MUTATIONS_dict['POSITION'].append(p)
             MUTATIONS_dict['AMINO_ACID_NUMBER'].append(n)
-            MUTATIONS_dict['BASE_NUMBER'].append(p)
+            MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
             MUTATIONS_dict['IS_SNP'].append(False)
             MUTATIONS_dict['IS_INDEL'].append(True)
             MUTATIONS_dict['IS_CDS'].append(is_cds)
