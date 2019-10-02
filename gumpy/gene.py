@@ -227,7 +227,7 @@ class Gene(object):
                                         'IS_CDS': True,\
                                         'IS_PROMOTER':False,\
                                         'INDEL_LENGTH':None,\
-                                        'MUTATION_TYPE':'SNP'))
+                                        'MUTATION_TYPE':'SNP' }
 
             mask=(self.sequence!=other.sequence) & self.is_promoter
             pos=self.numbering[mask]
@@ -244,7 +244,7 @@ class Gene(object):
                                         'IS_CDS': False,\
                                         'IS_PROMOTER':True,\
                                         'INDEL_LENGTH':None,
-                                        'MUTATION_TYPE':'SNP'))
+                                        'MUTATION_TYPE':'SNP' }
 
         else:
             mask=self.sequence!=other.sequence
@@ -268,7 +268,7 @@ class Gene(object):
                                         'IS_CDS': is_cds,\
                                         'IS_PROMOTER':is_promoter,\
                                         'INDEL_LENGTH':None,
-                                        'MUTATION_TYPE':'SNP'))
+                                        'MUTATION_TYPE':'SNP' }
 
 
         mask=self.is_indel
@@ -295,7 +295,7 @@ class Gene(object):
                             'IS_CDS': is_cds,\
                             'IS_PROMOTER':is_promoter,\
                             'INDEL_LENGTH':l,
-                            'MUTATION_TYPE':'INDEL'))
+                            'MUTATION_TYPE':'INDEL' }
 
         if not mutations:
             mutations=None
