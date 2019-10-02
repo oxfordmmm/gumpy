@@ -206,7 +206,7 @@ class Gene(object):
         assert self.codes_protein==other.codes_protein, "both genes must be identical!"
 
         MUTATIONS_dict={}
-        MUTATIONS_columns=['MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IS_CDS','IS_PROMOTER','INDEL_LENGTH','MUTATION_TYPE','INDEL_1','INDEL_2']
+        MUTATIONS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IS_CDS','IS_PROMOTER','GENE_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
         for cols in MUTATIONS_columns:
             MUTATIONS_dict[cols]=[]
 
@@ -224,6 +224,7 @@ class Gene(object):
 
             for (r,p,a,rc,ac) in zip(ref,pos,alt,ref_codon,alt_codon):
                 mut=r+str(p)+a
+                MUTATIONS_dict['GENE'].append(self.gene_name)
                 MUTATIONS_dict['MUTATION'].append(mut)
                 MUTATIONS_dict['REF'].append(rc)
                 MUTATIONS_dict['ALT'].append(ac)
@@ -235,6 +236,7 @@ class Gene(object):
                 MUTATIONS_dict['IS_CDS'].append(True)
                 MUTATIONS_dict['IS_PROMOTER'].append(False)
                 MUTATIONS_dict['INDEL_LENGTH'].append(None)
+                MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
                 MUTATIONS_dict['INDEL_1'].append(None)
                 MUTATIONS_dict['INDEL_2'].append(None)
@@ -245,6 +247,7 @@ class Gene(object):
             alt=self.sequence[mask]
             for (r,p,a) in zip(ref,pos,alt):
                 mut=r+str(p)+a
+                MUTATIONS_dict['GENE'].append(self.gene_name)
                 MUTATIONS_dict['MUTATION'].append(mut)
                 MUTATIONS_dict['REF'].append(r)
                 MUTATIONS_dict['ALT'].append(a)
@@ -256,6 +259,7 @@ class Gene(object):
                 MUTATIONS_dict['IS_CDS'].append(False)
                 MUTATIONS_dict['IS_PROMOTER'].append(True)
                 MUTATIONS_dict['INDEL_LENGTH'].append(None)
+                MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
                 MUTATIONS_dict['INDEL_1'].append(None)
                 MUTATIONS_dict['INDEL_2'].append(None)
@@ -273,6 +277,7 @@ class Gene(object):
                     is_promoter=False
                     is_cds=True
                 mut=r+str(p)+a
+                MUTATIONS_dict['GENE'].append(self.gene_name)
                 MUTATIONS_dict['MUTATION'].append(mut)
                 MUTATIONS_dict['REF'].append(r)
                 MUTATIONS_dict['ALT'].append(a)
@@ -284,6 +289,7 @@ class Gene(object):
                 MUTATIONS_dict['IS_CDS'].append(is_cds)
                 MUTATIONS_dict['IS_PROMOTER'].append(is_promoter)
                 MUTATIONS_dict['INDEL_LENGTH'].append(None)
+                MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
                 MUTATIONS_dict['INDEL_1'].append(None)
                 MUTATIONS_dict['INDEL_2'].append(None)
@@ -308,6 +314,7 @@ class Gene(object):
             else:
                 mut1=str(p)+"_del"
                 mut2=mut1+"_"+str(-1*l)
+            MUTATIONS_dict['GENE'].append(self.gene_name)
             MUTATIONS_dict['MUTATION'].append(mut0)
             MUTATIONS_dict['REF'].append(None)
             MUTATIONS_dict['ALT'].append(None)
@@ -319,6 +326,7 @@ class Gene(object):
             MUTATIONS_dict['IS_CDS'].append(is_cds)
             MUTATIONS_dict['IS_PROMOTER'].append(is_promoter)
             MUTATIONS_dict['INDEL_LENGTH'].append(l)
+            MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
             MUTATIONS_dict['MUTATION_TYPE'].append('INDEL')
             MUTATIONS_dict['INDEL_1'].append(mut1)
             MUTATIONS_dict['INDEL_2'].append(mut2)

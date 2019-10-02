@@ -80,6 +80,7 @@ def test_Gene_table_mutations_wrt_2():
 
     MUTATIONS=new_gene2.table_mutations_wrt(test_gene)
 
+    assert list(MUTATIONS['GENE'])==['F','F']
     assert list(MUTATIONS['MUTATION'])==['M1L','S2P']
     assert list(MUTATIONS['REF'])==['atg','tct']
     assert list(MUTATIONS['ALT'])==['ctg','cct']
@@ -113,6 +114,7 @@ def test_Gene_table_mutations_wrt_4():
 
     MUTATIONS=new_gene4.table_mutations_wrt(test_gene)
 
+    assert list(MUTATIONS['GENE'])==['F']
     assert list(MUTATIONS['MUTATION'])==['32_indel']
     assert list(MUTATIONS['REF'])==[None]
     assert list(MUTATIONS['ALT'])==[None]
@@ -137,6 +139,7 @@ def test_Gene_table_mutations_wrt_5():
 
     MUTATIONS=new_gene5.table_mutations_wrt(test_gene)
 
+    assert list(MUTATIONS['GENE'])==['F']
     assert list(MUTATIONS['MUTATION'])==['-10_indel']
     assert list(MUTATIONS['REF'])==[None]
     assert list(MUTATIONS['ALT'])==[None]
@@ -160,6 +163,7 @@ def test_Gene_table_mutations_wrt_6():
 
     MUTATIONS=new_gene6.table_mutations_wrt(test_gene)
 
+    assert list(MUTATIONS['GENE'])==['F']
     assert list(MUTATIONS['MUTATION'])==['a-1t']
     assert list(MUTATIONS['REF'])==['a']
     assert list(MUTATIONS['ALT'])==['t']
@@ -282,6 +286,7 @@ def test_rrs_instantiation():
 
     MUTATIONS=new_gene.table_mutations_wrt(test_gene)
 
+    assert list(MUTATIONS['GENE'])==['rrs']
     assert list(MUTATIONS['MUTATION'])==['t1c']
     assert list(MUTATIONS['REF'])==['t']
     assert list(MUTATIONS['ALT'])==['c']
