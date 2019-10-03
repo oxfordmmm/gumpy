@@ -355,7 +355,7 @@ def test_Genome_apply_vcf():
 
 def test_Genome_list_variants_wrt():
 
-    assert sample_01.list_variants_wrt(reference)==['4687t>c','4725t>c','4730_indel','4735_indel']
+    assert sample_01.list_variants_wrt(reference)==['4687t>c','4725t>c', '13333c>z','13335t>a','4730_indel','4735_indel']
 
 
 def test_Genome_table_variants_wrt():
@@ -387,7 +387,7 @@ def test_Genome__complement():
 #     assert indices[0]==2153889
 #     assert indices[-1]==2156211
 #
-#     positions=h37rv.genome_positions[h37rv.genome_feature_name=='katG']
+#     positions=h37rv.genome_nucleotide_number[h37rv.genome_feature_name=='katG']
 #
 #     # check there is no zero position
 #     assert numpy.sum(positions==0)==0
@@ -405,7 +405,7 @@ def test_Genome__complement():
 #     assert indices[0]==759707
 #     assert indices[-1]==763325
 #
-#     positions=h37rv.genome_positions[h37rv.genome_feature_name=='rpoB']
+#     positions=h37rv.genome_nucleotide_number[h37rv.genome_feature_name=='rpoB']
 #
 #     # check there is no zero position
 #     assert numpy.sum(positions==0)==0

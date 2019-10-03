@@ -80,8 +80,15 @@ class Genome(object):
             self.genes=defaultdict(str)
 
             self.genome_sequence=copy.deepcopy(self.genome_coding_strand)
-            self.genome_numbering=numpy.zeros(self.genome_length,int)
-            self.genome_positions=numpy.zeros(self.genome_length,int)
+
+            self.genome_position=numpy.zeros(self.genome_length,float)
+            self.genome_position.fill(numpy.nan)
+
+            self.genome_nucleotide_number=numpy.zeros(self.genome_length,float)
+            self.genome_nucleotide_number.fill(numpy.nan)
+
+            self.genome_amino_acid_number=numpy.zeros(self.genome_length,float)
+            self.genome_amino_acid_number.fill(numpy.nan)
 
             self.is_indel=numpy.zeros(self.genome_length,dtype=bool)
             self.indel_length=numpy.zeros(self.genome_length,int)
@@ -204,13 +211,16 @@ class Genome(object):
                         self.genome_feature_type[mask]=type
                         self.genome_feature_name[mask]=gene_name
 
-                        self.genome_numbering[gene_mask]=gene_coding_numbering
-                        self.genome_numbering[promoter_mask]=promoter_coding_numbering
+                        self.genome_position[gene_mask]=gene_coding_numbering
+                        self.genome_position[promoter_mask]=promoter_coding_numbering
+
+                        if codes_protein:
+                            self.genome_amino_acid_number[gene_mask]=gene_coding_numbering
 
                         promoter_coding_position=promoter_coding_numbering
 
-                        self.genome_positions[gene_mask]=gene_coding_position
-                        self.genome_positions[promoter_mask]=promoter_coding_position
+                        self.genome_nucleotide_number[gene_mask]=gene_coding_position
+                        self.genome_nucleotide_number[promoter_mask]=promoter_coding_position
 
                         self.genome_is_cds[gene_mask]=True
                         self.genome_is_promoter[gene_mask]=False
@@ -280,8 +290,8 @@ class Genome(object):
             self.genes[gene]=Gene(  gene_name=gene,\
                                     sequence=self.genome_sequence[mask],\
                                     index=self.genome_index[mask],\
-                                    numbering=self.genome_numbering[mask],\
-                                    positions=self.genome_positions[mask],
+                                    numbering=self.genome_position[mask],\
+                                    positions=self.genome_nucleotide_number[mask],
                                     is_indel=self.is_indel[mask],
                                     indel_length=self.indel_length[mask],
                                     codes_protein=self._gene_codes_protein[gene],\
@@ -331,6 +341,49 @@ class Genome(object):
 
         return(variants)
 
+    def _infer_variant_table_booleans(self,row):
+        IS_SNP=False
+        IS_INDEL=False
+        IS_HET=False
+        IS_NULL=False
+        IN_PROMOTER=False
+        IN_CDS=False
+        INDEL_1=None
+        INDEL_2=None
+        MUTATION_TYPE=None
+        if row["GENE"] is None:
+            ASSOCIATED_WITH_GENE=False
+        else:
+            ASSOCIATED_WITH_GENE=True
+            if row["NUCLEOTIDE_NUMBER"]<0:
+                IN_PROMOTER=True
+                IN_CDS=False
+            elif row["NUCLEOTIDE_NUMBER"]>0:
+                IN_PROMOTER=False
+                IN_CDS=True
+        if "indel" in row["VARIANT"]:
+            IS_INDEL=True
+            MUTATION_TYPE='INDEL'
+        else:
+            IS_SNP=True
+            MUTATION_TYPE='SNP'
+        if IS_SNP:
+            alt=row["VARIANT"][-1]
+            if alt=="z":
+                IS_HET=True
+            elif alt=="x":
+                IS_NULL=True
+        if IS_INDEL:
+            if row["INDEL_LENGTH"]>0:
+                INDEL_1=str(row["GENOME_INDEX"])+"_ins"
+                INDEL_2=str(row["GENOME_INDEX"])+"_ins_"+str(row["INDEL_LENGTH"])
+            elif row["INDEL_LENGTH"]<0:
+                INDEL_1=str(row["GENOME_INDEX"])+"_del"
+                INDEL_2=str(row["GENOME_INDEX"])+"_del_"+str(-1*row["INDEL_LENGTH"])
+
+        return(pandas.Series([IS_SNP,IS_INDEL,IS_HET,IS_NULL,ASSOCIATED_WITH_GENE,IN_PROMOTER,IN_CDS,INDEL_1,INDEL_2,MUTATION_TYPE]))
+
+
     def table_variants_wrt(self,other):
 
         assert self.genome_length==other.genome_length, "genomes must have the same length!"
@@ -339,76 +392,73 @@ class Genome(object):
 
         VARIANTS_dict={}
         # VARIANTS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
-        VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','IS_SNP','IS_INDEL','INDEL_LENGTH','ELEMENT_TYPE','MUTATION_TYPE']
+        # VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','IS_SNP','IS_INDEL','INDEL_LENGTH','ELEMENT_TYPE','MUTATION_TYPE',"HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
+        VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','INDEL_LENGTH',"COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
+        for field in self.genome_sequence_metadata:
+            VARIANTS_columns.append(field)
         for cols in VARIANTS_columns:
             VARIANTS_dict[cols]=[]
 
-        ref=other.genome_sequence[mask]
-        idx=self.genome_index[mask]
-        alt=self.genome_sequence[mask]
-        genes=self.genome_feature_name[mask]
-        position=self.genome_numbering[mask]
-        numbering=self.genome_positions[mask]
-        element_type=self.genome_feature_type[mask]
-
-        for (r,i,a,g,p,n,et) in zip(ref,idx,alt,genes,position,numbering,element_type):
-
-            VARIANTS_dict['REF'].append(r)
-            VARIANTS_dict['ALT'].append(a)
-            VARIANTS_dict['VARIANT'].append(str(i)+r+">"+a)
-            VARIANTS_dict['GENOME_INDEX'].append(i)
-            VARIANTS_dict['GENE'].append(g)
-            VARIANTS_dict['POSITION'].append(p)
-            VARIANTS_dict['NUCLEOTIDE_NUMBER'].append(n)
-            VARIANTS_dict['IS_SNP'].append(True)
-            VARIANTS_dict['IS_INDEL'].append(False)
-            VARIANTS_dict['INDEL_LENGTH'].append(None)
-            VARIANTS_dict['ELEMENT_TYPE'].append(et)
-            VARIANTS_dict['MUTATION_TYPE'].append('SNP')
-            if et=="GENE" and p>0:
-                VARIANTS_dict['AMINO_ACID_NUMBER'].append(p)
-            else:
-                VARIANTS_dict['AMINO_ACID_NUMBER'].append(None)
-            print(n,p)
-
+        VARIANTS_dict['REF']=other.genome_sequence[mask]
+        VARIANTS_dict['GENOME_INDEX']=self.genome_index[mask]
+        VARIANTS_dict['ALT']=self.genome_sequence[mask]
+        for (r,i,a) in zip(VARIANTS_dict['REF'],VARIANTS_dict['GENOME_INDEX'],VARIANTS_dict['ALT']):
+            VARIANTS_dict['VARIANT'].append(r+str(i)+a)
+        VARIANTS_dict['GENE']=self.genome_feature_name[mask]
+        VARIANTS_dict['POSITION']=self.genome_position[mask]
+        VARIANTS_dict['NUCLEOTIDE_NUMBER']=self.genome_nucleotide_number[mask]
+        VARIANTS_dict['ELEMENT_TYPE']=self.genome_feature_type[mask]
+        VARIANTS_dict['AMINO_ACID_NUMBER']=self.genome_amino_acid_number[mask]
+        VARIANTS_dict["INDEL_LENGTH"]=self.indel_length[mask]
+        VARIANTS_dict["COVERAGE"]=self.coverage[mask]
+        VARIANTS_dict["HET_VARIANT_0"]=self.het_variations[mask][:,0]
+        VARIANTS_dict["HET_VARIANT_1"]=self.het_variations[mask][:,1]
+        VARIANTS_dict["HET_COVERAGE_0"]=self.het_coverage[mask][:,0]
+        VARIANTS_dict["HET_COVERAGE_1"]=self.het_coverage[mask][:,1]
+        VARIANTS_dict["HET_INDEL_LENGTH_0"]=self.het_indel_length[mask][:,0]
+        VARIANTS_dict["HET_INDEL_LENGTH_1"]=self.het_indel_length[mask][:,1]
+        VARIANTS_dict["HET_ALT_0"]=self.het_alt[mask][:,0]
+        VARIANTS_dict["HET_ALT_1"]=self.het_alt[mask][:,1]
+        VARIANTS_dict["HET_REF"]=self.het_ref[mask]
+        for field in self.genome_sequence_metadata:
+            VARIANTS_dict[field]=self.genome_sequence_metadata[field][mask]
 
         mask=self.is_indel
-        indel_ref=self.indel_ref[mask]
-        idx=self.genome_index[mask]
-        alt=self.indel_alt[mask]
-        genes=self.genome_feature_name[mask]
-        length=self.indel_length[mask]
-        position=self.genome_numbering[mask]
-        numbering=self.genome_positions[mask]
-        element_type=self.genome_feature_type[mask]
-        for (r,i,a,g,p,n,l,et) in zip(indel_ref,idx,alt,genes,position,numbering,length,element_type):
+        VARIANTS_dict['REF']=numpy.append(VARIANTS_dict['REF'],self.indel_ref[mask])
+        VARIANTS_dict['GENOME_INDEX']=numpy.append(VARIANTS_dict['GENOME_INDEX'],self.genome_index[mask])
+        VARIANTS_dict['ALT']=numpy.append(VARIANTS_dict['ALT'],self.indel_alt[mask])
+        for i in self.genome_index[mask]:
+            VARIANTS_dict['VARIANT']=numpy.append(VARIANTS_dict['VARIANT'],str(i)+"_indel")
+        VARIANTS_dict['GENE']=numpy.append(VARIANTS_dict['GENE'],self.genome_feature_name[mask])
+        VARIANTS_dict['POSITION']=numpy.append(VARIANTS_dict['POSITION'],self.genome_nucleotide_number[mask])
+        VARIANTS_dict['NUCLEOTIDE_NUMBER']=numpy.append(VARIANTS_dict['NUCLEOTIDE_NUMBER'],self.genome_nucleotide_number[mask])
+        VARIANTS_dict['ELEMENT_TYPE']=numpy.append(VARIANTS_dict['ELEMENT_TYPE'],self.genome_feature_type[mask])
+        VARIANTS_dict['AMINO_ACID_NUMBER']=numpy.append(VARIANTS_dict['AMINO_ACID_NUMBER'],self.genome_amino_acid_number[mask])
+        VARIANTS_dict["INDEL_LENGTH"]=numpy.append(VARIANTS_dict["INDEL_LENGTH"],self.indel_length[mask])
+        VARIANTS_dict["COVERAGE"]=numpy.append(VARIANTS_dict["COVERAGE"],self.coverage[mask])
+        VARIANTS_dict["HET_VARIANT_0"]=numpy.append(VARIANTS_dict["HET_VARIANT_0"],self.het_variations[mask][:,0])
+        VARIANTS_dict["HET_VARIANT_1"]=numpy.append(VARIANTS_dict["HET_VARIANT_1"],self.het_variations[mask][:,1])
+        VARIANTS_dict["HET_COVERAGE_0"]=numpy.append(VARIANTS_dict["HET_COVERAGE_0"],self.het_coverage[mask][:,0])
+        VARIANTS_dict["HET_COVERAGE_1"]=numpy.append(VARIANTS_dict["HET_COVERAGE_1"],self.het_coverage[mask][:,1])
+        VARIANTS_dict["HET_INDEL_LENGTH_0"]=numpy.append(VARIANTS_dict["HET_INDEL_LENGTH_0"],self.het_indel_length[mask][:,0])
+        VARIANTS_dict["HET_INDEL_LENGTH_1"]=numpy.append(VARIANTS_dict["HET_INDEL_LENGTH_1"],self.het_indel_length[mask][:,1])
+        VARIANTS_dict["HET_ALT_0"]=numpy.append(VARIANTS_dict["HET_ALT_0"],self.het_alt[mask][:,0])
+        VARIANTS_dict["HET_ALT_1"]=numpy.append(VARIANTS_dict["HET_ALT_1"],self.het_alt[mask][:,1])
+        VARIANTS_dict["HET_REF"]=numpy.append(VARIANTS_dict["HET_REF"],self.het_ref[mask])
+        for field in self.genome_sequence_metadata:
+            VARIANTS_dict[field]=numpy.append(VARIANTS_dict[field],self.genome_sequence_metadata[field][mask])
 
-            VARIANTS_dict['REF'].append(r)
-            VARIANTS_dict['ALT'].append(a)
-            VARIANTS_dict['VARIANT'].append(str(i)+"_indel")
-            VARIANTS_dict['GENOME_INDEX'].append(i)
-            VARIANTS_dict['GENE'].append(g)
-            VARIANTS_dict['POSITION'].append(n)
-            VARIANTS_dict['NUCLEOTIDE_NUMBER'].append(n)
-            VARIANTS_dict['IS_SNP'].append(False)
-            VARIANTS_dict['IS_INDEL'].append(True)
-            VARIANTS_dict['INDEL_LENGTH'].append(l)
-            VARIANTS_dict['ELEMENT_TYPE'].append(et)
-            VARIANTS_dict['MUTATION_TYPE'].append('INDEL')
-            if et=="GENE" and p>0:
-                VARIANTS_dict['AMINO_ACID_NUMBER'].append(p)
-            else:
-                VARIANTS_dict['AMINO_ACID_NUMBER'].append(None)
+        VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
 
-        if not VARIANTS_dict:
-            VARIANTS_table=None
-        else:
-            VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
+        VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
+
+        VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',"INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
+
+        if len(VARIANTS_table)>0:
             VARIANTS_table=VARIANTS_table[VARIANTS_columns]
-
-        print(VARIANTS_table)
-
-        return(VARIANTS_table)
+            return(VARIANTS_table)
+        else:
+            return(None)
 
     def __sub__(self,other):
 
@@ -1034,7 +1084,7 @@ class Genome(object):
         alt=tmp_gene.amino_acid_sequence[tmp_gene.amino_acid_numbering==amino_acid_position][0]
 
         # and return the gene_mutation
-        return(gene_name+"_"+ref+str(amino_acid_position)+alt)
+        return(gene_name+"_"+ref+str(int(amino_acid_position))+alt)
 
 
     def valid_gene_mutation(self,mutation):

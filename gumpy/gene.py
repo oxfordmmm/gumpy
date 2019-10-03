@@ -22,7 +22,7 @@ class Gene(object):
         assert numpy.issubdtype(index.dtype.type,numpy.integer), gene_name+": genome indices must be a Numpy array of integers!"
 
         assert isinstance(numbering,numpy.ndarray), gene_name+": gene numbering must be a Numpy array of integers!"
-        assert numpy.issubdtype(numbering.dtype.type,numpy.integer), gene_name+": gene numbering must be a Numpy array of integers!"
+        assert numpy.issubdtype(numbering.dtype.type,numpy.float64), gene_name+": gene numbering must be a Numpy array of integers!"
 
         sequence=numpy.char.lower(sequence)
         assert numpy.count_nonzero(numpy.isin(sequence,['a','t','c','g','x','z']))==len(sequence), gene_name+": sequence can only contain a,t,c,g,z,x"
