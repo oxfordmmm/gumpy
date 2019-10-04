@@ -69,7 +69,7 @@ class Genome(object):
             if 'taxonomy' in reference_genome.annotations.keys():
                 self.sample_metadata['TAXONOMY']=reference_genome.annotations['taxonomy']
 
-            self.genome_feature_name=numpy.zeros(self.genome_length,dtype="<U10")
+            self.genome_feature_name=numpy.empty(self.genome_length,dtype="<U10")
             self.genome_feature_type=numpy.zeros(self.genome_length,dtype="<U5")
             self.genome_is_cds=numpy.zeros(self.genome_length,dtype=bool)
             self.genome_is_promoter=numpy.zeros(self.genome_length,dtype=bool)
