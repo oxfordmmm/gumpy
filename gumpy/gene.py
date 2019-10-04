@@ -348,7 +348,11 @@ class Gene(object):
                                                     'NUCLEOTIDE_NUMBER':'Int64',\
                                                     'AMINO_ACID_NUMBER':'Int64',\
                                                     'GENOME_INDEX':'Int64',\
-                                                    'INDEL_LENGTH':'Int64'})
+                                                    'INDEL_LENGTH':'Int64',\
+                                                    'IS_SNP':'bool',\
+                                                    'IS_INDEL':'bool',\
+                                                    'IN_CDS':'bool',\
+                                                    'IN_PROMOTER':'bool'  })
             MUTATIONS_table=MUTATIONS_table.replace({   'POSITION':0,\
                                                         'NUCLEOTIDE_NUMBER':0,\
                                                         'AMINO_ACID_NUMBER':0,\

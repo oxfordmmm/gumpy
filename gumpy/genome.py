@@ -392,7 +392,7 @@ class Genome(object):
         VARIANTS_dict={}
         # VARIANTS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
         # VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','IS_SNP','IS_INDEL','INDEL_LENGTH','ELEMENT_TYPE','MUTATION_TYPE',"HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
-        VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','INDEL_LENGTH',"COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
+        VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','INDEL_LENGTH',"COVERAGE","HET_REF","HET_ALT_0","HET_ALT_1","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1"]
         for field in self.genome_sequence_metadata:
             VARIANTS_columns.append(field)
         for cols in VARIANTS_columns:
@@ -402,7 +402,7 @@ class Genome(object):
         VARIANTS_dict['GENOME_INDEX']=self.genome_index[mask]
         VARIANTS_dict['ALT']=self.genome_sequence[mask]
         for (r,i,a) in zip(VARIANTS_dict['REF'],VARIANTS_dict['GENOME_INDEX'],VARIANTS_dict['ALT']):
-            VARIANTS_dict['VARIANT'].append(r+str(i)+a)
+            VARIANTS_dict['VARIANT'].append(str(i)+r+">"+a)
         VARIANTS_dict['GENE']=self.genome_feature_name[mask]
         VARIANTS_dict['POSITION']=self.genome_position[mask]
         VARIANTS_dict['NUCLEOTIDE_NUMBER']=self.genome_nucleotide_number[mask]
@@ -450,21 +450,24 @@ class Genome(object):
         VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
 
         VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
-
         VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',"INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
 
         if len(VARIANTS_table)>0:
             VARIANTS_table=VARIANTS_table[VARIANTS_columns]
-            VARIANTS_table=VARIANTS_table.astype({'POSITION':'Int64',\
+            VARIANTS_table=VARIANTS_table.astype({  'POSITION':'Int64',\
                                                     'NUCLEOTIDE_NUMBER':'Int64',\
                                                     'AMINO_ACID_NUMBER':'Int64',\
                                                     'INDEL_LENGTH':'Int64',\
                                                     'GENOME_INDEX':'Int64',\
+                                                    'IS_SNP':'bool',\
+                                                    'IS_INDEL':'bool',\
+                                                    'IN_CDS':'bool',\
+                                                    'IN_PROMOTER':'bool',\
                                                     'HET_COVERAGE_0':'Int64',\
                                                     'HET_COVERAGE_1':'Int64',\
                                                     'HET_INDEL_LENGTH_0':'Int64',\
                                                     'HET_INDEL_LENGTH_1':'Int64'})
-            VARIANTS_table=VARIANTS_table.replace({   'POSITION':0,\
+            VARIANTS_table=VARIANTS_table.replace({     'POSITION':0,\
                                                         'NUCLEOTIDE_NUMBER':0,\
                                                         'AMINO_ACID_NUMBER':0,\
                                                         'INDEL_LENGTH':0,\
