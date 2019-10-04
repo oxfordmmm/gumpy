@@ -53,7 +53,7 @@ class Genome(object):
             self.genome_length=len(self.genome_coding_strand)
 
             # create an array of the genome indices
-            self.genome_index=numpy.arange(1,self.genome_length+1)
+            self.genome_index=numpy.arange(1,self.genome_length+1,dtype="Int64")
 
             self.version=reference_genome.annotations['accessions'][0]+"."+str(reference_genome.annotations['sequence_version'])
 
@@ -81,14 +81,14 @@ class Genome(object):
 
             self.genome_sequence=copy.deepcopy(self.genome_coding_strand)
 
-            self.genome_position=numpy.zeros(self.genome_length,float)
-            self.genome_position.fill(numpy.nan)
+            self.genome_position=numpy.zeros(self.genome_length,dtype="Int64")
+            # self.genome_position.fill(numpy.nan)
 
-            self.genome_nucleotide_number=numpy.zeros(self.genome_length,float)
-            self.genome_nucleotide_number.fill(numpy.nan)
+            self.genome_nucleotide_number=numpy.zeros(self.genome_length,dtype="Int64")
+            # self.genome_nucleotide_number.fill(numpy.nan)
 
-            self.genome_amino_acid_number=numpy.zeros(self.genome_length,float)
-            self.genome_amino_acid_number.fill(numpy.nan)
+            self.genome_amino_acid_number=numpy.zeros(self.genome_length,dtype="Int64")
+            # self.genome_amino_acid_number.fill(numpy.nan,dtype="Int64")
 
             self.is_indel=numpy.zeros(self.genome_length,dtype=bool)
             self.indel_length=numpy.zeros(self.genome_length,int)
@@ -456,6 +456,23 @@ class Genome(object):
 
         if len(VARIANTS_table)>0:
             VARIANTS_table=VARIANTS_table[VARIANTS_columns]
+            VARIANTS_table=VARIANTS_table.astype({'POSITION':'Int64',\
+                                                    'NUCLEOTIDE_NUMBER':'Int64',\
+                                                    'AMINO_ACID_NUMBER':'Int64',\
+                                                    'INDEL_LENGTH':'Int64',\
+                                                    'HET_COVERAGE_0':'Int64',\
+                                                    'HET_COVERAGE_1':'Int64',\
+                                                    'HET_INDEL_LENGTH_0':'Int64',\
+                                                    'HET_INDEL_LENGTH_1':'Int64'})
+            VARIANTS_table=VARIANTS_table.replace({   'POSITION':0,\
+                                                        'NUCLEOTIDE_NUMBER':0,\
+                                                        'AMINO_ACID_NUMBER':0,\
+                                                        'INDEL_LENGTH':0,\
+                                                        'HET_COVERAGE_0':0,\
+                                                        'HET_COVERAGE_1':0,\
+                                                        'HET_INDEL_LENGTH_0':0,\
+                                                        'HET_INDEL_LENGTH_1':0  }, numpy.nan)
+
             return(VARIANTS_table)
         else:
             return(None)
