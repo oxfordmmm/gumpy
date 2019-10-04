@@ -459,6 +459,7 @@ class Genome(object):
                                                     'NUCLEOTIDE_NUMBER':'Int64',\
                                                     'AMINO_ACID_NUMBER':'Int64',\
                                                     'INDEL_LENGTH':'Int64',\
+                                                    'GENOME_INDEX':'Int64',\
                                                     'HET_COVERAGE_0':'Int64',\
                                                     'HET_COVERAGE_1':'Int64',\
                                                     'HET_INDEL_LENGTH_0':'Int64',\
@@ -467,6 +468,7 @@ class Genome(object):
                                                         'NUCLEOTIDE_NUMBER':0,\
                                                         'AMINO_ACID_NUMBER':0,\
                                                         'INDEL_LENGTH':0,\
+                                                        'GENOME_INDEX':0,\
                                                         'HET_COVERAGE_0':0,\
                                                         'HET_COVERAGE_1':0,\
                                                         'HET_INDEL_LENGTH_0':0,\

@@ -347,10 +347,12 @@ class Gene(object):
             MUTATIONS_table=MUTATIONS_table.astype({'POSITION':'Int64',\
                                                     'NUCLEOTIDE_NUMBER':'Int64',\
                                                     'AMINO_ACID_NUMBER':'Int64',\
+                                                    'GENOME_INDEX':'Int64',\
                                                     'INDEL_LENGTH':'Int64'})
             MUTATIONS_table=MUTATIONS_table.replace({   'POSITION':0,\
                                                         'NUCLEOTIDE_NUMBER':0,\
                                                         'AMINO_ACID_NUMBER':0,\
+                                                        'GENOME_INDEX':0,\
                                                         'INDEL_LENGTH':0  }, numpy.nan)
 
 
