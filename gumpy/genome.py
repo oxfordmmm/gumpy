@@ -53,7 +53,7 @@ class Genome(object):
             self.genome_length=len(self.genome_coding_strand)
 
             # create an array of the genome indices
-            self.genome_index=numpy.arange(1,self.genome_length+1,dtype="Int64")
+            self.genome_index=numpy.arange(1,self.genome_length+1,dtype="int")
 
             self.version=reference_genome.annotations['accessions'][0]+"."+str(reference_genome.annotations['sequence_version'])
 
@@ -81,14 +81,13 @@ class Genome(object):
 
             self.genome_sequence=copy.deepcopy(self.genome_coding_strand)
 
-            self.genome_position=numpy.zeros(self.genome_length,dtype="Int64")
+            self.genome_position=numpy.zeros(self.genome_length,dtype="int")
             # self.genome_position.fill(numpy.nan)
 
-            self.genome_nucleotide_number=numpy.zeros(self.genome_length,dtype="Int64")
+            self.genome_nucleotide_number=numpy.zeros(self.genome_length,dtype="int")
             # self.genome_nucleotide_number.fill(numpy.nan)
 
-            self.genome_amino_acid_number=numpy.zeros(self.genome_length,dtype="Int64")
-            # self.genome_amino_acid_number.fill(numpy.nan,dtype="Int64")
+            self.genome_amino_acid_number=numpy.zeros(self.genome_length,dtype="int")
 
             self.is_indel=numpy.zeros(self.genome_length,dtype=bool)
             self.indel_length=numpy.zeros(self.genome_length,int)
