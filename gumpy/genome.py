@@ -448,13 +448,13 @@ class Genome(object):
         VARIANTS_dict["HET_ALT_0"]=numpy.append(VARIANTS_dict["HET_ALT_0"],self.het_alt[mask][:,0])
         VARIANTS_dict["HET_ALT_1"]=numpy.append(VARIANTS_dict["HET_ALT_1"],self.het_alt[mask][:,1])
         VARIANTS_dict["HET_REF"]=numpy.append(VARIANTS_dict["HET_REF"],self.het_ref[mask])
+
         for field in self.genome_sequence_metadata:
             VARIANTS_dict[field]=numpy.append(VARIANTS_dict[field],self.genome_sequence_metadata[field][mask])
 
-        VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
+        if VARIANTS_dict:
 
-
-        if len(VARIANTS_table)>0:
+            VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
 
             VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
 

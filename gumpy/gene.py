@@ -339,11 +339,12 @@ class Gene(object):
             MUTATIONS_dict['INDEL_1'].append(mut1)
             MUTATIONS_dict['INDEL_2'].append(mut2)
 
-        if not MUTATIONS_dict:
-            MUTATIONS_table=None
-        else:
+        if MUTATIONS_dict:
+
             MUTATIONS_table=pandas.DataFrame(data=MUTATIONS_dict)
+
             MUTATIONS_table=MUTATIONS_table[MUTATIONS_columns]
+
             MUTATIONS_table=MUTATIONS_table.astype({'POSITION':'Int64',\
                                                     'NUCLEOTIDE_NUMBER':'Int64',\
                                                     'AMINO_ACID_NUMBER':'Int64',\
@@ -359,10 +360,11 @@ class Gene(object):
                                                         'GENOME_INDEX':0,\
                                                         'INDEL_LENGTH':0  }, numpy.nan)
 
+            return(MUTATIONS_table)
 
+        else:
 
-
-        return(MUTATIONS_table)
+            return(None)
 
     def __sub__(self,other):
 
