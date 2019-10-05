@@ -346,12 +346,12 @@ class Genome(object):
         IS_INDEL=False
         IS_HET=False
         IS_NULL=False
+        ASSOCIATED_WITH_GENE=False
         IN_PROMOTER=False
         IN_CDS=False
         INDEL_1=None
         INDEL_2=None
         MUTATION_TYPE=None
-        ASSOCIATED_WITH_GENE=False
 
         if row["GENE"] is not None:
             ASSOCIATED_WITH_GENE=True
@@ -365,27 +365,22 @@ class Genome(object):
         if "indel" in row["VARIANT"]:
             IS_INDEL=True
             MUTATION_TYPE='INDEL'
-        else:
-            IS_SNP=True
-            MUTATION_TYPE='SNP'
-
-        if IS_SNP:
-            alt=row["VARIANT"][-1]
-            if alt=="z":
-                IS_HET=True
-            elif alt=="x":
-                IS_NULL=True
-
-        if IS_INDEL:
             if row["INDEL_LENGTH"]>0:
                 INDEL_1=str(row["GENOME_INDEX"])+"_ins"
                 INDEL_2=str(row["GENOME_INDEX"])+"_ins_"+str(row["INDEL_LENGTH"])
             elif row["INDEL_LENGTH"]<0:
                 INDEL_1=str(row["GENOME_INDEX"])+"_del"
                 INDEL_2=str(row["GENOME_INDEX"])+"_del_"+str(-1*row["INDEL_LENGTH"])
+        else:
+            IS_SNP=True
+            MUTATION_TYPE='SNP'
+            alt=row["VARIANT"][-1]
+            if alt=="z":
+                IS_HET=True
+            elif alt=="x":
+                IS_NULL=True
 
         return(pandas.Series([IS_SNP,IS_INDEL,IS_HET,IS_NULL,ASSOCIATED_WITH_GENE,IN_PROMOTER,IN_CDS,INDEL_1,INDEL_2,MUTATION_TYPE]))
-
 
     def table_variants_wrt(self,other):
 
@@ -452,15 +447,13 @@ class Genome(object):
         for field in self.genome_sequence_metadata:
             VARIANTS_dict[field]=numpy.append(VARIANTS_dict[field],self.genome_sequence_metadata[field][mask])
 
-        if VARIANTS_dict:
+        if len(VARIANTS_dict['POSITION'])>0:
 
             VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
 
             VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
 
             VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',"INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
-
-            VARIANTS_table=VARIANTS_table[VARIANTS_columns]
 
             VARIANTS_table=VARIANTS_table.astype({  'POSITION':'Int64',\
                                                     'NUCLEOTIDE_NUMBER':'Int64',\
@@ -474,7 +467,7 @@ class Genome(object):
                                                     'HET_COVERAGE_0':'Int64',\
                                                     'HET_COVERAGE_1':'Int64',\
                                                     'HET_INDEL_LENGTH_0':'Int64',\
-                                                    'HET_INDEL_LENGTH_1':'Int64'})
+                                                    'HET_INDEL_LENGTH_1':'Int64'   })
             VARIANTS_table=VARIANTS_table.replace({     'POSITION':0,\
                                                         'NUCLEOTIDE_NUMBER':0,\
                                                         'AMINO_ACID_NUMBER':0,\

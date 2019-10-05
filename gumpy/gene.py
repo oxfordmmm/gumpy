@@ -164,7 +164,6 @@ class Gene(object):
         if self.codes_protein:
 
             # deal first with the coding sequence, which we will view at the amino acid level
-
             # using codons rather than amino acids will detect synonymous mutations as well
             mask=(self.codons!=other.codons)
             pos=self.amino_acid_numbering[mask]
@@ -214,7 +213,6 @@ class Gene(object):
         if self.codes_protein:
 
             # deal first with the coding sequence, which we will view at the amino acid level
-
             # using codons rather than amino acids will detect synonymous mutations as well
             mask=(self.codons!=other.codons)
             pos=self.amino_acid_numbering[mask]
@@ -339,7 +337,7 @@ class Gene(object):
             MUTATIONS_dict['INDEL_1'].append(mut1)
             MUTATIONS_dict['INDEL_2'].append(mut2)
 
-        if MUTATIONS_dict:
+        if len(MUTATIONS_dict['POSITION'])>0:
 
             MUTATIONS_table=pandas.DataFrame(data=MUTATIONS_dict)
 
