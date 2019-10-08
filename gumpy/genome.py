@@ -69,7 +69,7 @@ class Genome(object):
             if 'taxonomy' in reference_genome.annotations.keys():
                 self.sample_metadata['TAXONOMY']=reference_genome.annotations['taxonomy']
 
-            self.genome_feature_name=numpy.empty(self.genome_length,dtype="<U10")
+            self.genome_feature_name=numpy.zeros(self.genome_length,dtype="<U10")
             self.genome_feature_type=numpy.zeros(self.genome_length,dtype="<U5")
             self.genome_is_cds=numpy.zeros(self.genome_length,dtype=bool)
             self.genome_is_promoter=numpy.zeros(self.genome_length,dtype=bool)
@@ -353,7 +353,7 @@ class Genome(object):
         INDEL_2=None
         MUTATION_TYPE=None
 
-        if row["GENE"] is not None:
+        if row["GENE"]!="":
             ASSOCIATED_WITH_GENE=True
             if row["NUCLEOTIDE_NUMBER"]<0:
                 IN_PROMOTER=True
@@ -418,6 +418,7 @@ class Genome(object):
         VARIANTS_dict["HET_ALT_0"]=self.het_alt[mask][:,0]
         VARIANTS_dict["HET_ALT_1"]=self.het_alt[mask][:,1]
         VARIANTS_dict["HET_REF"]=self.het_ref[mask]
+
         for field in self.genome_sequence_metadata:
             VARIANTS_dict[field]=self.genome_sequence_metadata[field][mask]
 
@@ -455,11 +456,16 @@ class Genome(object):
 
             VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',"INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
 
+            # add on any other metadata gleaned from the VCF file
+            for field in self.genome_sequence_metadata:
+                VARIANTS_columns.append(field)
+
             VARIANTS_table=VARIANTS_table.astype({  'POSITION':'Int64',\
                                                     'NUCLEOTIDE_NUMBER':'Int64',\
                                                     'AMINO_ACID_NUMBER':'Int64',\
                                                     'INDEL_LENGTH':'Int64',\
                                                     'GENOME_INDEX':'Int64',\
+                                                    'GENE':'str',\
                                                     'IS_SNP':'bool',\
                                                     'IS_INDEL':'bool',\
                                                     'IN_CDS':'bool',\
