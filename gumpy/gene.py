@@ -343,20 +343,29 @@ class Gene(object):
 
             MUTATIONS_table=MUTATIONS_table[MUTATIONS_columns]
 
-            MUTATIONS_table=MUTATIONS_table.astype({'POSITION':'Int64',\
-                                                    'NUCLEOTIDE_NUMBER':'Int64',\
-                                                    'AMINO_ACID_NUMBER':'Int64',\
-                                                    'GENOME_INDEX':'Int64',\
-                                                    'INDEL_LENGTH':'Int64',\
+            MUTATIONS_table=MUTATIONS_table.astype({'GENE':'category',\
+                                                    'MUTATION':'str',\
+                                                    'REF':'str',\
+                                                    'ALT':'str',\
+                                                    'POSITION':'float',\
+                                                    'AMINO_ACID_NUMBER':'float',\
+                                                    'NUCLEOTIDE_NUMBER':'float',\
+                                                    'GENOME_INDEX':'float',\
                                                     'IS_SNP':'bool',\
                                                     'IS_INDEL':'bool',\
                                                     'IN_CDS':'bool',\
-                                                    'IN_PROMOTER':'bool'  })
-            MUTATIONS_table=MUTATIONS_table.replace({   'POSITION':0,\
-                                                        'NUCLEOTIDE_NUMBER':0,\
-                                                        'AMINO_ACID_NUMBER':0,\
-                                                        'GENOME_INDEX':0,\
-                                                        'INDEL_LENGTH':0  }, numpy.nan)
+                                                    'IN_PROMOTER':'bool',\
+                                                    'INDEL_LENGTH':'float',\
+                                                    'ELEMENT_TYPE':'category',\
+                                                    'MUTATION_TYPE':'category',\
+                                                    'INDEL_1':'str',\
+                                                    'INDEL_2':'str'})
+
+            # MUTATIONS_table=MUTATIONS_table.replace({   'POSITION':0,\
+            #                                             'NUCLEOTIDE_NUMBER':0,\
+            #                                             'AMINO_ACID_NUMBER':0,\
+            #                                             'GENOME_INDEX':0,\
+            #                                             'INDEL_LENGTH':0  }, numpy.nan)
 
             return(MUTATIONS_table)
 

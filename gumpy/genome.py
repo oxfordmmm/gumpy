@@ -454,35 +454,55 @@ class Genome(object):
 
             VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
 
-            VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',"INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
+            VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",\
+                            'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE',\
+                            'IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',\
+                            "INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0",\
+                            "HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
 
             # add on any other metadata gleaned from the VCF file
             for field in self.genome_sequence_metadata:
                 VARIANTS_columns.append(field)
 
-            VARIANTS_table=VARIANTS_table.astype({  'POSITION':'Int64',\
-                                                    'NUCLEOTIDE_NUMBER':'Int64',\
-                                                    'AMINO_ACID_NUMBER':'Int64',\
-                                                    'INDEL_LENGTH':'Int64',\
-                                                    'GENOME_INDEX':'Int64',\
-                                                    'GENE':'str',\
+            VARIANTS_table=VARIANTS_table.astype({  'VARIANT':'str',\
+                                                    'REF':'str',\
+                                                    'ALT':'str',\
+                                                    'GENOME_INDEX':'float',\
+                                                    'GENE':'category',\
+                                                    'ELEMENT_TYPE':'category',\
+                                                    'MUTATION_TYPE':'category',\
+                                                    'POSITION':'float',\
+                                                    'NUCLEOTIDE_NUMBER':'float',\
+                                                    'AMINO_ACID_NUMBER':'float',\
+                                                    'ASSOCIATED_WITH_GENE':'bool',\
+                                                    'IN_PROMOTER':'bool',\
+                                                    'IN_CDS':'bool',\
                                                     'IS_SNP':'bool',\
                                                     'IS_INDEL':'bool',\
-                                                    'IN_CDS':'bool',\
-                                                    'IN_PROMOTER':'bool',\
-                                                    'HET_COVERAGE_0':'Int64',\
-                                                    'HET_COVERAGE_1':'Int64',\
-                                                    'HET_INDEL_LENGTH_0':'Int64',\
-                                                    'HET_INDEL_LENGTH_1':'Int64'   })
-            VARIANTS_table=VARIANTS_table.replace({     'POSITION':0,\
-                                                        'NUCLEOTIDE_NUMBER':0,\
-                                                        'AMINO_ACID_NUMBER':0,\
-                                                        'INDEL_LENGTH':0,\
-                                                        'GENOME_INDEX':0,\
-                                                        'HET_COVERAGE_0':0,\
-                                                        'HET_COVERAGE_1':0,\
-                                                        'HET_INDEL_LENGTH_0':0,\
-                                                        'HET_INDEL_LENGTH_1':0  }, numpy.nan)
+                                                    'IS_HET':'bool',\
+                                                    'IS_NULL':'bool',\
+                                                    'INDEL_LENGTH':'float',\
+                                                    'INDEL_1':'str',\
+                                                    'INDEL_2':'str',\
+                                                    'COVERAGE':'int',\
+                                                    'HET_VARIANT_0':'category',\
+                                                    'HET_VARIANT_1':'category',\
+                                                    'HET_COVERAGE_0':'float',\
+                                                    'HET_COVERAGE_1':'float',\
+                                                    'HET_INDEL_LENGTH_0':'float',\
+                                                    'HET_INDEL_LENGTH_1':'float',\
+                                                    'HET_REF':'str',\
+                                                    'HET_ALT_0':'str',\
+                                                    'HET_ALT_1':'str'   })
+            # VARIANTS_table=VARIANTS_table.replace({     'POSITION':0,\
+            #                                             'NUCLEOTIDE_NUMBER':0,\
+            #                                             'AMINO_ACID_NUMBER':0,\
+            #                                             'INDEL_LENGTH':0,\
+            #                                             'GENOME_INDEX':0,\
+            #                                             'HET_COVERAGE_0':0,\
+            #                                             'HET_COVERAGE_1':0,\
+            #                                             'HET_INDEL_LENGTH_0':0,\
+            #                                             'HET_INDEL_LENGTH_1':0  }, numpy.nan)
 
             return(VARIANTS_table)
         else:
