@@ -1266,7 +1266,7 @@ class Genome(object):
 
                 mask=self.genes[gene_name].positions==position
 
-                assert numpy.count_nonzero(mask)==1, "specified position "+cols[1]+" not in the gene"
+                assert numpy.count_nonzero(mask)==1, "specified position "+cols[1]+" not in the gene: "+mutation
 
                 # be defensive here also!
                 assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format rpoB_1300_ins_1 i.e. the third element must be ins or del, not "+cols[2]
