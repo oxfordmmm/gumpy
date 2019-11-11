@@ -575,7 +575,7 @@ class Genome(object):
     def snp_distance(self,other):
         return (numpy.count_nonzero(self.genome_coding_strand!=other.genome_coding_strand))
 
-    def apply_vcf_file(self,vcf_file=None,ignore_filter=False, ignore_status=False,show_progress_bar=False,metadata_fields=None):
+    def apply_vcf_file(self,vcf_file=None,ignore_filter=False, ignore_status=False,show_progress_bar=False,total_coverage_threshold=None,metadata_fields=None,metadata_thresholds=None):
         """
         Load a VCF file and apply the variants to the whole genome sequence.
 
@@ -669,6 +669,21 @@ class Genome(object):
 
                 # bypass (for speed) if this is a REF call
                 if alt_bases=="":
+                    continue
+
+                # apply any specified total coverage threshold
+                if total_coverage_threshold is not None:
+                    if numpy.sum(sample_info['COV'])<total_coverage_threshold:
+                        continue
+
+                # apply any specific metadata thresholds, e.g. GT_CONF_PERCENTILE<5
+                below_threshold=False
+                if metadata_thresholds is not None:
+                    for field in metadata_thresholds.keys():
+                        if field in sample_info.keys():
+                            if float(sample_info[field])<metadata_thresholds[field]:
+                                below_threshold=True
+                if below_threshold:
                     continue
 
                 # deal with everything except HET calls

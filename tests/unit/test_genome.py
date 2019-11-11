@@ -335,7 +335,7 @@ def test_Genome_calculate_snp_distance():
     assert sample.snp_distance(reference)==2
 
 sample_01=copy.deepcopy(reference)
-sample_01.apply_vcf_file(vcf_file=TEST_CASE_DIR+"01.vcf",ignore_status=True,ignore_filter=True,metadata_fields=['GT_CONF','GT_CONF_PERCENTILE'])
+sample_01.apply_vcf_file(vcf_file=TEST_CASE_DIR+"01.vcf",ignore_status=True,ignore_filter=True,metadata_fields=['GT_CONF','GT_CONF_PERCENTILE'],total_coverage_threshold=5,metadata_thresholds={'GT_CONF':5})
 
 def test_Genome_apply_vcf():
 
@@ -355,7 +355,7 @@ def test_Genome_apply_vcf():
 
 def test_Genome_list_variants_wrt():
 
-    assert sample_01.list_variants_wrt(reference)==['4687t>c','4725t>c', '13333c>z','13335t>a','4730_indel','4735_indel']
+    assert sample_01.list_variants_wrt(reference)==['4687t>c','4725t>c', '13333c>z','4730_indel','4735_indel']
 
 
 def test_Genome_table_variants_wrt():
