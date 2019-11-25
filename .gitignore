@@ -103,3 +103,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Ignore sequence.*
+bin/sequence.*

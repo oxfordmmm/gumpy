@@ -1383,30 +1383,35 @@ class Genome(object):
 
             # ..otherwise it is an amino acid SNP
             else:
-
-                assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], after+" is not an amino acid!"
-
-                if not wildcard:
-
-                    assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid!"
-
-                    try:
-                        position=int(cols[1][1:-1])
-                    except:
-                        raise TypeError("position "+cols[1]+" is not an integer")
-
-                    mask=self.genes[gene_name].amino_acid_numbering==position
-
-                    assert numpy.count_nonzero(mask)==1, "position "+str(position)+" is not in the genome"
-
-                    assert before==self.genes[gene_name].amino_acid_sequence[mask][0], "specified amino acid is "+before+" but is "+self.genes[gene_name].amino_acid_sequence[mask][0]+" in the reference genome"
+                self.deal_with_amino_acid_SNP(after, wildcard, before, cols, gene_name)
 
                 return(True)
 
         # otherwise it must be an INDEL, which is always nucleotide based
         else:
-
             return self.deal_with_wildcards_for_INDEL(cols, mutation, gene_name)
+
+
+    def deal_with_amino_acid_SNP(self, after, wildcard, before, cols, gene_name):
+    
+        assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], after+" is not an amino acid!"
+    
+        if not wildcard:
+    
+            assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid!"
+    
+            try:
+                position=int(cols[1][1:-1])
+            except:
+                raise TypeError("position "+cols[1]+" is not an integer")
+    
+            mask=self.genes[gene_name].amino_acid_numbering==position
+    
+            assert numpy.count_nonzero(mask)==1, "position "+str(position)+" is not in the genome"
+    
+            assert before==self.genes[gene_name].amino_acid_sequence[mask][0], "specified amino acid is "+before+" but is "+self.genes[gene_name].amino_acid_sequence[mask][0]+" in the reference genome"
+    
+        return
 
 
     def deal_with_wildcards_for_INDEL(self, cols=None, mutation=None, gene_name=None):
