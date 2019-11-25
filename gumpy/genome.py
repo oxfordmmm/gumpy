@@ -783,28 +783,37 @@ class Genome(object):
                                 self._permute_sequence(index,coverage,after=after)
     
                             # increment the position in the genome
-                            index+=1
+                            index += 1
     
                     # an INDEL
                     else:
-    
-                        # calculate the length of the indel
-                        indel_length=len(alt_bases)-len(ref_bases)
-    
-                        assert indel_length!=0, "REF: "+ref_bases+" and ALT: "+alt_bases+" same length?"
-    
-                        # find out the coverage
-                        coverage=sample_info['COV'][genotype.call1]
-    
-                        # record any additional metadata
-                        self._set_sequence_metadata(index,sample_info)
-    
-                        # make the mutation
-                        self._permute_sequence(index,coverage,indel_length=indel_length,indel_bases=(ref_bases,alt_bases))
+                        self.deal_with_an_INDEL(alt_bases, ref_bases, sample_info, genotype, index, coverage)
     
                 # HET calls
                 else:
                     self.cope_with_HET_calls(alt_bases, ref_bases, index, sample_info, genotype)
+
+
+        return
+
+
+    def deal_with_an_INDEL(self, alt_bases, ref_bases, sample_info, genotype, index, coverage):
+
+        # calculate the length of the indel
+        indel_length=len(alt_bases)-len(ref_bases)
+    
+        assert indel_length!=0, "REF: "+ref_bases+" and ALT: "+alt_bases+" same length?"
+    
+        # find out the coverage
+        coverage=sample_info['COV'][genotype.call1]
+    
+        # record any additional metadata
+        self._set_sequence_metadata(index,sample_info)
+    
+        # make the mutation
+        self._permute_sequence(index,coverage,indel_length=indel_length,indel_bases=(ref_bases,alt_bases))
+
+        return
 
 
     def cope_with_HET_calls(self, alt_bases, ref_bases, index, sample_info, genotype):
