@@ -629,7 +629,14 @@ class Genome(object):
         return (numpy.count_nonzero(self.genome_coding_strand!=other.genome_coding_strand))
 
 
-    def apply_vcf_file(self,vcf_file=None,ignore_filter=False, ignore_status=False,show_progress_bar=False,total_coverage_threshold=None,metadata_fields=None,metadata_thresholds=None):
+    def apply_vcf_file(self,
+                       vcf_file=None,
+                       ignore_filter=False,
+                       ignore_status=False,
+                       show_progress_bar=False,
+                       total_coverage_threshold=None,
+                       metadata_fields=None,
+                       metadata_thresholds=None):
         """
         Load a VCF file and apply the variants to the whole genome sequence.
 
@@ -646,6 +653,7 @@ class Genome(object):
                 lines_in_vcf=len(open(vcf_file).readlines())
             except:
                 lines_in_vcf=None
+
         else:
             lines_in_vcf=None
 
@@ -1352,6 +1360,11 @@ class Genome(object):
         Returns:
             True or None
         """
+
+        if (cols is None or
+              mutation is None or
+              gene_name is None):
+            raise ValueError('cols, mutation or gene_name is None')
 
         # deal with wildcards in the position
         if cols[1] in ["*","-*"]:
