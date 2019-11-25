@@ -678,24 +678,60 @@ class Genome(object):
         # even though the file extension is the same
         vcf_reader = pysam.VariantFile(vcf_file.rstrip())
 
+        self.iterate_records_in_vcf(vcf_reader,
+                                    show_progress_bar,
+                                    lines_in_vcf,
+                                    ignore_filter,
+                                    ignore_status,
+                                    total_coverage_threshold,
+                                    metadata_thresholds)
+
+        # now that we've parsed the VCF file, and hence all the HETs, we need to update the main sequence
+        # to show that there are HETs
+        self.update_main_sequence_to_show_HETs(show_progress_bar)
+
+        return
+
+
+    def iterate_records_in_vcf(self,
+                               vcf_reader,
+                               show_progress_bar,
+                               lines_in_vcf,
+                               ignore_filter,
+                               ignore_status,
+                               total_coverage_threshold,
+                               metadata_thresholds):
+        """
+        Iterate records in a vcf file
+
+        Args:
+            vcf_reader:
+            show_progress_bar (bool): whether to draw a nice tqdm progress bar (False by default)
+            lines_in_vcf:
+            ignore_filter (bool): whether to ignore the FILTER column in the VCF file (Clockwork hasn't always written it correctly)
+            ignore_status (bool): ditto
+            total_coverage_threshold:
+            metadata_thresholds:
+        """
+
         # now iterate through the records found in the VCF file
         for record in tqdm(vcf_reader,
                            disable=not(show_progress_bar),
                            total=lines_in_vcf):
-
+    
             # check to see the filter is ok (or we are ignoring it)
             if self._is_record_invalid(ignore_filter, record):
                 continue
-
+    
             # cope with multiple entries in a row
             for sample_idx, (sample_name, sample_info) in enumerate(
                 record.samples.items()
             ):
-
+    
                 # check to see if the status is ok (or we are ignoring it)
                 if not ignore_status and sample_info["STATUS"] == "FAIL":
                     continue
-
+    
                 # ugly; deals with a problem with Minos/Clockwork getting the GT in the wrong place
                 try:
                     genotype = Genotype(*sample_info["GT"])
@@ -703,19 +739,19 @@ class Genome(object):
                     genotype = self._minos_gt_in_wrong_position_fix(record, sample_idx)
                     if genotype is None:
                         raise err
-
+    
                 # return the call
                 ref_bases,index,alt_bases = self._get_variant_for_genotype_in_vcf_record(genotype, record)
-
+    
                 # bypass (for speed) if this is a REF call
                 if alt_bases=="":
                     continue
-
+    
                 # apply any specified total coverage threshold
                 if total_coverage_threshold is not None:
                     if numpy.sum(sample_info['COV'])<total_coverage_threshold:
                         continue
-
+    
                 # apply any specific metadata thresholds, e.g. GT_CONF_PERCENTILE<5
                 below_threshold=False
                 if metadata_thresholds is not None:
@@ -725,100 +761,104 @@ class Genome(object):
                                 below_threshold=True
                 if below_threshold:
                     continue
-
+    
                 # deal with everything except HET calls
                 if not isinstance(alt_bases,tuple):
-
+    
                     # one or more SNPs (this will naturally catch NULLs as well)
                     if len(ref_bases)==len(alt_bases):
-
+    
                         for before,after in zip(ref_bases,alt_bases):
-
+    
                             # only make a change if the ALT is different to the REF
                             if before!=after:
-
+    
                                 # find out the coverage
                                 coverage=sample_info['COV'][genotype.call1]
-
+    
                                 # record any additional metadata
                                 self._set_sequence_metadata(index,sample_info)
-
+    
                                 # make the mutation
                                 self._permute_sequence(index,coverage,after=after)
-
+    
                             # increment the position in the genome
                             index+=1
-
+    
                     # an INDEL
                     else:
-
+    
                         # calculate the length of the indel
                         indel_length=len(alt_bases)-len(ref_bases)
-
+    
                         assert indel_length!=0, "REF: "+ref_bases+" and ALT: "+alt_bases+" same length?"
-
+    
                         # find out the coverage
                         coverage=sample_info['COV'][genotype.call1]
-
+    
                         # record any additional metadata
                         self._set_sequence_metadata(index,sample_info)
-
+    
                         # make the mutation
                         self._permute_sequence(index,coverage,indel_length=indel_length,indel_bases=(ref_bases,alt_bases))
-
+    
                 # HET calls
                 else:
+                    self.cope_with_HET_calls(alt_bases, ref_bases, index, sample_info, genotype)
 
-                    # alt_bases is now a 2-tuple, so iterate
-                    for strand, alt in enumerate(alt_bases):
 
-                        # one or more SNPs
-                        if len(ref_bases) == len(alt):
+    def cope_with_HET_calls(self, alt_bases, ref_bases, index, sample_info, genotype):
+        """
+        HET calls
+        """
 
-                            # have to create a copy of index so it is unaltered for the next strand...
-                            idx = index
+        # alt_bases is now a 2-tuple, so iterate
+        for strand, alt in enumerate(alt_bases):
+    
+            # one or more SNPs
+            if len(ref_bases) == len(alt):
+    
+                # have to create a copy of index so it is unaltered for the next strand...
+                idx = index
+    
+                # walk down the bases
+                for before, after in zip(ref_bases, alt):
+    
+                    # calculate a Boolean mask identifying where we are in the genome
+                    mask = self.genome_index == idx
+    
+                    # record any additional metadata
+                    self._set_sequence_metadata(idx, sample_info)
+    
+                    # remember the coverage in the diploid representation for this het
+                    self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
+    
+                    # only record a SNP if there is a change
+                    if (before != after):
+                        self.het_variations[(mask, strand)] = after
+                        self.het_ref[mask] = ref_bases
+                        self.het_alt[(mask, 0)] = alt_bases[0]
+                        self.het_alt[(mask, 1)] = alt_bases[1]
 
-                            # walk down the bases
-                            for before, after in zip(ref_bases, alt):
-
-                                # calculate a Boolean mask identifying where we are in the genome
-                                mask = self.genome_index == idx
-
-                                # record any additional metadata
-                                self._set_sequence_metadata(idx, sample_info)
-
-                                # remember the coverage in the diploid representation for this het
-                                self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
-
-                                # only record a SNP if there is a change
-                                if (before != after):
-                                    self.het_variations[(mask, strand)] = after
-                                    self.het_ref[mask] = ref_bases
-                                    self.het_alt[(mask, 0)] = alt_bases[0]
-                                    self.het_alt[(mask, 1)] = alt_bases[1]
-                                idx += 1
-
-                        else:
-                            # calculate the length of the indel
-                            indel_length = len(alt) - len(ref_bases)
-
-                            # calculate a Boolean mask identifying where we are in the genome
-                            mask = self.genome_index == index
-
-                            # record any additional metadata
-                            self._set_sequence_metadata(index, sample_info)
-
-                            # remember the het indel
-                            self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
-                            self.het_indel_length[(mask, strand)] = indel_length
-                            self.het_variations[(mask, strand)] = "i"
-                            self.het_ref[mask] = ref_bases
-                            self.het_alt[(mask, 0)] = alt_bases[0]
-                            self.het_alt[(mask, 1)] = alt_bases[1]
-
-        # now that we've parsed the VCF file, and hence all the HETs, we need to update the main sequence
-        # to show that there are HETs
-        self.update_main_sequence_to_show_HETs(show_progress_bar)
+                    idx += 1
+    
+            else:
+                # calculate the length of the indel
+                indel_length = len(alt) - len(ref_bases)
+    
+                # calculate a Boolean mask identifying where we are in the genome
+                mask = self.genome_index == index
+    
+                # record any additional metadata
+                self._set_sequence_metadata(index, sample_info)
+    
+                # remember the het indel
+                self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
+                self.het_indel_length[(mask, strand)] = indel_length
+                self.het_variations[(mask, strand)] = "i"
+                self.het_ref[mask] = ref_bases
+                self.het_alt[(mask, 0)] = alt_bases[0]
+                self.het_alt[(mask, 1)] = alt_bases[1]
 
         return
 
