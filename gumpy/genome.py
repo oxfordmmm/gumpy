@@ -660,17 +660,17 @@ class Genome(object):
         self.prepare_for_vcf_read(metadata_fields=metadata_fields)
 
         # split and remember the path, filename and stem of the VCF file
-        (self.vcf_folder,self.vcf_file_name)=os.path.split(vcf_file)
+        (self.vcf_folder, self.vcf_file_name)=os.path.split(vcf_file)
         self.vcf_file_stem, file_extension = os.path.splitext(self.vcf_file_name)
 
         # it may have been compressed, in which case there will be TWO fileextensions to remove
-        if self.vcf_file_stem[-4:]==".vcf":
+        if self.vcf_file_stem[-4:] == ".vcf":
             self.vcf_file_stem, file_extension = os.path.splitext(self.vcf_file_stem)
 
         # assume that the sample name is the filestem and remember
-        self.name=self.vcf_file_stem
+        self.name = self.vcf_file_stem
 
-        self.genes_mutated=[]
+        self.genes_mutated = []
 
 
         # open the supplied VCF file
@@ -679,10 +679,12 @@ class Genome(object):
         vcf_reader = pysam.VariantFile(vcf_file.rstrip())
 
         # now iterate through the records found in the VCF file
-        for record in tqdm(vcf_reader,disable=not(show_progress_bar),total=lines_in_vcf):
+        for record in tqdm(vcf_reader,
+                           disable=not(show_progress_bar),
+                           total=lines_in_vcf):
 
             # check to see the filter is ok (or we are ignoring it)
-            if self._is_record_invalid(ignore_filter,record):
+            if self._is_record_invalid(ignore_filter, record):
                 continue
 
             # cope with multiple entries in a row
@@ -768,79 +770,89 @@ class Genome(object):
                 else:
 
                     # alt_bases is now a 2-tuple, so iterate
-                    for strand,alt in enumerate(alt_bases):
+                    for strand, alt in enumerate(alt_bases):
 
                         # one or more SNPs
-                        if len(ref_bases)==len(alt):
+                        if len(ref_bases) == len(alt):
 
                             # have to create a copy of index so it is unaltered for the next strand...
-                            idx=index
+                            idx = index
 
                             # walk down the bases
-                            for before,after in zip(ref_bases,alt):
+                            for before, after in zip(ref_bases, alt):
 
                                 # calculate a Boolean mask identifying where we are in the genome
-                                mask=self.genome_index==idx
+                                mask = self.genome_index == idx
 
                                 # record any additional metadata
-                                self._set_sequence_metadata(idx,sample_info)
+                                self._set_sequence_metadata(idx, sample_info)
 
                                 # remember the coverage in the diploid representation for this het
-                                self.het_coverage[(mask,strand)]=sample_info['COV'][genotype.call()[strand]]
+                                self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
 
                                 # only record a SNP if there is a change
-                                if (before!=after):
-                                    self.het_variations[(mask,strand)]=after
-                                    self.het_ref[mask]=ref_bases
-                                    self.het_alt[(mask,0)]=alt_bases[0]
-                                    self.het_alt[(mask,1)]=alt_bases[1]
-                                idx+=1
-                        else:
+                                if (before != after):
+                                    self.het_variations[(mask, strand)] = after
+                                    self.het_ref[mask] = ref_bases
+                                    self.het_alt[(mask, 0)] = alt_bases[0]
+                                    self.het_alt[(mask, 1)] = alt_bases[1]
+                                idx += 1
 
+                        else:
                             # calculate the length of the indel
-                            indel_length=len(alt)-len(ref_bases)
+                            indel_length = len(alt) - len(ref_bases)
 
                             # calculate a Boolean mask identifying where we are in the genome
-                            mask=self.genome_index==index
+                            mask = self.genome_index == index
 
                             # record any additional metadata
-                            self._set_sequence_metadata(index,sample_info)
+                            self._set_sequence_metadata(index, sample_info)
 
                             # remember the het indel
-                            self.het_coverage[(mask,strand)]=sample_info['COV'][genotype.call()[strand]]
-                            self.het_indel_length[(mask,strand)]=indel_length
-                            self.het_variations[(mask,strand)]="i"
-                            self.het_ref[mask]=ref_bases
-                            self.het_alt[(mask,0)]=alt_bases[0]
-                            self.het_alt[(mask,1)]=alt_bases[1]
+                            self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
+                            self.het_indel_length[(mask, strand)] = indel_length
+                            self.het_variations[(mask, strand)] = "i"
+                            self.het_ref[mask] = ref_bases
+                            self.het_alt[(mask, 0)] = alt_bases[0]
+                            self.het_alt[(mask, 1)] = alt_bases[1]
 
         # now that we've parsed the VCF file, and hence all the HETs, we need to update the main sequence
         # to show that there are HETs
+        self.update_main_sequence_to_show_HETs(show_progress_bar)
+
+        return
+
+
+    def update_main_sequence_to_show_HETs(self, show_progress_bar):
+        """
+        We've parsed the VCF file, and hence all the HETs, we need to update the main sequence
+        to show that there are HETs
+        """
 
         # pick out all genome locations where one of the diploid sequences has been altered
         all_hets_mask=(self.het_variations[:,0]!="") | (self.het_variations[:,1]!="")
-
+    
         # iterate through the genome positions
         for idx in self.genome_index[all_hets_mask]:
-
+    
             # where are we?
             mask=self.genome_index==idx
-
+    
             # define the total coverage as the sum of the two HET calls
             coverage=numpy.sum(self.het_coverage[mask])
-
+    
             # make the mutation, identifying this as a HET call
             self._permute_sequence(idx,coverage,after='z')
-
+    
         # first recompute the complementary strand
         self.genome_noncoding_strand=self._complement(self.genome_coding_strand)
-
+    
         # reintialise the coding sequence
         self.genome_sequence=copy.deepcopy(self.genome_coding_strand)
-
+    
         # ..and then replace with any relevant sections that code from the complementary strand
         self.genome_sequence[self.genome_on_noncoding_strand]=self.genome_noncoding_strand[self.genome_on_noncoding_strand]
-
+    
         self._recreate_genes(self.genes_mutated,show_progress_bar=show_progress_bar)
 
         return
