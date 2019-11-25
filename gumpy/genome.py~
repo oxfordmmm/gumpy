@@ -624,10 +624,8 @@ class Genome(object):
         else:
             return None
 
-
     def snp_distance(self,other):
         return (numpy.count_nonzero(self.genome_coding_strand!=other.genome_coding_strand))
-
 
     def apply_vcf_file(self,vcf_file=None,ignore_filter=False, ignore_status=False,show_progress_bar=False,total_coverage_threshold=None,metadata_fields=None,metadata_thresholds=None):
         """
@@ -1336,57 +1334,45 @@ class Genome(object):
 
         # otherwise it must be an INDEL, which is always nucleotide based
         else:
+    
+            def deal_with_wildcards_for_INDEL(cols, mutation):
 
-            return self.deal_with_wildcards_for_INDEL(cols, mutation, gene_name)
+                # deal with wildcards in the position
+                if cols[1] in ["*","-*"]:
 
+                    assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format katG_*_fs i.e. the third element must be ins or del, not "+cols[2]
 
-    def deal_with_wildcards_for_INDEL(self, cols=None, mutation=None, gene_name=None):
-        """
-        The method deals with an INDEL, which is always nucleotide based
+                    return(True)
 
-        Args:
-            mutation: (str) e.g. katG_S315T, katG_c-15t, katG_200_ins_3
-            cols: list split from mutation by '_' 
-            gene_name: the gene/locus name should always be the first component
+                else:
 
-        Returns:
-            True or None
-        """
+                    assert "*" not in cols[1], "mutation "+mutation+" contains a wildcard (*) but is badly formed"
 
-        # deal with wildcards in the position
-        if cols[1] in ["*","-*"]:
+                    try:
+                        position=int(cols[1])
+                    except:
+                        raise TypeError("the position "+cols[1]+" is not an integer!")
 
-            assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format katG_*_fs i.e. the third element must be ins or del, not "+cols[2]
+                    mask=self.genes[gene_name].positions==position
 
-            return(True)
+                    assert numpy.count_nonzero(mask)==1, "specified position "+cols[1]+" not in the gene: "+mutation
 
-        else:
+                    # be defensive here also!
+                    assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format rpoB_1300_ins_1 i.e. the third element must be ins or del, not "+cols[2]
 
-            assert "*" not in cols[1], "mutation "+mutation+" contains a wildcard (*) but is badly formed"
+                    if len(cols)==4:
+                        try:
+                            number_nucleotides=int(cols[3])
+                            assert number_nucleotides!=0, "an INDEL must be a non-zero number of bases"
+                        except:
+                            assert bool(re.match('^[catg]+$', cols[3])), cols[3]+" INDEL contains bases other than a,t,c,g"
 
-            try:
-                position=int(cols[1])
-            except:
-                raise TypeError("the position "+cols[1]+" is not an integer!")
-
-            mask=self.genes[gene_name].positions==position
-
-            assert numpy.count_nonzero(mask)==1, "specified position "+cols[1]+" not in the gene: "+mutation
-
-            # be defensive here also!
-            assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format rpoB_1300_ins_1 i.e. the third element must be ins or del, not "+cols[2]
-
-            if len(cols)==4:
-                try:
-                    number_nucleotides=int(cols[3])
-                    assert number_nucleotides!=0, "an INDEL must be a non-zero number of bases"
-                except:
-                    assert bool(re.match('^[catg]+$', cols[3])), cols[3]+" INDEL contains bases other than a,t,c,g"
-
-                # if cols[3].isnumeric():
-                #     assert int(cols[3])>0, "number of nucleotides inserted or deleted must be >0"
-                # else:
-                #     assert cols[2] in ["ins","indel"], cols[2]+" can only specify precise bases for an insertion!"
+                        # if cols[3].isnumeric():
+                        #     assert int(cols[3])>0, "number of nucleotides inserted or deleted must be >0"
+                        # else:
+                        #     assert cols[2] in ["ins","indel"], cols[2]+" can only specify precise bases for an insertion!"
 
 
-            return True
+                    return True
+
+                deal_with_wildcards_for_INDEL(cols, mutation)
