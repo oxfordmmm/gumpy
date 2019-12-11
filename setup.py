@@ -7,7 +7,7 @@ setup(
     author='Philip W Fowler',
     author_email="philip.fowler@ndm.ox.ac.uk",
     description="Genetics with Numpy",
-    url="https://github.com/philipwfowler/gumpy",
+    url="https://github.com/oxfordmmm/gumpy",
     packages=['gumpy'],
     package_data={'': ['../config/*']},
     classifiers=[
