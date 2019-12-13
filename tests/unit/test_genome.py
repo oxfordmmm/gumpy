@@ -89,13 +89,13 @@ def test_Genome_instantiate_fasta():
 def test_Genome_valid_gene_mutation_snps():
 
     # correct protein SNPs
-    assert reference.valid_gene_mutation("F_M1N")
-    assert reference.valid_gene_mutation("F_S2?")
-    assert reference.valid_gene_mutation("F_S2=")
-    assert reference.valid_gene_mutation("F_S2!")
-    assert reference.valid_gene_mutation("M2_T76L")
-    assert reference.valid_gene_mutation("M2_*?")
-    assert reference.valid_gene_mutation("M2_-*?")
+    assert reference.valid_gene_mutation("F@M1N")
+    assert reference.valid_gene_mutation("F@S2?")
+    assert reference.valid_gene_mutation("F@S2=")
+    assert reference.valid_gene_mutation("F@S2!")
+    assert reference.valid_gene_mutation("M2@T76L")
+    assert reference.valid_gene_mutation("M2@*?")
+    assert reference.valid_gene_mutation("M2@-*?")
 
     # just badly formed
     with pytest.raises(Exception):
@@ -111,78 +111,78 @@ def test_Genome_valid_gene_mutation_snps():
     with pytest.raises(Exception):
         assert reference.valid_gene_mutation("lkdfjlksdjf_P1N")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("rpoB_P76L")
+        assert reference.valid_gene_mutation("rpoB@P76L")
 
     # incorrect reference amino acids
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_P1N")
+        assert reference.valid_gene_mutation("F@P1N")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("M2_P76L")
+        assert reference.valid_gene_mutation("M2@P76L")
 
     # bad reference amino acids
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_;1N")
+        assert reference.valid_gene_mutation("F@;1N")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_B1N")
+        assert reference.valid_gene_mutation("F@B1N")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_81N")
+        assert reference.valid_gene_mutation("F@81N")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("M2_J76L")
+        assert reference.valid_gene_mutation("M2@J76L")
 
     # bad positions
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_PKN")
+        assert reference.valid_gene_mutation("F@PKN")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_P-2N")
+        assert reference.valid_gene_mutation("F@P-2N")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_P1000N")
+        assert reference.valid_gene_mutation("F@P1000N")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_P:N")
+        assert reference.valid_gene_mutation("F@P:N")
 
     # bad target amino acids
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_P1O")
+        assert reference.valid_gene_mutation("F@P1O")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_PKB")
+        assert reference.valid_gene_mutation("F@PKB")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_PK;")
+        assert reference.valid_gene_mutation("F@PK;")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_PKJ")
+        assert reference.valid_gene_mutation("F@PKJ")
 
 
 def test_Genome_valid_gene_mutation_indels():
 
     # correct INDELs with good grammar
-    assert reference.valid_gene_mutation("F_1_indel")
-    assert reference.valid_gene_mutation("F_1_ins")
-    assert reference.valid_gene_mutation("F_1_del")
-    assert reference.valid_gene_mutation("F_1_ins_3")
-    assert reference.valid_gene_mutation("F_1_ins_ctga")
-    assert reference.valid_gene_mutation("F_1_fs")
-    assert reference.valid_gene_mutation("F_1_del_3")
-    assert reference.valid_gene_mutation("F_-1_indel")
-    assert reference.valid_gene_mutation("F_1_del_acgt")
+    assert reference.valid_gene_mutation("F@1_indel")
+    assert reference.valid_gene_mutation("F@1_ins")
+    assert reference.valid_gene_mutation("F@1_del")
+    assert reference.valid_gene_mutation("F@1_ins_3")
+    assert reference.valid_gene_mutation("F@1_ins_ctga")
+    assert reference.valid_gene_mutation("F@1_fs")
+    assert reference.valid_gene_mutation("F@1_del_3")
+    assert reference.valid_gene_mutation("F@-1_indel")
+    assert reference.valid_gene_mutation("F@1_del_acgt")
 
 
     # bad grammar
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_1_indl")
+        assert reference.valid_gene_mutation("F@1_indl")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_1_frameshift")
+        assert reference.valid_gene_mutation("F@1_frameshift")
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_1_ins_ggaf")
+        assert reference.valid_gene_mutation("F@1_ins_ggaf")
 
     # wrong ordering
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_indel_1")
+        assert reference.valid_gene_mutation("F@indel_1")
 
     # incorrect gene
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F1_1_indel")
+        assert reference.valid_gene_mutation("F1@1_indel")
 
     # not in gene
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F_2000_indel")
+        assert reference.valid_gene_mutation("F@2000_indel")
 
 def test_Genome_valid_genome_variant():
 
@@ -233,27 +233,27 @@ def test_Genome_valid_genome_variant():
 
 def test_Genome_convert_variant_to_mutation():
 
-    assert reference.convert_variant_to_mutation("N_a1g")=='N_M1V'
-    assert reference.convert_variant_to_mutation("N_a1c")=='N_M1L'
-    assert reference.convert_variant_to_mutation("N_a1t")=='N_M1L'
-    assert reference.convert_variant_to_mutation("N_t2c")=='N_M1T'
-    assert reference.convert_variant_to_mutation("N_t2a")=='N_M1K'
-    assert reference.convert_variant_to_mutation("N_t2g")=='N_M1R'
+    assert reference.convert_variant_to_mutation("N@a1g")=='N@M1V'
+    assert reference.convert_variant_to_mutation("N@a1c")=='N@M1L'
+    assert reference.convert_variant_to_mutation("N@a1t")=='N@M1L'
+    assert reference.convert_variant_to_mutation("N@t2c")=='N@M1T'
+    assert reference.convert_variant_to_mutation("N@t2a")=='N@M1K'
+    assert reference.convert_variant_to_mutation("N@t2g")=='N@M1R'
 
     with pytest.raises(Exception):
-        assert reference.convert_variant_to_mutation("N_a1g")=='N_M1L'
+        assert reference.convert_variant_to_mutation("N@a1g")=='N@M1L'
     with pytest.raises(Exception):
-        assert reference.convert_variant_to_mutation("N1_a1g")=='N_M1V'
+        assert reference.convert_variant_to_mutation("N1@a1g")=='N@M1V'
     with pytest.raises(Exception):
-        assert reference.convert_variant_to_mutation("N_a1g_3")=='N_M1L'
+        assert reference.convert_variant_to_mutation("N@a1g_3")=='N@M1L'
     with pytest.raises(Exception):
-        assert reference.convert_variant_to_mutation("N_t1g")=='N_M1L'
+        assert reference.convert_variant_to_mutation("N@t1g")=='N@M1L'
     with pytest.raises(Exception):
-        assert reference.convert_variant_to_mutation("N_y1g")=='N_M1L'
+        assert reference.convert_variant_to_mutation("N@y1g")=='N@M1L'
     with pytest.raises(Exception):
-        assert reference.convert_variant_to_mutation("N_a1o")=='N_M1L'
+        assert reference.convert_variant_to_mutation("N@a1o")=='N@M1L'
     with pytest.raises(Exception):
-        assert reference.convert_variant_to_mutation("N_a-1g")=='N_M1L'
+        assert reference.convert_variant_to_mutation("N@a-1g")=='N@M1L'
 
 def test_Genome_gbk_fasta_identical():
 

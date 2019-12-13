@@ -296,7 +296,7 @@ class Genome(object):
 
         nucleotide_sequence=nucleotide_sequence.lower()
 
-        cols=header[1:].split("@")
+        cols=header[1:].split("|")
         if len(cols)>1:
             self.id=cols[0]
             self.organism=cols[1]
@@ -1311,17 +1311,21 @@ class Genome(object):
         '''
 
         # first, parse the mutation
-        cols=mutation.split("@")
+        components=mutation.split("@")
+
+        # the gene/locus name should always be the first component
+        gene_name=components[0]
+
+        cols=mutation.split(gene_name+"@")[1].split("_")
+
+        print(cols)
 
         before=None
         after=None
         wildcard=False
 
         # check the mutation at least comprises the expected number of sections
-        assert len(cols) in [2,3,4], "mutation "+mutation+" not in correct format!"
-
-        # the gene/locus name should always be the first component
-        gene_name=cols[0]
+        assert len(cols) in [1,2,3], "mutation "+mutation+" not in correct format!"
 
         assert self.contains_gene(gene_name), "gene not found in Genome! "+gene_name
 
@@ -1334,19 +1338,19 @@ class Genome(object):
             nucleotide_mutation=False
 
         # determine if this is a CDS or PROMOTER SNP mutation
-        if len(cols)==2:
+        if len(cols)==1:
 
-            if '*' in cols[1]:
+            if '*' in cols[0]:
 
                 # there can be no 'before' amino acid if there is a wildcard at position
                 wildcard=True
 
-                if cols[1][0]=='-':
+                if cols[0][0]=='-':
                     nucleotide_mutation=True
-                    position=str(cols[1][1:-1])
+                    position=str(cols[0][1:-1])
                 else:
                     nucleotide_mutation=False
-                    position=str(cols[1][0:-1])
+                    position=str(cols[0][0:-1])
 
                 # all the positions should be a wildcard otherwise something is wrong..
                 assert position=='*', mutation+' has a * but not formatted like a wildcard'
@@ -1356,14 +1360,14 @@ class Genome(object):
 
                 wildcard=False
 
-                before=cols[1][0]
-                position=int(cols[1][1:-1])
+                before=cols[0][0]
+                position=int(cols[0][1:-1])
 
                 if position<0 or before.islower():
                     nucleotide_mutation=True
 
             # they all have the after amino acid in the same place
-            after=cols[1][-1]
+            after=cols[0][-1]
 
             if after.islower():
                 nucleotide_mutation=True
@@ -1379,7 +1383,7 @@ class Genome(object):
                 else:
                     assert before in ['c','t','g','a'], before+" is not a nucleotide!"
 
-                    return(self.genes[gene_name].valid_variant(cols[1]))
+                    return(self.genes[gene_name].valid_variant(cols[0]))
 
             # ..otherwise it is an amino acid SNP
             else:
@@ -1401,9 +1405,9 @@ class Genome(object):
             assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid!"
 
             try:
-                position=int(cols[1][1:-1])
+                position=int(cols[0][1:-1])
             except:
-                raise TypeError("position "+cols[1]+" is not an integer")
+                raise TypeError("position "+cols[0]+" is not an integer")
 
             mask=self.genes[gene_name].amino_acid_numbering==position
 
@@ -1433,34 +1437,34 @@ class Genome(object):
             raise ValueError('cols, mutation or gene_name is None')
 
         # deal with wildcards in the position
-        if cols[1] in ["*","-*"]:
+        if cols[0] in ["*","-*"]:
 
-            assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format katG_*_fs i.e. the third element must be ins or del, not "+cols[2]
+            assert cols[1] in ["ins","del","indel","fs"], "INDEL must be on the format katG_*_fs i.e. the third element must be ins or del, not "+cols[2]
 
             return(True)
 
         else:
 
-            assert "*" not in cols[1], "mutation "+mutation+" contains a wildcard (*) but is badly formed"
+            assert "*" not in cols[0], "mutation "+mutation+" contains a wildcard (*) but is badly formed"
 
             try:
-                position=int(cols[1])
+                position=int(cols[0])
             except:
-                raise TypeError("the position "+cols[1]+" is not an integer!")
+                raise TypeError("the position "+cols[0]+" is not an integer!")
 
             mask=self.genes[gene_name].positions==position
 
-            assert numpy.count_nonzero(mask)==1, "specified position "+cols[1]+" not in the gene: "+mutation
+            assert numpy.count_nonzero(mask)==1, "specified position "+cols[0]+" not in the gene: "+mutation
 
             # be defensive here also!
-            assert cols[2] in ["ins","del","indel","fs"], "INDEL must be on the format rpoB_1300_ins_1 i.e. the third element must be ins or del, not "+cols[2]
+            assert cols[1] in ["ins","del","indel","fs"], "INDEL must be on the format rpoB_1300_ins_1 i.e. the third element must be ins or del, not "+cols[2]
 
-            if len(cols)==4:
+            if len(cols)==3:
                 try:
-                    number_nucleotides=int(cols[3])
+                    number_nucleotides=int(cols[2])
                     assert number_nucleotides!=0, "an INDEL must be a non-zero number of bases"
                 except:
-                    assert bool(re.match('^[catg]+$', cols[3])), cols[3]+" INDEL contains bases other than a,t,c,g"
+                    assert bool(re.match('^[catg]+$', cols[2])), cols[2]+" INDEL contains bases other than a,t,c,g"
 
                 # if cols[3].isnumeric():
                 #     assert int(cols[3])>0, "number of nucleotides inserted or deleted must be >0"
