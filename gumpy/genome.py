@@ -296,7 +296,7 @@ class Genome(object):
 
         nucleotide_sequence=nucleotide_sequence.lower()
 
-        cols=header[1:].split("|")
+        cols=header[1:].split("@")
         if len(cols)>1:
             self.id=cols[0]
             self.organism=cols[1]
@@ -1242,7 +1242,7 @@ class Genome(object):
         """
 
         # break apart the gene variant
-        cols=gene_variant.split("|")
+        cols=gene_variant.split("@")
 
         # check it is in the format we expect
         assert len(cols)==2, "a gene_variant can only contain two elements"
@@ -1290,7 +1290,7 @@ class Genome(object):
         alt=tmp_gene.amino_acid_sequence[tmp_gene.amino_acid_numbering==amino_acid_position][0]
 
         # and return the gene_mutation
-        return(gene_name+"|"+ref+str(int(amino_acid_position))+alt)
+        return(gene_name+"@"+ref+str(int(amino_acid_position))+alt)
 
 
     def valid_gene_mutation(self, mutation):
@@ -1311,7 +1311,7 @@ class Genome(object):
         '''
 
         # first, parse the mutation
-        cols=mutation.split("|")
+        cols=mutation.split("@")
 
         before=None
         after=None
@@ -1420,7 +1420,7 @@ class Genome(object):
 
         Args:
             mutation: (str) e.g. katG_S315T, katG_c-15t, katG_200_ins_3
-            cols: list split from mutation by '|'
+            cols: list split from mutation by '@'
             gene_name: the gene/locus name should always be the first component
 
         Returns:
