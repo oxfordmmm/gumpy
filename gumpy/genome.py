@@ -1318,8 +1318,6 @@ class Genome(object):
 
         cols=mutation.split(gene_name+"@")[1].split("_")
 
-        print(cols)
-
         before=None
         after=None
         wildcard=False
