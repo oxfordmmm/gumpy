@@ -787,7 +787,7 @@ class Genome(object):
 
                     # an INDEL
                     else:
-                        self.deal_with_an_INDEL(alt_bases, ref_bases, sample_info, genotype, index, coverage)
+                        self.deal_with_an_INDEL(alt_bases, ref_bases, sample_info, genotype, index)
 
                 # HET calls
                 else:
@@ -797,7 +797,7 @@ class Genome(object):
         return
 
 
-    def deal_with_an_INDEL(self, alt_bases, ref_bases, sample_info, genotype, index, coverage):
+    def deal_with_an_INDEL(self, alt_bases, ref_bases, sample_info, genotype, index):
 
         # calculate the length of the indel
         indel_length=len(alt_bases)-len(ref_bases)
