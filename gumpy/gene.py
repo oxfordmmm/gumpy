@@ -441,6 +441,6 @@ class Gene(object):
         assert before==self.sequence[mask][0], "base in genome is "+self.sequence[mask][0]+" but specified base is "+before
 
         # check that the base to be mutated to is valid (z=het, ?=any other base according to the grammar)
-        assert after in ['c','t','g','a','?','z'], after+" is not a valid nucleotide!"
+        assert after in ['c','t','g','a','?','z','x'], after+" is not a valid nucleotide!"
 
         return True
