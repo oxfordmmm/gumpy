@@ -1222,7 +1222,7 @@ class Genome(object):
         assert before==self.genome_sequence[mask][0], "base in genome is "+self.genome_sequence[mask][0]+" but specified base is "+before
 
         # check that the base to be mutated to is valid (z=het, ?=any other base according to the grammar)
-        assert after in ['c','t','g','a','?','z'], after+" is not a valid nucleotide!"
+        assert after in ['c','t','g','a','?','z','x'], after+" is not a valid nucleotide!"
 
         return True
 
@@ -1373,7 +1373,7 @@ class Genome(object):
             # if it is a promoter mutation
             if nucleotide_mutation:
 
-                assert after in ['c','t','g','a','?','z'], after+" is not a nucleotide!"
+                assert after in ['c','t','g','a','?','z','x'], after+" is not a nucleotide!"
 
                 if wildcard:
                     return(True)
