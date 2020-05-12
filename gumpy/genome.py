@@ -625,9 +625,32 @@ class Genome(object):
             return None
 
 
-    def snp_distance(self,other):
+    def distance(self,other):
+        '''
+        Return the number of differences between the two genomes.
+
+        Note that this includes NULL and HET calls!
+
+        Returns:
+            int: the number of positions where there is a difference
+        '''
         return (numpy.count_nonzero(self.genome_coding_strand!=other.genome_coding_strand))
 
+    def snp_distance(self,other):
+        '''
+        Return the number of SNPs between the two genomes.
+
+        Note that this excludes NULL and HET calls!
+
+        Returns:
+            int: the number of positions where there is a nucleotide (a,t,c,g) and it is different
+        '''
+
+        snps=0
+        for i in self.genome_coding_strand[self.genome_coding_strand!=other.genome_coding_strand]:
+            if i in ['c','t','a','g']:
+                snps+=1
+        return(snps)
 
     def apply_vcf_file(self,
                        vcf_file=None,
