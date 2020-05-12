@@ -732,13 +732,7 @@ class Genome(object):
                 if not ignore_status and sample_info["STATUS"] == "FAIL":
                     continue
 
-                # ugly; deals with a problem with Minos/Clockwork getting the GT in the wrong place
-                try:
-                    genotype = Genotype(*sample_info["GT"])
-                except TypeError as err:
-                    genotype = self._minos_gt_in_wrong_position_fix(record, sample_idx)
-                    if genotype is None:
-                        raise err
+                genotype = Genotype(*sample_info["GT"])
 
                 # return the call
                 ref_bases,index,alt_bases = self._get_variant_for_genotype_in_vcf_record(genotype, record)
@@ -1125,19 +1119,6 @@ class Genome(object):
             True/False
         """
         return ( not ignore_filter and "PASS" not in record.filter.keys() )
-
-    def _minos_gt_in_wrong_position_fix(self,record, sample_idx):
-        """
-        Hacky private method to fix a minos mistake
-
-        (A version of minos had GT in the second column instead of the first)
-        """
-
-        info = str(record).strip().split("\t")[9 + sample_idx]
-        for field in info.split(":"):
-            if "/" in field:
-                return Genotype.from_string(field)
-
 
     @staticmethod
     def _load_fastafile(fasta_file):
