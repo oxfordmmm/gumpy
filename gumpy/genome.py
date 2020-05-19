@@ -404,7 +404,7 @@ class Genome(object):
 
         IS_SNP=False
         IS_INDEL=False
-        # IS_HET=False
+        IS_HET=False
         IS_NULL=False
         ASSOCIATED_WITH_GENE=False
         IN_PROMOTER=False
@@ -435,12 +435,12 @@ class Genome(object):
             IS_SNP=True
             MUTATION_TYPE='SNP'
             alt=row["VARIANT"][-1]
-            # if alt=="z":
-            #     IS_HET=True
-            if alt=="x":
+            if alt=="z":
+                IS_HET=True
+            elif alt=="x":
                 IS_NULL=True
 
-        return(pandas.Series([IS_SNP,IS_INDEL,IS_NULL,ASSOCIATED_WITH_GENE,IN_PROMOTER,IN_CDS,INDEL_1,INDEL_2,MUTATION_TYPE]))
+        return(pandas.Series([IS_SNP,IS_INDEL,IS_HET,IS_NULL,ASSOCIATED_WITH_GENE,IN_PROMOTER,IN_CDS,INDEL_1,INDEL_2,MUTATION_TYPE]))
 
     def table_variants_wrt(self,other):
 
@@ -512,7 +512,7 @@ class Genome(object):
 
             VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
 
-            # VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
+            VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
             #
             # VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",\
             #                 'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE',\
@@ -520,11 +520,9 @@ class Genome(object):
             #                 "INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0",\
             #                 "HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
 
-            VARIANTS_table[['IS_SNP','IS_INDEL','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
-
             VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",\
                             'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE',\
-                            'IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_NULL','INDEL_LENGTH',\
+                            'IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',\
                             "INDEL_1","INDEL_2","COVERAGE"]
 
 
@@ -547,6 +545,7 @@ class Genome(object):
                                                     'IN_CDS':'bool',\
                                                     'IS_SNP':'bool',\
                                                     'IS_INDEL':'bool',\
+                                                    'IS_HET':'bool',\
                                                     'IS_NULL':'bool',\
                                                     'INDEL_LENGTH':'float',\
                                                     'INDEL_1':'str',\
