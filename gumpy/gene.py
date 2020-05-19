@@ -361,11 +361,11 @@ class Gene(object):
                                                     'INDEL_1':'str',\
                                                     'INDEL_2':'str'})
 
-            # MUTATIONS_table=MUTATIONS_table.replace({   'POSITION':0,\
-            #                                             'NUCLEOTIDE_NUMBER':0,\
-            #                                             'AMINO_ACID_NUMBER':0,\
-            #                                             'GENOME_INDEX':0,\
-            #                                             'INDEL_LENGTH':0  }, numpy.nan)
+            MUTATIONS_table=MUTATIONS_table.replace({   'POSITION':0,\
+                                                        'NUCLEOTIDE_NUMBER':0,\
+                                                        'AMINO_ACID_NUMBER':0,\
+                                                        'GENOME_INDEX':0,\
+                                                        'INDEL_LENGTH':0  }, numpy.nan)
 
             return(MUTATIONS_table)
 
