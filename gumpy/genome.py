@@ -96,7 +96,7 @@ class Genome(object):
         if 'taxonomy' in reference_genome.annotations.keys():
             self.sample_metadata['TAXONOMY']=reference_genome.annotations['taxonomy']
 
-        self.genome_feature_name=numpy.zeros(self.genome_length,dtype="<U10")
+        self.genome_feature_name=numpy.zeros(self.genome_length,dtype="<U20")
         self.genome_feature_type=numpy.zeros(self.genome_length,dtype="<U5")
         self.genome_is_cds=numpy.zeros(self.genome_length,dtype=bool)
         self.genome_is_promoter=numpy.zeros(self.genome_length,dtype=bool)
@@ -171,6 +171,8 @@ class Genome(object):
                     continue
 
                 if gene_name is not None and (gene_subset is None or gene_name in gene_subset):
+
+                    assert len(gene_name)<=20, "Gene "+gene_name+" is too long at "+str(len(gene_name))+" chars; need to change numpy.zeros definiton U20 to match"
 
                     gene_start=int(record.location.start)
                     gene_end=int(record.location.end)
@@ -276,6 +278,8 @@ class Genome(object):
         # store a list of all the gene names
         self.gene_names=numpy.unique(self.genome_feature_name[self.genome_feature_name!=""])
 
+        print(self.gene_names)
+
         # # pass ALL the gene names to create all the Gene objects for the first time
         self._recreate_genes(self.gene_names,show_progress_bar=show_progress_bar)
 
@@ -333,6 +337,10 @@ class Genome(object):
         """
         # pass ALL the gene names to create all the Gene objects for the first time
         for gene in tqdm(list_of_genes,disable=not(show_progress_bar)):
+
+            if gene=="MKAN_RS00005":
+                continue
+
 
             mask=self.genome_feature_name==gene
 
@@ -396,7 +404,7 @@ class Genome(object):
 
         IS_SNP=False
         IS_INDEL=False
-        IS_HET=False
+        # IS_HET=False
         IS_NULL=False
         ASSOCIATED_WITH_GENE=False
         IN_PROMOTER=False
@@ -427,12 +435,12 @@ class Genome(object):
             IS_SNP=True
             MUTATION_TYPE='SNP'
             alt=row["VARIANT"][-1]
-            if alt=="z":
-                IS_HET=True
-            elif alt=="x":
+            # if alt=="z":
+            #     IS_HET=True
+            if alt=="x":
                 IS_NULL=True
 
-        return(pandas.Series([IS_SNP,IS_INDEL,IS_HET,IS_NULL,ASSOCIATED_WITH_GENE,IN_PROMOTER,IN_CDS,INDEL_1,INDEL_2,MUTATION_TYPE]))
+        return(pandas.Series([IS_SNP,IS_INDEL,IS_NULL,ASSOCIATED_WITH_GENE,IN_PROMOTER,IN_CDS,INDEL_1,INDEL_2,MUTATION_TYPE]))
 
     def table_variants_wrt(self,other):
 
@@ -443,7 +451,7 @@ class Genome(object):
         VARIANTS_dict={}
         # VARIANTS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
         # VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','IS_SNP','IS_INDEL','INDEL_LENGTH','ELEMENT_TYPE','MUTATION_TYPE',"HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
-        VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','INDEL_LENGTH',"COVERAGE","HET_REF","HET_ALT_0","HET_ALT_1","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1"]
+        VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','INDEL_LENGTH',"COVERAGE"]
         for field in self.genome_sequence_metadata:
             VARIANTS_columns.append(field)
         for cols in VARIANTS_columns:
@@ -461,15 +469,15 @@ class Genome(object):
         VARIANTS_dict['AMINO_ACID_NUMBER']=self.genome_amino_acid_number[mask]
         VARIANTS_dict["INDEL_LENGTH"]=self.indel_length[mask]
         VARIANTS_dict["COVERAGE"]=self.coverage[mask]
-        VARIANTS_dict["HET_VARIANT_0"]=self.het_variations[mask][:,0]
-        VARIANTS_dict["HET_VARIANT_1"]=self.het_variations[mask][:,1]
-        VARIANTS_dict["HET_COVERAGE_0"]=self.het_coverage[mask][:,0]
-        VARIANTS_dict["HET_COVERAGE_1"]=self.het_coverage[mask][:,1]
-        VARIANTS_dict["HET_INDEL_LENGTH_0"]=self.het_indel_length[mask][:,0]
-        VARIANTS_dict["HET_INDEL_LENGTH_1"]=self.het_indel_length[mask][:,1]
-        VARIANTS_dict["HET_ALT_0"]=self.het_alt[mask][:,0]
-        VARIANTS_dict["HET_ALT_1"]=self.het_alt[mask][:,1]
-        VARIANTS_dict["HET_REF"]=self.het_ref[mask]
+        # VARIANTS_dict["HET_VARIANT_0"]=self.het_variations[mask][:,0]
+        # VARIANTS_dict["HET_VARIANT_1"]=self.het_variations[mask][:,1]
+        # VARIANTS_dict["HET_COVERAGE_0"]=self.het_coverage[mask][:,0]
+        # VARIANTS_dict["HET_COVERAGE_1"]=self.het_coverage[mask][:,1]
+        # VARIANTS_dict["HET_INDEL_LENGTH_0"]=self.het_indel_length[mask][:,0]
+        # VARIANTS_dict["HET_INDEL_LENGTH_1"]=self.het_indel_length[mask][:,1]
+        # VARIANTS_dict["HET_ALT_0"]=self.het_alt[mask][:,0]
+        # VARIANTS_dict["HET_ALT_1"]=self.het_alt[mask][:,1]
+        # VARIANTS_dict["HET_REF"]=self.het_ref[mask]
 
         for field in self.genome_sequence_metadata:
             VARIANTS_dict[field]=self.genome_sequence_metadata[field][mask]
@@ -487,15 +495,15 @@ class Genome(object):
         VARIANTS_dict['AMINO_ACID_NUMBER']=numpy.append(VARIANTS_dict['AMINO_ACID_NUMBER'],self.genome_amino_acid_number[mask])
         VARIANTS_dict["INDEL_LENGTH"]=numpy.append(VARIANTS_dict["INDEL_LENGTH"],self.indel_length[mask])
         VARIANTS_dict["COVERAGE"]=numpy.append(VARIANTS_dict["COVERAGE"],self.coverage[mask])
-        VARIANTS_dict["HET_VARIANT_0"]=numpy.append(VARIANTS_dict["HET_VARIANT_0"],self.het_variations[mask][:,0])
-        VARIANTS_dict["HET_VARIANT_1"]=numpy.append(VARIANTS_dict["HET_VARIANT_1"],self.het_variations[mask][:,1])
-        VARIANTS_dict["HET_COVERAGE_0"]=numpy.append(VARIANTS_dict["HET_COVERAGE_0"],self.het_coverage[mask][:,0])
-        VARIANTS_dict["HET_COVERAGE_1"]=numpy.append(VARIANTS_dict["HET_COVERAGE_1"],self.het_coverage[mask][:,1])
-        VARIANTS_dict["HET_INDEL_LENGTH_0"]=numpy.append(VARIANTS_dict["HET_INDEL_LENGTH_0"],self.het_indel_length[mask][:,0])
-        VARIANTS_dict["HET_INDEL_LENGTH_1"]=numpy.append(VARIANTS_dict["HET_INDEL_LENGTH_1"],self.het_indel_length[mask][:,1])
-        VARIANTS_dict["HET_ALT_0"]=numpy.append(VARIANTS_dict["HET_ALT_0"],self.het_alt[mask][:,0])
-        VARIANTS_dict["HET_ALT_1"]=numpy.append(VARIANTS_dict["HET_ALT_1"],self.het_alt[mask][:,1])
-        VARIANTS_dict["HET_REF"]=numpy.append(VARIANTS_dict["HET_REF"],self.het_ref[mask])
+        # VARIANTS_dict["HET_VARIANT_0"]=numpy.append(VARIANTS_dict["HET_VARIANT_0"],self.het_variations[mask][:,0])
+        # VARIANTS_dict["HET_VARIANT_1"]=numpy.append(VARIANTS_dict["HET_VARIANT_1"],self.het_variations[mask][:,1])
+            # VARIANTS_dict["HET_COVERAGE_0"]=numpy.append(VARIANTS_dict["HET_COVERAGE_0"],self.het_coverage[mask][:,0])
+        # VARIANTS_dict["HET_COVERAGE_1"]=numpy.append(VARIANTS_dict["HET_COVERAGE_1"],self.het_coverage[mask][:,1])
+        # VARIANTS_dict["HET_INDEL_LENGTH_0"]=numpy.append(VARIANTS_dict["HET_INDEL_LENGTH_0"],self.het_indel_length[mask][:,0])
+        # VARIANTS_dict["HET_INDEL_LENGTH_1"]=numpy.append(VARIANTS_dict["HET_INDEL_LENGTH_1"],self.het_indel_length[mask][:,1])
+        # VARIANTS_dict["HET_ALT_0"]=numpy.append(VARIANTS_dict["HET_ALT_0"],self.het_alt[mask][:,0])
+        # VARIANTS_dict["HET_ALT_1"]=numpy.append(VARIANTS_dict["HET_ALT_1"],self.het_alt[mask][:,1])
+        # VARIANTS_dict["HET_REF"]=numpy.append(VARIANTS_dict["HET_REF"],self.het_ref[mask])
 
         for field in self.genome_sequence_metadata:
             VARIANTS_dict[field]=numpy.append(VARIANTS_dict[field],self.genome_sequence_metadata[field][mask])
@@ -504,13 +512,21 @@ class Genome(object):
 
             VARIANTS_table=pandas.DataFrame(data=VARIANTS_dict)
 
-            VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
+            # VARIANTS_table[['IS_SNP','IS_INDEL','IS_HET','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
+            #
+            # VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",\
+            #                 'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE',\
+            #                 'IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',\
+            #                 "INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0",\
+            #                 "HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
+
+            VARIANTS_table[['IS_SNP','IS_INDEL','IS_NULL','ASSOCIATED_WITH_GENE','IN_PROMOTER','IN_CDS',"INDEL_1","INDEL_2","MUTATION_TYPE"]]=VARIANTS_table.apply(self._infer_variant_table_booleans,axis=1)
 
             VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",\
                             'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE',\
-                            'IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',\
-                            "INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0",\
-                            "HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
+                            'IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_NULL','INDEL_LENGTH',\
+                            "INDEL_1","INDEL_2","COVERAGE"]
+
 
             # add on any other metadata gleaned from the VCF file
             for field in self.genome_sequence_metadata:
@@ -531,30 +547,53 @@ class Genome(object):
                                                     'IN_CDS':'bool',\
                                                     'IS_SNP':'bool',\
                                                     'IS_INDEL':'bool',\
-                                                    'IS_HET':'bool',\
                                                     'IS_NULL':'bool',\
                                                     'INDEL_LENGTH':'float',\
                                                     'INDEL_1':'str',\
                                                     'INDEL_2':'str',\
-                                                    'COVERAGE':'int',\
-                                                    'HET_VARIANT_0':'category',\
-                                                    'HET_VARIANT_1':'category',\
-                                                    'HET_COVERAGE_0':'float',\
-                                                    'HET_COVERAGE_1':'float',\
-                                                    'HET_INDEL_LENGTH_0':'float',\
-                                                    'HET_INDEL_LENGTH_1':'float',\
-                                                    'HET_REF':'str',\
-                                                    'HET_ALT_0':'str',\
-                                                    'HET_ALT_1':'str'   })
-            # VARIANTS_table=VARIANTS_table.replace({     'POSITION':0,\
-            #                                             'NUCLEOTIDE_NUMBER':0,\
-            #                                             'AMINO_ACID_NUMBER':0,\
-            #                                             'INDEL_LENGTH':0,\
-            #                                             'GENOME_INDEX':0,\
-            #                                             'HET_COVERAGE_0':0,\
-            #                                             'HET_COVERAGE_1':0,\
-            #                                             'HET_INDEL_LENGTH_0':0,\
-            #                                             'HET_INDEL_LENGTH_1':0  }, numpy.nan)
+                                                    'COVERAGE':'int'  })
+
+            # VARIANTS_table=VARIANTS_table.astype({  'VARIANT':'str',\
+            #                                         'REF':'str',\
+            #                                         'ALT':'str',\
+            #                                         'GENOME_INDEX':'float',\
+            #                                         'GENE':'category',\
+            #                                         'ELEMENT_TYPE':'category',\
+            #                                         'MUTATION_TYPE':'category',\
+            #                                         'POSITION':'float',\
+            #                                         'NUCLEOTIDE_NUMBER':'float',\
+            #                                         'AMINO_ACID_NUMBER':'float',\
+            #                                         'ASSOCIATED_WITH_GENE':'bool',\
+            #                                         'IN_PROMOTER':'bool',\
+            #                                         'IN_CDS':'bool',\
+            #                                         'IS_SNP':'bool',\
+            #                                         'IS_INDEL':'bool',\
+            #                                         'IS_HET':'bool',\
+            #                                         'IS_NULL':'bool',\
+            #                                         'INDEL_LENGTH':'float',\
+            #                                         'INDEL_1':'str',\
+            #                                         'INDEL_2':'str',\
+            #                                         'COVERAGE':'int',\
+            #                                         'HET_VARIANT_0':'category',\
+            #                                         'HET_VARIANT_1':'category',\
+            #                                         'HET_COVERAGE_0':'float',\
+            #                                         'HET_COVERAGE_1':'float',\
+            #                                         'HET_INDEL_LENGTH_0':'float',\
+            #                                         'HET_INDEL_LENGTH_1':'float',\
+            #                                         'HET_REF':'str',\
+            #                                         'HET_ALT_0':'str',\
+            #                                         'HET_ALT_1':'str'   })
+
+            VARIANTS_table=VARIANTS_table.replace({     'POSITION':0,\
+                                                        'NUCLEOTIDE_NUMBER':0,\
+                                                        'AMINO_ACID_NUMBER':0,\
+                                                        'INDEL_LENGTH':0}, numpy.nan)
+
+                                                        # 'GENOME_INDEX':0,\
+                                                        # 'HET_COVERAGE_0':0,\
+                                                        # 'HET_COVERAGE_1':0,\
+                                                        # 'HET_INDEL_LENGTH_0':0,\
+                                                        # 'HET_INDEL_LENGTH_1':0  }, numpy.nan)
 
             return(VARIANTS_table)
         else:
