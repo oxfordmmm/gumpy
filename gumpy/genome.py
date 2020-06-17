@@ -275,7 +275,7 @@ class Genome(object):
                     self._gene_type[gene_name]=type
                     self._gene_codes_protein[gene_name]=codes_protein
 
-        # store a list of all the gene names
+        # store a list of all the gene names (needs no alteration to deal with multi-dimensional genome_feature_name)
         self.gene_names=numpy.unique(self.genome_feature_name[self.genome_feature_name!=""])
 
         print(self.gene_names)
