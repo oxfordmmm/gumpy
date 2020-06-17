@@ -392,6 +392,8 @@ def test_Genome_H37rV_katG():
     assert positions[0]==2223
     assert positions[-1]==-100
 
+    # aminoacids=''.join(i for i in )
+
 def test_Genome_H37rV_rpoB():
 
     sequence=''.join(h37rv.genome_sequence[h37rv.genome_feature_name=='rpoB'])

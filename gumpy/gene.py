@@ -238,8 +238,8 @@ class Gene(object):
                 MUTATIONS_dict['INDEL_LENGTH'].append(0)
                 MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('AAM')
-                MUTATIONS_dict['INDEL_1'].append(None)
-                MUTATIONS_dict['INDEL_2'].append(None)
+                MUTATIONS_dict['INDEL_1'].append('')
+                MUTATIONS_dict['INDEL_2'].append('')
 
             mask=(self.sequence!=other.sequence) & self.is_promoter
             pos=self.numbering[mask]
@@ -263,8 +263,8 @@ class Gene(object):
                 MUTATIONS_dict['INDEL_LENGTH'].append(0)
                 MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
-                MUTATIONS_dict['INDEL_1'].append(None)
-                MUTATIONS_dict['INDEL_2'].append(None)
+                MUTATIONS_dict['INDEL_1'].append('')
+                MUTATIONS_dict['INDEL_2'].append('')
 
         else:
             mask=self.sequence!=other.sequence
@@ -295,8 +295,8 @@ class Gene(object):
                 MUTATIONS_dict['INDEL_LENGTH'].append(0)
                 MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
                 MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
-                MUTATIONS_dict['INDEL_1'].append(None)
-                MUTATIONS_dict['INDEL_2'].append(None)
+                MUTATIONS_dict['INDEL_1'].append('')
+                MUTATIONS_dict['INDEL_2'].append('')
 
 
         mask=self.is_indel
@@ -321,8 +321,8 @@ class Gene(object):
                 mut2=mut1+"_"+str(-1*l)
             MUTATIONS_dict['GENE'].append(self.gene_name)
             MUTATIONS_dict['MUTATION'].append(mut0)
-            MUTATIONS_dict['REF'].append(None)
-            MUTATIONS_dict['ALT'].append(None)
+            MUTATIONS_dict['REF'].append('')
+            MUTATIONS_dict['ALT'].append('')
             MUTATIONS_dict['POSITION'].append(p)
             MUTATIONS_dict['AMINO_ACID_NUMBER'].append(n)
             MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
