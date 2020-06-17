@@ -335,7 +335,7 @@ def test_Genome_calculate_snp_distance():
     assert sample.snp_distance(reference)==2
 
 sample_01=copy.deepcopy(reference)
-sample_01.apply_vcf_file(vcf_file=TEST_CASE_DIR+"01.vcf",ignore_status=True,ignore_filter=True,metadata_fields=['GT_CONF','GT_CONF_PERCENTILE'],total_coverage_threshold=5,metadata_thresholds={'GT_CONF':5})
+sample_01.apply_vcf_file(vcf_file=TEST_CASE_DIR+"01.vcf",ignore_status=True,ignore_filter=True,metadata_fields=['GT_CONF'],total_coverage_threshold=5,metadata_thresholds={'GT_CONF':5})
 
 def test_Genome_apply_vcf():
 
