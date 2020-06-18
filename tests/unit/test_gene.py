@@ -226,7 +226,7 @@ def test_Gene_valid_variant():
 
 
 # use the subset argument to speed up the genome creation
-h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB','rrs','pncA']) #,'Rv2042c'])
+h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB','rrs','pncA','Rv2042c'])
 
 
 

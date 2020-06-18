@@ -135,6 +135,9 @@ class Genome(object):
         Returns:
             None
         """
+
+        self.default_promoter_length=default_promoter_length
+
         reference_genome = self.set_member_variables_from(genbank_file=genbank_file)
 
         previous_gene_reversed=False
@@ -275,7 +278,7 @@ class Genome(object):
                     self._gene_type[gene_name]=type
                     self._gene_codes_protein[gene_name]=codes_protein
 
-        # store a list of all the gene names (needs no alteration to deal with multi-dimensional genome_feature_name)
+        # store a list of all the gene names
         self.gene_names=numpy.unique(self.genome_feature_name[self.genome_feature_name!=""])
 
         print(self.gene_names)
@@ -792,7 +795,6 @@ class Genome(object):
                 # check to see if the status is ok (or we are ignoring it)
                 if not ignore_status and sample_info["STATUS"] == "FAIL":
                     continue
-
                 genotype = Genotype(*sample_info["GT"])
 
                 # return the call
@@ -1406,7 +1408,7 @@ class Genome(object):
                 if position<0 or before.islower():
                     nucleotide_mutation=True
 
-            # they all have the after amino acid in the same place
+            # they all have the ALT in the same place
             after=cols[0][-1]
 
             if after.islower():
@@ -1423,6 +1425,18 @@ class Genome(object):
                 else:
                     assert before in ['c','t','g','a'], before+" is not a nucleotide!"
 
+                    if position<0:
+                        mask=self.genome_feature_name==gene_name
+                        lowest_promoter_number=numpy.min(self.genome_nucleotide_number[mask])
+
+                        if lowest_promoter_number>position:
+                            mask=(self.genome_feature_name==gene_name) & (self.genome_nucleotide_number==1)
+                            index=self.genome_index[mask]+position
+                            mask=self.genome_index==index
+                            assert before==self.genome_sequence[mask], "specified nucleotide is "+before+" but is "+self.genome_sequence[mask][0]+" in the reference genome"
+                            alternative_variant=self.genome_feature_name[mask][0]+'@'+str(self.genome_nucleotide_number[mask][0])+before+'>'+after
+                            raise ValueError('genome index occupied by provided gene@mutation '+mutation+' is better described by '+alternative_variant)
+
                     return(self.genes[gene_name].valid_variant(cols[0]))
 
             # ..otherwise it is an amino acid SNP
@@ -1438,11 +1452,11 @@ class Genome(object):
 
     def deal_with_amino_acid_SNP(self, after, wildcard, before, cols, gene_name):
 
-        assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], after+" is not an amino acid!"
+        assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], after+" is not an amino acid or recognised character!"
 
         if not wildcard:
 
-            assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid!"
+            assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid or recognised character!"
 
             try:
                 position=int(cols[0][1:-1])
