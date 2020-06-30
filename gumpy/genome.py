@@ -1270,7 +1270,7 @@ class Genome(object):
 
         return True
 
-    def convert_variant_to_mutation(self,gene_variant: str):
+    def convert_variant_to_mutation(self,gene_variant: str,validate=True):
         """
         Function for converting a nucleotide gene variant to an amino acid mutation
 
@@ -1288,14 +1288,16 @@ class Genome(object):
         # break apart the gene variant
         cols=gene_variant.split("@")
 
-        # check it is in the format we expect
-        assert len(cols)==2, "a gene_variant can only contain two elements"
+        if validate:
+            # check it is in the format we expect
+            assert len(cols)==2, "a gene_variant can only contain two elements"
 
         # retrieve the gene name
         gene_name=cols[0]
 
-        # check the gene is found in this genome
-        assert self.contains_gene(gene_name), "gene not in the genome!"
+        if validate:
+            # check the gene is found in this genome
+            assert self.contains_gene(gene_name), "gene not in the genome!"
 
         # make a copy of the gene so we can mutate it to get at the answer
         tmp_gene=copy.deepcopy(self.genes[gene_name])
