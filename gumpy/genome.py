@@ -281,8 +281,6 @@ class Genome(object):
         # store a list of all the gene names
         self.gene_names=numpy.unique(self.genome_feature_name[self.genome_feature_name!=""])
 
-        print(self.gene_names)
-
         # # pass ALL the gene names to create all the Gene objects for the first time
         self._recreate_genes(self.gene_names,show_progress_bar=show_progress_bar)
 
