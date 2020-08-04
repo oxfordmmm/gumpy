@@ -13,7 +13,14 @@ from gumpy import Genotype
 
 class Genome(object):
 
-    def __init__(self, genbank_file=None, fasta_file=None, show_progress_bar=False, default_promoter_length=100, name=None, gene_subset=None):
+    def __init__(self,  genbank_file=None,\
+                        fasta_file=None,\
+                        show_progress_bar=False,\
+                        default_promoter_length=100,\
+                        name=None,\
+                        gene_subset=None,\
+                        mask_file=None,\
+                        focussed_indices=None):
 
         '''
         Instantiates a genome object by loading a VCF file and storing the whole genome as a numpy array
@@ -25,6 +32,8 @@ class Genome(object):
             show_progress_bar (bool): if specified, show the progress in STDOUT of first parsing the GenBank file, and then of working through the genes.
             default_promoter_length (int): the number of bases upstream of a start codon that are considered the promoter of the gene. Default is 100.
             gene_subset (list): only consider genes in this list. Mainly used for unit testing for speed - unlikely to be useful otherwise. Use with caution.
+            mask_file (str): path to the file in BED format describing the mask to be applied. Any variants that fall inside the mask will be ignored.
+            focussed_indices (list): all variants (filter fail, null, SNP and INDELs) will be reported for these genes. Typically used to reduce the number of rows recorded whilst recording full detail for e.g. genes associated with antimicrobial resistance.
         '''
 
         assert ((genbank_file is not None) or (fasta_file is not None)), "one of a GenBank file or a FASTA file  must be specified!"
@@ -47,6 +56,12 @@ class Genome(object):
         # otherwise there must be a FASTA file so load that instead
         elif fasta_file is not None:
             self.load_fasta(fasta_file=fasta_file)
+
+        if mask_file is not None:
+            self.mask = self.load_mask_bed_file(mask_file)[self.id]
+
+        if focussed_indices is not None:
+            self.focussed_indices=focussed_indices
 
         # insist that bases are lower case
         self.genome_coding_strand=numpy.char.lower(self.genome_coding_strand)
@@ -320,6 +335,23 @@ class Genome(object):
         self.genome_index=numpy.arange(1,self.genome_length+1)
 
         return
+
+    def load_mask_bed_file(self, mask_bed_file):
+    """
+    Loads a BED file of ref seq names, and start and end postiions.
+
+    Returns:
+        a dictionary of ref seq name -> set of (0-based) coords in the mask."""
+
+    mask = {}
+    with open(mask_bed_file,'r') as f:
+        for line in f:
+            chrom, start, end = line.rstrip().split("\t")
+            if chrom not in mask:
+                mask[chrom] = set()
+            for i in range(int(start), int(end)):
+                mask[chrom].add(i)
+    return mask
 
 
     def _recreate_genes(self,list_of_genes,show_progress_bar=False):
@@ -621,7 +653,7 @@ class Genome(object):
         Note that takes account of HET and NULL calls via z and x, respectively
         """
 
-        complementary_bases = {'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'x':'x', 'z':'z'}
+        complementary_bases = {'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'x':'x', 'z':'z', 'o':'o'}
 
         complement=[complementary_bases[i] for i in nucleotides_array]
 
@@ -782,8 +814,12 @@ class Genome(object):
                            total=lines_in_vcf):
 
             # check to see the filter is ok (or we are ignoring it)
+            filter_fail=False
             if self._is_record_invalid(ignore_filter, record):
-                continue
+                if self.focussed_indices is None
+                    continue
+                else:
+                    filter_fail=True
 
             # cope with multiple entries in a row
             for sample_idx, (sample_name, sample_info) in enumerate(
@@ -833,6 +869,9 @@ class Genome(object):
 
                                 # record any additional metadata
                                 self._set_sequence_metadata(index,sample_info)
+
+                                if filter_fail and index in self.focussed_indices:
+                                    after='o'
 
                                 # make the mutation
                                 self._permute_sequence(index,coverage,after=after)
@@ -982,6 +1021,7 @@ class Genome(object):
         # create a set of mutually exclusive Boolean arrays that tell you what the 'single sequence' result is
         self.is_ref=numpy.zeros(self.genome_length,dtype=bool)
         self.is_null=numpy.zeros(self.genome_length,dtype=bool)
+        self.is_fail=numpy.zeros(self.genome_length,dtype=bool)
         self.is_het=numpy.zeros(self.genome_length,dtype=bool)
         self.is_snp=numpy.zeros(self.genome_length,dtype=bool)
 
@@ -1033,10 +1073,12 @@ class Genome(object):
                 self.is_null[mask]=True
             elif after=='z':
                 self.is_het[mask]=True
+            elif after=='o':
+                self.is_fail[mask]=True
             elif after in ['a','c','t','g']:
                 self.is_snp[mask]=True
             else:
-                raise TypeError("passed base "+after+" not one of a,t,c,g,z,x")
+                raise TypeError("passed base "+after+" not one of a,t,c,g,z,x,o")
 
         # .. and remember the indel length
         if indel_length!=0:
@@ -1264,7 +1306,7 @@ class Genome(object):
         assert before==self.genome_sequence[mask][0], "base in genome is "+self.genome_sequence[mask][0]+" but specified base is "+before
 
         # check that the base to be mutated to is valid (z=het, ?=any other base according to the grammar)
-        assert after in ['c','t','g','a','?','z','x'], after+" is not a valid nucleotide!"
+        assert after in ['c','t','g','a','?','z','x','o'], after+" is not a valid nucleotide!"
 
         return True
 
@@ -1305,7 +1347,7 @@ class Genome(object):
         assert ref_base in ['a','c','t','g'], 'reference base is not a, t, c or g!'
 
         alt_base=cols[1][-1]
-        assert alt_base in ['a','c','t','g','x','z'], 'alt base is not a, t, c, g, z or x!'
+        assert alt_base in ['a','c','t','g','x','z','o'], 'alt base is not a, t, c, g, z, x or o!'
 
         try:
             position=int(cols[1][1:-1])
@@ -1417,7 +1459,7 @@ class Genome(object):
             # if it is a promoter mutation
             if nucleotide_mutation:
 
-                assert after in ['c','t','g','a','?','z','x'], after+" is not a nucleotide!"
+                assert after in ['c','t','g','a','?','z','x','o'], after+" is not a nucleotide!"
 
                 if wildcard:
                     return(True)
@@ -1452,11 +1494,11 @@ class Genome(object):
 
     def deal_with_amino_acid_SNP(self, after, wildcard, before, cols, gene_name):
 
-        assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], after+" is not an amino acid or recognised character!"
+        assert after in ['=','?',"!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y','Z','X','O'], after+" is not an amino acid or recognised character!"
 
         if not wildcard:
 
-            assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','X','Y','Z'], before+" is not an amino acid or recognised character!"
+            assert before in ["!",'A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S','T','V','W','Y'], before+" is not an amino acid or recognised character!"
 
             try:
                 position=int(cols[0][1:-1])

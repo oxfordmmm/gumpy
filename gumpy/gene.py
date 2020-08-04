@@ -25,7 +25,7 @@ class Gene(object):
         # assert numpy.issubdtype(numbering.dtype.type,numpy.float64), gene_name+": gene numbering must be a Numpy array of integers!"
 
         sequence=numpy.char.lower(sequence)
-        assert numpy.count_nonzero(numpy.isin(sequence,['a','t','c','g','x','z']))==len(sequence), gene_name+": sequence can only contain a,t,c,g,z,x"
+        assert numpy.count_nonzero(numpy.isin(sequence,['a','t','c','g','x','z','o']))==len(sequence), gene_name+": sequence can only contain a,t,c,g,z,x"
 
         promoter_mask=numbering<0
         cds_mask=numbering>0
@@ -99,8 +99,9 @@ class Gene(object):
 
     def _setup_conversion_dicts(self):
 
-        bases = ['t', 'c', 'a', 'g', 'x', 'z']
-        aminoacids = 'FFLLXZSSSSXZYY!!XZCC!WXZXXXXXXZZZZXZLLLLXZPPPPXZHHQQXZRRRRXZXXXXXXZZZZXZIIIMXZTTTTXZNNKKXZSSRRXZXXXXXXZZZZXZVVVVXZAAAAXZDDEEXZGGGGXZXXXXXXZZZZXZXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZZZZZXZZZZZXZZZZZXZXXXXXXZZZZXZ'
+        bases = ['t', 'c', 'a', 'g', 'x', 'z', 'o']
+        # aminoacids = 'FFLLXZSSSSXZYY!!XZCC!WXZXXXXXXZZZZXZLLLLXZPPPPXZHHQQXZRRRRXZXXXXXXZZZZXZIIIMXZTTTTXZNNKKXZSSRRXZXXXXXXZZZZXZVVVVXZAAAAXZDDEEXZGGGGXZXXXXXXZZZZXZXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZZZZZXZZZZZXZZZZZXZXXXXXXZZZZXZ'
+        aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXOZZZZXZOOOOOOOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXOZZZZXZOOOOOOOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXOZZZZXZOOOOOOOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXOZZZZXZOOOOOOOOXXXXXXOXXXXXXOXXXXXXOXXXXXXOXXXXXXOXXXXXXOOOOOOOOZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXOZZZZXZOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO'
         all_codons = numpy.array([a+b+c for a in bases for b in bases for c in bases])
         self.codon_to_amino_acid = dict(zip(all_codons, aminoacids))
         # self.amino_acids_of_codons=numpy.array([self.codon_to_amino_acid[i] for i in all_codons])
@@ -441,6 +442,6 @@ class Gene(object):
         assert before==self.sequence[mask][0], "base in genome is "+self.sequence[mask][0]+" but specified base is "+before
 
         # check that the base to be mutated to is valid (z=het, ?=any other base according to the grammar)
-        assert after in ['c','t','g','a','?','z','x'], after+" is not a valid nucleotide!"
+        assert after in ['c','t','g','a','?','z','x','o'], after+" is not a valid nucleotide!"
 
         return True

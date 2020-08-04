@@ -367,9 +367,9 @@ def test_Genome_table_variants_wrt():
 
 def test_Genome__complement():
 
-    test_sequence=numpy.array(['a','c','t','g','z','x'])
+    test_sequence=numpy.array(['a','c','t','g','z','x','o'])
 
-    assert numpy.array_equal(reference._complement(test_sequence),numpy.array(['t','g','a','c','z','x']))
+    assert numpy.array_equal(reference._complement(test_sequence),numpy.array(['t','g','a','c','z','x','o']))
 
 # use the subset argument to speed up the genome creation
 h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB'])
