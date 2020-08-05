@@ -18,8 +18,7 @@ class Genome(object):
                         show_progress_bar=False,\
                         default_promoter_length=100,\
                         name=None,\
-                        gene_subset=None,\
-                        mask_file=None):
+                        gene_subset=None):
 
         '''
         Instantiates a genome object by loading a VCF file and storing the whole genome as a numpy array
@@ -31,7 +30,6 @@ class Genome(object):
             show_progress_bar (bool): if specified, show the progress in STDOUT of first parsing the GenBank file, and then of working through the genes.
             default_promoter_length (int): the number of bases upstream of a start codon that are considered the promoter of the gene. Default is 100.
             gene_subset (list): only consider genes in this list. Mainly used for unit testing for speed - unlikely to be useful otherwise. Use with caution.
-            mask_file (str): path to the file in BED format describing the mask to be applied. Any variants that fall inside the mask will be ignored.
         '''
 
         assert ((genbank_file is not None) or (fasta_file is not None)), "one of a GenBank file or a FASTA file  must be specified!"
@@ -54,9 +52,6 @@ class Genome(object):
         # otherwise there must be a FASTA file so load that instead
         elif fasta_file is not None:
             self.load_fasta(fasta_file=fasta_file)
-
-        if mask_file is not None:
-            self.mask = self.load_mask_bed_file(mask_file)[self.id]
 
         # insist that bases are lower case
         self.genome_coding_strand=numpy.char.lower(self.genome_coding_strand)
@@ -738,7 +733,8 @@ class Genome(object):
                        total_coverage_threshold=None,
                        metadata_fields=None,
                        metadata_thresholds=None,
-                       focussed_indices=None):
+                       focussed_indices=None,
+                       mask_file=None):
         """
         Load a VCF file and apply the variants to the whole genome sequence.
 
@@ -751,6 +747,7 @@ class Genome(object):
             metadata_fields (list of str): these are the names of the additional metadata fields in the VCF that you may want to record the values of e.g. ['GT_CONF','DP','DPF']
             metadata_thresholds (dict): used to supply minimum values for one or more specified metadata fields e.g. {'GT_CONF':5}
             focussed_indices (list): all variants (filter fail, null, SNP and INDELs) will be reported for these genes. Typically used to reduce the number of rows recorded whilst recording full detail for e.g. genes associated with antimicrobial resistance.
+            mask_file (str): path to the file in BED format describing the mask to be applied. Any variants that fall inside the mask will be ignored.
         """
 
         # if we are showing a TQDM progress bar, count the rows in the VCF file (0.3s overhead)
@@ -767,6 +764,11 @@ class Genome(object):
             self.focussed_indices=focussed_indices
         else:
             self.focussed_indices=None
+
+        if mask_file is not None:
+            self.mask=self.load_mask_bed_file(mask_file)[self.id]
+        else:
+            self.mask=None
 
         self.prepare_for_vcf_read(metadata_fields=metadata_fields)
 
@@ -884,6 +886,10 @@ class Genome(object):
                             # only make a change if the ALT is different to the REF
                             if before!=after:
 
+                                # apply the mask, if loaded
+                                if self.mask is not None and index in self.mask:
+                                    continue
+
                                 # find out the coverage
                                 coverage=sample_info['COV'][genotype.call1]
 
@@ -908,6 +914,10 @@ class Genome(object):
 
                     # an INDEL
                     else:
+                        # apply the mask, if loaded
+                        if self.mask is not None and index in self.mask:
+                            continue
+
                         # allow filter fails through if the index is in the specified set
                         if filter_fail:
                             mask=self.genome_index==index
@@ -965,6 +975,10 @@ class Genome(object):
                     # calculate a Boolean mask identifying where we are in the genome
                     mask = self.genome_index == idx
 
+                    # apply the mask, if loaded
+                    if self.mask is not None and idx in self.mask:
+                        continue
+
                     if filter_fail:
                         self.is_filter_fail[mask]=True
                         if self.focussed_indices is not None and idx not in self.focussed_indices:
@@ -991,6 +1005,10 @@ class Genome(object):
 
                 # calculate a Boolean mask identifying where we are in the genome
                 mask = self.genome_index == index
+
+                # apply the mask, if loaded
+                if self.mask is not None and index in self.mask:
+                    continue
 
                 if filter_fail:
                     self.is_filter_fail[mask]=True

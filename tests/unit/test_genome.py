@@ -385,6 +385,21 @@ def test_sample_03_list_variants_wrt():
 
     assert sample_03.list_variants_wrt(reference)==['4687t>c','4725t>o','4730c>z','13149g>x','13333c>o','4735_indel']
 
+
+sample_04=copy.deepcopy(reference)
+sample_04.apply_vcf_file(vcf_file=TEST_CASE_DIR+"01.vcf",ignore_status=True,ignore_filter=True,metadata_fields=['GT_CONF'],focussed_indices={4724,4725,4726,13149,13333},mask_file=TEST_CASE_DIR+"01.all.bed")
+
+def test_sample_04_list_variants_wrt():
+
+    assert sample_04.list_variants_wrt(reference)==[]
+
+sample_05=copy.deepcopy(reference)
+sample_05.apply_vcf_file(vcf_file=TEST_CASE_DIR+"01.vcf",ignore_status=True,ignore_filter=True,metadata_fields=['GT_CONF'],focussed_indices={4724,4725,4726,13149,13333},mask_file=TEST_CASE_DIR+"01.M2.bed")
+
+def test_sample_05_list_variants_wrt():
+
+    assert sample_05.list_variants_wrt(reference)==['13149g>x','13333c>z','13335t>a']
+
 # use the subset argument to speed up the genome creation
 h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB'])
 
