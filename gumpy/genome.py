@@ -19,8 +19,7 @@ class Genome(object):
                         default_promoter_length=100,\
                         name=None,\
                         gene_subset=None,\
-                        mask_file=None,\
-                        focussed_indices=None):
+                        mask_file=None):
 
         '''
         Instantiates a genome object by loading a VCF file and storing the whole genome as a numpy array
@@ -33,7 +32,6 @@ class Genome(object):
             default_promoter_length (int): the number of bases upstream of a start codon that are considered the promoter of the gene. Default is 100.
             gene_subset (list): only consider genes in this list. Mainly used for unit testing for speed - unlikely to be useful otherwise. Use with caution.
             mask_file (str): path to the file in BED format describing the mask to be applied. Any variants that fall inside the mask will be ignored.
-            focussed_indices (list): all variants (filter fail, null, SNP and INDELs) will be reported for these genes. Typically used to reduce the number of rows recorded whilst recording full detail for e.g. genes associated with antimicrobial resistance.
         '''
 
         assert ((genbank_file is not None) or (fasta_file is not None)), "one of a GenBank file or a FASTA file  must be specified!"
@@ -59,9 +57,6 @@ class Genome(object):
 
         if mask_file is not None:
             self.mask = self.load_mask_bed_file(mask_file)[self.id]
-
-        if focussed_indices is not None:
-            self.focussed_indices=focussed_indices
 
         # insist that bases are lower case
         self.genome_coding_strand=numpy.char.lower(self.genome_coding_strand)
@@ -133,6 +128,8 @@ class Genome(object):
 
         self.is_indel=numpy.zeros(self.genome_length,dtype=bool)
         self.indel_length=numpy.zeros(self.genome_length,int)
+
+        self.is_filter_fail=numpy.zeros(self.genome_length,dtype=bool)
 
         return reference_genome
 
@@ -337,21 +334,21 @@ class Genome(object):
         return
 
     def load_mask_bed_file(self, mask_bed_file):
-    """
-    Loads a BED file of ref seq names, and start and end postiions.
+        """
+        Loads a BED file of ref seq names, and start and end postiions.
 
-    Returns:
-        a dictionary of ref seq name -> set of (0-based) coords in the mask."""
+        Returns:
+            a dictionary of ref seq name -> set of (0-based) coords in the mask."""
 
-    mask = {}
-    with open(mask_bed_file,'r') as f:
-        for line in f:
-            chrom, start, end = line.rstrip().split("\t")
-            if chrom not in mask:
-                mask[chrom] = set()
-            for i in range(int(start), int(end)):
-                mask[chrom].add(i)
-    return mask
+        mask = {}
+        with open(mask_bed_file,'r') as f:
+            for line in f:
+                chrom, start, end = line.rstrip().split("\t")
+                if chrom not in mask:
+                    mask[chrom] = set()
+                for i in range(int(start), int(end)):
+                    mask[chrom].add(i)
+        return mask
 
 
     def _recreate_genes(self,list_of_genes,show_progress_bar=False):
@@ -374,7 +371,6 @@ class Genome(object):
             if gene=="MKAN_RS00005":
                 continue
 
-
             mask=self.genome_feature_name==gene
 
             assert numpy.count_nonzero(mask)>0, "gene not found in genome!"
@@ -387,7 +383,8 @@ class Genome(object):
                                     is_indel=self.is_indel[mask],
                                     indel_length=self.indel_length[mask],
                                     codes_protein=self._gene_codes_protein[gene],\
-                                    feature_type=self._gene_type[gene]  )
+                                    feature_type=self._gene_type[gene],
+                                    is_filter_fail=self.is_filter_fail[mask]  )
 
 
     def __repr__(self):
@@ -465,13 +462,15 @@ class Genome(object):
                 INDEL_1=str(row["GENOME_INDEX"])+"_del"
                 INDEL_2=str(row["GENOME_INDEX"])+"_del_"+str(-1*row["INDEL_LENGTH"])
         else:
-            IS_SNP=True
             MUTATION_TYPE='SNP'
             alt=row["VARIANT"][-1]
-            if alt=="z":
+            if alt=='z':
                 IS_HET=True
-            elif alt=="x":
+            elif alt=='x':
                 IS_NULL=True
+                MUTATION_TYPE='NULL'
+            else:
+                IS_SNP=True
 
         return(pandas.Series([IS_SNP,IS_INDEL,IS_HET,IS_NULL,ASSOCIATED_WITH_GENE,IN_PROMOTER,IN_CDS,INDEL_1,INDEL_2,MUTATION_TYPE]))
 
@@ -553,9 +552,16 @@ class Genome(object):
             #                 "INDEL_1","INDEL_2","COVERAGE","HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0",\
             #                 "HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
 
+            def infer_filter_fail(row):
+                mask=self.genome_index==row.GENOME_INDEX
+                return(not self.is_filter_fail[mask][0])
+
+            VARIANTS_table['IS_FILTER_PASS']=VARIANTS_table.apply(infer_filter_fail,axis=1)
+
+
             VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE',"MUTATION_TYPE",\
                             'POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','ASSOCIATED_WITH_GENE',\
-                            'IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','INDEL_LENGTH',\
+                            'IN_PROMOTER','IN_CDS','IS_SNP','IS_INDEL','IS_HET','IS_NULL','IS_FILTER_PASS','INDEL_LENGTH',\
                             "INDEL_1","INDEL_2","COVERAGE"]
 
 
@@ -580,6 +586,7 @@ class Genome(object):
                                                     'IS_INDEL':'bool',\
                                                     'IS_HET':'bool',\
                                                     'IS_NULL':'bool',\
+                                                    'IS_FILTER_PASS':'bool',\
                                                     'INDEL_LENGTH':'float',\
                                                     'INDEL_1':'str',\
                                                     'INDEL_2':'str',\
@@ -730,7 +737,8 @@ class Genome(object):
                        show_progress_bar=False,
                        total_coverage_threshold=None,
                        metadata_fields=None,
-                       metadata_thresholds=None):
+                       metadata_thresholds=None,
+                       focussed_indices=None):
         """
         Load a VCF file and apply the variants to the whole genome sequence.
 
@@ -739,6 +747,10 @@ class Genome(object):
             ignore_filter (bool): whether to ignore the FILTER column in the VCF file (Clockwork hasn't always written it correctly)
             ignore_status (bool): ditto
             show_progress_bar (bool): whether to draw a nice tqdm progress bar (False by default)
+            total_coverage_threshold (int): if the coverage at a call is less than this integer value, exclude
+            metadata_fields (list of str): these are the names of the additional metadata fields in the VCF that you may want to record the values of e.g. ['GT_CONF','DP','DPF']
+            metadata_thresholds (dict): used to supply minimum values for one or more specified metadata fields e.g. {'GT_CONF':5}
+            focussed_indices (list): all variants (filter fail, null, SNP and INDELs) will be reported for these genes. Typically used to reduce the number of rows recorded whilst recording full detail for e.g. genes associated with antimicrobial resistance.
         """
 
         # if we are showing a TQDM progress bar, count the rows in the VCF file (0.3s overhead)
@@ -750,6 +762,11 @@ class Genome(object):
 
         else:
             lines_in_vcf=None
+
+        if focussed_indices is not None:
+            self.focussed_indices=focussed_indices
+        else:
+            self.focussed_indices=None
 
         self.prepare_for_vcf_read(metadata_fields=metadata_fields)
 
@@ -782,7 +799,7 @@ class Genome(object):
 
         # now that we've parsed the VCF file, and hence all the HETs, we need to update the main sequence
         # to show that there are HETs
-        self.update_main_sequence_to_show_HETs(show_progress_bar)
+        self.update_main_sequence_to_show_HETs(show_progress_bar,ignore_filter)
 
         return
 
@@ -808,6 +825,10 @@ class Genome(object):
             metadata_thresholds:
         """
 
+        # variant_counter={}
+        # for i in ['SNP','INDEL','HET','NULL','FILTER_FAIL']:
+        #     variant_counter[i]=0
+
         # now iterate through the records found in the VCF file
         for record in tqdm(vcf_reader,
                            disable=not(show_progress_bar),
@@ -816,10 +837,10 @@ class Genome(object):
             # check to see the filter is ok (or we are ignoring it)
             filter_fail=False
             if self._is_record_invalid(ignore_filter, record):
-                if self.focussed_indices is None
+                filter_fail=True
+                # variant_counter['FILTER_FAIL']+=1
+                if self.focussed_indices is None:
                     continue
-                else:
-                    filter_fail=True
 
             # cope with multiple entries in a row
             for sample_idx, (sample_name, sample_info) in enumerate(
@@ -830,7 +851,6 @@ class Genome(object):
                 if not ignore_status and sample_info["STATUS"] == "FAIL":
                     continue
                 genotype = Genotype(*sample_info["GT"])
-
                 # return the call
                 ref_bases,index,alt_bases = self._get_variant_for_genotype_in_vcf_record(genotype, record)
 
@@ -870,8 +890,15 @@ class Genome(object):
                                 # record any additional metadata
                                 self._set_sequence_metadata(index,sample_info)
 
-                                if filter_fail and index in self.focussed_indices:
-                                    after='o'
+                                # allow filter fails through if the index is in the specified set
+                                if filter_fail:
+                                    mask=self.genome_index==index
+                                    self.is_filter_fail[mask]=True
+                                    if self.focussed_indices is not None and index in self.focussed_indices:
+                                        if after!='x':
+                                            after='o'
+                                    else:
+                                        continue
 
                                 # make the mutation
                                 self._permute_sequence(index,coverage,after=after)
@@ -881,11 +908,19 @@ class Genome(object):
 
                     # an INDEL
                     else:
+                        # allow filter fails through if the index is in the specified set
+                        if filter_fail:
+                            mask=self.genome_index==index
+                            self.is_filter_fail[mask]=True
+                            if index in self.focussed_indices:
+                                alt_bases='o'*len(alt_bases)
+                            else:
+                                continue
                         self.deal_with_an_INDEL(alt_bases, ref_bases, sample_info, genotype, index)
 
                 # HET calls
                 else:
-                    self.cope_with_HET_calls(alt_bases, ref_bases, index, sample_info, genotype)
+                    self.cope_with_HET_calls(alt_bases, ref_bases, index, sample_info, genotype, filter_fail)
 
 
         return
@@ -910,7 +945,7 @@ class Genome(object):
         return
 
 
-    def cope_with_HET_calls(self, alt_bases, ref_bases, index, sample_info, genotype):
+    def cope_with_HET_calls(self, alt_bases, ref_bases, index, sample_info, genotype, filter_fail):
         """
         HET calls
         """
@@ -929,6 +964,11 @@ class Genome(object):
 
                     # calculate a Boolean mask identifying where we are in the genome
                     mask = self.genome_index == idx
+
+                    if filter_fail:
+                        self.is_filter_fail[mask]=True
+                        if self.focussed_indices is not None and idx not in self.focussed_indices:
+                            continue
 
                     # record any additional metadata
                     self._set_sequence_metadata(idx, sample_info)
@@ -952,6 +992,11 @@ class Genome(object):
                 # calculate a Boolean mask identifying where we are in the genome
                 mask = self.genome_index == index
 
+                if filter_fail:
+                    self.is_filter_fail[mask]=True
+                    if self.focussed_indices is not None and index not in self.focussed_indices:
+                        continue
+
                 # record any additional metadata
                 self._set_sequence_metadata(index, sample_info)
 
@@ -966,7 +1011,7 @@ class Genome(object):
         return
 
 
-    def update_main_sequence_to_show_HETs(self, show_progress_bar):
+    def update_main_sequence_to_show_HETs(self, show_progress_bar, ignore_filter):
         """
         We've parsed the VCF file, and hence all the HETs, we need to update the main sequence
         to show that there are HETs
@@ -984,8 +1029,14 @@ class Genome(object):
             # define the total coverage as the sum of the two HET calls
             coverage=numpy.sum(self.het_coverage[mask])
 
-            # make the mutation, identifying this as a HET call
-            self._permute_sequence(idx,coverage,after='z')
+            # make the mutation, identifying this as a HET call (or a filter fail )
+            if self.is_filter_fail[mask]:
+                if self.focussed_indices is not None and idx in self.focussed_indices:
+                    self._permute_sequence(idx,coverage,after='o')
+                else:
+                    continue
+            else:
+                self._permute_sequence(idx,coverage,after='z')
 
         # first recompute the complementary strand
         self.genome_noncoding_strand=self._complement(self.genome_coding_strand)
@@ -1068,17 +1119,22 @@ class Genome(object):
 
         # permuate the sequence
         if after is not None:
-            self.genome_coding_strand[mask]=after
+
+            assert after in ['a','t','c','g','x','z','o'], "passed base "+after+" not one of a,t,c,g,z,x,o"
+
+            # only record nulls in the specified focusses indices
             if after=='x':
+                if self.focussed_indices is not None and idx in self.focussed_indices:
+                    self.genome_coding_strand[mask]=after
                 self.is_null[mask]=True
-            elif after=='z':
-                self.is_het[mask]=True
-            elif after=='o':
-                self.is_fail[mask]=True
-            elif after in ['a','c','t','g']:
-                self.is_snp[mask]=True
             else:
-                raise TypeError("passed base "+after+" not one of a,t,c,g,z,x,o")
+                self.genome_coding_strand[mask]=after
+                if after=='z':
+                    self.is_het[mask]=True
+                elif after=='o':
+                    self.is_fail[mask]=True
+                elif after in ['a','c','t','g']:
+                    self.is_snp[mask]=True
 
         # .. and remember the indel length
         if indel_length!=0:
@@ -1198,7 +1254,7 @@ class Genome(object):
         elif genotype.is_alt():
             variant = record.alleles[genotype.call1].lower()
         elif genotype.is_null():
-            variant = "x"*len(ref_bases)
+            variant = 'x'*len(ref_bases)
         else:
             raise UnexpectedGenotypeError(
                 """Got a genotype for which a Ref/Alt/Null call could not be
@@ -1206,7 +1262,6 @@ class Genome(object):
                     genotype.call()
                 )
             )
-
 
         return ref_bases,int(record.pos),variant
 

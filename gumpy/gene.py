@@ -7,7 +7,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self,gene_name=None,sequence=None,index=None,numbering=None,positions=None,is_indel=None,indel_length=None,codes_protein=True,feature_type=None):
+    def __init__(self,gene_name=None,sequence=None,index=None,numbering=None,positions=None,is_indel=None,indel_length=None,codes_protein=True,feature_type=None,is_filter_fail=None):
 
         assert gene_name is not None, "must provide a gene name!"
         self.gene_name=gene_name
@@ -40,6 +40,7 @@ class Gene(object):
             self.index=index
             self.is_cds=cds_mask
             self.is_promoter=promoter_mask
+            self.is_filter_fail=is_filter_fail
         else:
             self.on_noncoding_strand=True
             self.sequence=sequence[::-1]
@@ -50,6 +51,7 @@ class Gene(object):
             self.index=index[::-1]
             self.is_cds=cds_mask[::-1]
             self.is_promoter=promoter_mask[::-1]
+            self.is_filter_fail=is_filter_fail[::-1]
 
         self.cds_index_start=numpy.min(self.index[self.is_cds])
         self.cds_index_end=numpy.max(self.index[self.is_cds])
@@ -191,8 +193,12 @@ class Gene(object):
         mask=self.is_indel
         pos=list(self.positions[mask])
         length=list(self.indel_length[mask])
-        for (p,l) in zip(pos,length):
-            mutations.append(str(int(p))+"_indel")
+        filter_fail=list(self.is_filter_fail[mask])
+        for (p,l,f) in zip(pos,length,filter_fail):
+            if f:
+                mutations.append(str(int(p))+"_fndel")
+            else:
+                mutations.append(str(int(p))+"_indel")
 
         if not mutations:
             mutations=None
@@ -207,7 +213,7 @@ class Gene(object):
         assert self.codes_protein==other.codes_protein, "both genes must be identical!"
 
         MUTATIONS_dict={}
-        MUTATIONS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','GENOME_INDEX','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
+        MUTATIONS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','GENOME_INDEX','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IS_NULL','IS_FILTER_PASS','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
         for cols in MUTATIONS_columns:
             MUTATIONS_dict[cols]=[]
 
@@ -234,6 +240,14 @@ class Gene(object):
                 MUTATIONS_dict['GENOME_INDEX'].append(0)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
+                if a=='X':
+                    MUTATIONS_dict['IS_NULL'].append(True)
+                else:
+                    MUTATIONS_dict['IS_NULL'].append(False)
+                if a=='O':
+                    MUTATIONS_dict['IS_FILTER_PASS'].append(False)
+                else:
+                    MUTATIONS_dict['IS_FILTER_PASS'].append(True)
                 MUTATIONS_dict['IN_CDS'].append(True)
                 MUTATIONS_dict['IN_PROMOTER'].append(False)
                 MUTATIONS_dict['INDEL_LENGTH'].append(0)
@@ -247,7 +261,8 @@ class Gene(object):
             ref=other.sequence[mask]
             alt=self.sequence[mask]
             idx=self.index[mask]
-            for (r,p,a,i) in zip(ref,pos,alt,idx):
+            filter_fail=self.is_filter_fail[mask]
+            for (r,p,a,i,f) in zip(ref,pos,alt,idx,filter_fail):
                 mut=r+str(int(p))+a
                 MUTATIONS_dict['GENE'].append(self.gene_name)
                 MUTATIONS_dict['MUTATION'].append(mut)
@@ -259,6 +274,11 @@ class Gene(object):
                 MUTATIONS_dict['GENOME_INDEX'].append(i)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
+                if a=='x':
+                    MUTATIONS_dict['IS_NULL'].append(True)
+                else:
+                    MUTATIONS_dict['IS_NULL'].append(False)
+                MUTATIONS_dict['IS_FILTER_PASS'].append(not f)
                 MUTATIONS_dict['IN_CDS'].append(False)
                 MUTATIONS_dict['IN_PROMOTER'].append(True)
                 MUTATIONS_dict['INDEL_LENGTH'].append(0)
@@ -273,7 +293,8 @@ class Gene(object):
             ref=other.sequence[mask]
             alt=self.sequence[mask]
             idx=self.index[mask]
-            for (r,p,a,i) in zip(ref,pos,alt,idx):
+            filter_fail=self.is_filter_fail[mask]
+            for (r,p,a,i,f) in zip(ref,pos,alt,idx,filter_fail):
                 if p<0:
                     is_promoter=True
                     is_cds=False
@@ -291,6 +312,11 @@ class Gene(object):
                 MUTATIONS_dict['GENOME_INDEX'].append(i)
                 MUTATIONS_dict['IS_SNP'].append(True)
                 MUTATIONS_dict['IS_INDEL'].append(False)
+                if a=='x':
+                    MUTATIONS_dict['IS_NULL'].append(True)
+                else:
+                    MUTATIONS_dict['IS_NULL'].append(False)
+                MUTATIONS_dict['IS_FILTER_PASS'].append(not f)
                 MUTATIONS_dict['IN_CDS'].append(is_cds)
                 MUTATIONS_dict['IN_PROMOTER'].append(is_promoter)
                 MUTATIONS_dict['INDEL_LENGTH'].append(0)
@@ -304,8 +330,9 @@ class Gene(object):
         pos=list(self.positions[mask])
         num=list(self.numbering[mask])
         length=list(self.indel_length[mask])
+        filter_fail=list(self.is_filter_fail[mask])
         idx=self.index[mask]
-        for (p,l,n,i) in zip(pos,length,num,idx):
+        for (p,l,n,i,f) in zip(pos,length,num,idx,filter_fail):
             if p<0:
                 is_promoter=True
                 is_cds=False
@@ -313,7 +340,10 @@ class Gene(object):
             else:
                 is_promoter=False
                 is_cds=True
-            mut0=str(int(p))+"_indel"
+            if f:
+                mut0=str(int(p))+"_fndel"
+            else:
+                mut0=str(int(p))+"_indel"
             if l>0:
                 mut1=str(int(p))+"_ins"
                 mut2=mut1+"_"+str(l)
@@ -330,6 +360,8 @@ class Gene(object):
             MUTATIONS_dict['GENOME_INDEX'].append(i)
             MUTATIONS_dict['IS_SNP'].append(False)
             MUTATIONS_dict['IS_INDEL'].append(True)
+            MUTATIONS_dict['IS_NULL'].append(False)
+            MUTATIONS_dict['IS_FILTER_PASS'].append(not f)
             MUTATIONS_dict['IN_CDS'].append(is_cds)
             MUTATIONS_dict['IN_PROMOTER'].append(is_promoter)
             MUTATIONS_dict['INDEL_LENGTH'].append(l)
@@ -354,6 +386,8 @@ class Gene(object):
                                                     'GENOME_INDEX':'float',\
                                                     'IS_SNP':'bool',\
                                                     'IS_INDEL':'bool',\
+                                                    'IS_NULL':'bool',\
+                                                    'IS_FILTER_PASS':'bool',\
                                                     'IN_CDS':'bool',\
                                                     'IN_PROMOTER':'bool',\
                                                     'INDEL_LENGTH':'float',\

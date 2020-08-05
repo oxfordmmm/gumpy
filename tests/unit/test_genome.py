@@ -355,7 +355,7 @@ def test_Genome_apply_vcf():
 
 def test_Genome_list_variants_wrt():
 
-    assert sample_01.list_variants_wrt(reference)==['4687t>c','4725t>c', '13333c>z','4730_indel','4735_indel']
+    assert sample_01.list_variants_wrt(reference)==['4687t>c','4725t>c','4730c>z','13333c>z','4735_indel','4740_indel']
 
 
 def test_Genome_table_variants_wrt():
@@ -370,6 +370,20 @@ def test_Genome__complement():
     test_sequence=numpy.array(['a','c','t','g','z','x','o'])
 
     assert numpy.array_equal(reference._complement(test_sequence),numpy.array(['t','g','a','c','z','x','o']))
+
+sample_02=copy.deepcopy(reference)
+sample_02.apply_vcf_file(vcf_file=TEST_CASE_DIR+"01.vcf",ignore_status=True,ignore_filter=False,metadata_fields=['GT_CONF'],focussed_indices={4724,4725,4726})
+
+def test_sample_02_list_variants_wrt():
+
+    assert sample_02.list_variants_wrt(reference)==['4687t>c','4725t>o','4730c>z','4735_indel']
+
+sample_03=copy.deepcopy(reference)
+sample_03.apply_vcf_file(vcf_file=TEST_CASE_DIR+"01.vcf",ignore_status=True,ignore_filter=False,metadata_fields=['GT_CONF'],focussed_indices={4724,4725,4726,13149,13333})
+
+def test_sample_03_list_variants_wrt():
+
+    assert sample_03.list_variants_wrt(reference)==['4687t>c','4725t>o','4730c>z','13149g>x','13333c>o','4735_indel']
 
 # use the subset argument to speed up the genome creation
 h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB'])
