@@ -709,6 +709,7 @@ class Genome(object):
         '''
         return (numpy.count_nonzero(self.genome_coding_strand!=other.genome_coding_strand))
 
+
     def snp_distance(self,other):
         '''
         Return the number of SNPs between the two genomes.
@@ -724,6 +725,7 @@ class Genome(object):
             if i in ['c','t','a','g']:
                 snps+=1
         return(snps)
+
 
     def apply_vcf_file(self,
                        vcf_file=None,
@@ -918,15 +920,7 @@ class Genome(object):
                         if self.mask is not None and index in self.mask:
                             continue
 
-                        # allow filter fails through if the index is in the specified set
-                        if filter_fail:
-                            mask=self.genome_index==index
-                            self.is_filter_fail[mask]=True
-                            if index in self.focussed_indices:
-                                alt_bases='o'*len(alt_bases)
-                            else:
-                                continue
-                        self.deal_with_an_INDEL(alt_bases, ref_bases, sample_info, genotype, index)
+                        self.deal_with_an_INDEL(alt_bases, ref_bases, sample_info, genotype, index, filter_fail)
 
                 # HET calls
                 else:
@@ -936,7 +930,7 @@ class Genome(object):
         return
 
 
-    def deal_with_an_INDEL(self, alt_bases, ref_bases, sample_info, genotype, index):
+    def deal_with_an_INDEL(self, alt_bases, ref_bases, sample_info, genotype, index, filter_fail):
 
         # calculate the length of the indel
         indel_length=len(alt_bases)-len(ref_bases)
@@ -949,8 +943,15 @@ class Genome(object):
         # record any additional metadata
         self._set_sequence_metadata(index,sample_info)
 
-        # make the mutation
-        self._permute_sequence(index,coverage,indel_length=indel_length,indel_bases=(ref_bases,alt_bases))
+        # record a filter fail as a SNP, otherwise record the INDEL
+        if filter_fail:
+            mask=self.genome_index==index
+            self.is_filter_fail[mask]=True
+            if index in self.focussed_indices:
+                self._permute_sequence(index,coverage,after='o')
+        else:
+            # make the mutation
+            self._permute_sequence(index,coverage,indel_length=indel_length,indel_bases=(ref_bases,alt_bases))
 
         return
 

@@ -193,12 +193,8 @@ class Gene(object):
         mask=self.is_indel
         pos=list(self.positions[mask])
         length=list(self.indel_length[mask])
-        filter_fail=list(self.is_filter_fail[mask])
-        for (p,l,f) in zip(pos,length,filter_fail):
-            if f:
-                mutations.append(str(int(p))+"_fndel")
-            else:
-                mutations.append(str(int(p))+"_indel")
+        for (p,l) in zip(pos,length):
+            mutations.append(str(int(p))+"_indel")
 
         if not mutations:
             mutations=None
