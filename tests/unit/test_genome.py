@@ -401,7 +401,7 @@ def test_sample_05_list_variants_wrt():
     assert sample_05.list_variants_wrt(reference)==['13149g>x','13333c>z','13335t>a']
 
 # use the subset argument to speed up the genome creation
-h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB'])
+h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB','gyrA'])
 
 def test_Genome_H37rV_katG():
 
@@ -450,3 +450,53 @@ def test_Genome_H37rV_rpoB():
     # assert new_bases[0]=='g'
     # assert sample_04.coverage[sample_04.index==2155168]==53
     # assert sample_04.sequence_metadata['GT_CONF'][sample_04.index==2155168][0]==pytest.approx(500.23)
+
+
+def test_Genome_H37rV_site_05():
+
+    sample_tb_01=copy.deepcopy(h37rv)
+    sample_tb_01.apply_vcf_file(vcf_file="tests/test-cases/05.vcf",\
+                               ignore_status=True,ignore_filter=False,\
+                               metadata_fields=['GT_CONF','GT_CONF_PERCENTILE','FRS','DPF','DP'])
+
+    assert sample_tb_01.list_variants_wrt(h37rv)==['7362g>c', '9304g>a', '761110a>t', '763031t>c', '2154724g>t', '2155168g>c']
+
+    assert sample_tb_01.genes['gyrA'].list_mutations_wrt(h37rv.genes['gyrA'])==['E21Q', 'G668D']
+    assert sample_tb_01.genes['rpoB'].list_mutations_wrt(h37rv.genes['rpoB'])==['D435V', 'A1075A']
+    assert sample_tb_01.genes['katG'].list_mutations_wrt(h37rv.genes['katG'])==['S315T', 'R463L']
+
+
+def test_Genome_H37rV_site_05_mask():
+
+    # the mask should exclude the katG@S315T mutation
+
+    sample_tb_01=copy.deepcopy(h37rv)
+    sample_tb_01.apply_vcf_file(vcf_file="tests/test-cases/05.vcf",\
+                               ignore_status=True,ignore_filter=False,\
+                               metadata_fields=['GT_CONF','GT_CONF_PERCENTILE','FRS','DPF','DP'],\
+                               mask_file="tests/test-cases/05.bed")
+
+    assert sample_tb_01.list_variants_wrt(h37rv)==['7362g>c', '9304g>a', '761110a>t', '763031t>c', '2154724g>t']
+
+    assert sample_tb_01.genes['gyrA'].list_mutations_wrt(h37rv.genes['gyrA'])==['E21Q', 'G668D']
+    assert sample_tb_01.genes['rpoB'].list_mutations_wrt(h37rv.genes['rpoB'])==['D435V', 'A1075A']
+    assert sample_tb_01.genes['katG'].list_mutations_wrt(h37rv.genes['katG'])==['R463L']
+
+
+def test_Genome_H37rV_site_05_focussed_indices():
+
+    # be supplying a set of genome indices the code will return null and filter fail calls at those positions
+    mask=numpy.isin(h37rv.genome_feature_name,['gyrA'])
+    focussed_indices=set(h37rv.genome_index[mask])
+
+    sample_tb_01=copy.deepcopy(h37rv)
+    sample_tb_01.apply_vcf_file(vcf_file="tests/test-cases/05.vcf",\
+                               ignore_status=True,ignore_filter=False,\
+                               metadata_fields=['GT_CONF','GT_CONF_PERCENTILE','FRS','DPF','DP'],\
+                               focussed_indices=focussed_indices)
+
+    assert sample_tb_01.list_variants_wrt(h37rv)==['7362g>c','7547c>o','7550c>x','7553c>x','7556c>x','7559g>x','7562c>x','9304g>a','761110a>t','763031t>c','2154724g>t','2155168g>c']
+
+    assert sample_tb_01.genes['gyrA'].list_mutations_wrt(h37rv.genes['gyrA'])==['E21Q', 'G82O', 'N83X', 'Y84X', 'H85X', 'P86X', 'H87X', 'G668D']
+    assert sample_tb_01.genes['rpoB'].list_mutations_wrt(h37rv.genes['rpoB'])==['D435V', 'A1075A']
+    assert sample_tb_01.genes['katG'].list_mutations_wrt(h37rv.genes['katG'])==['S315T', 'R463L']

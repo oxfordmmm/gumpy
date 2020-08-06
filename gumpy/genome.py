@@ -124,7 +124,7 @@ class Genome(object):
         self.is_indel=numpy.zeros(self.genome_length,dtype=bool)
         self.indel_length=numpy.zeros(self.genome_length,int)
 
-        self.is_filter_fail=numpy.zeros(self.genome_length,dtype=bool)
+        # self.is_filter_fail=numpy.zeros(self.genome_length,dtype=bool)
 
         return reference_genome
 
@@ -378,8 +378,7 @@ class Genome(object):
                                     is_indel=self.is_indel[mask],
                                     indel_length=self.indel_length[mask],
                                     codes_protein=self._gene_codes_protein[gene],\
-                                    feature_type=self._gene_type[gene],
-                                    is_filter_fail=self.is_filter_fail[mask]  )
+                                    feature_type=self._gene_type[gene])
 
 
     def __repr__(self):
@@ -1091,7 +1090,7 @@ class Genome(object):
         # create a set of mutually exclusive Boolean arrays that tell you what the 'single sequence' result is
         self.is_ref=numpy.zeros(self.genome_length,dtype=bool)
         self.is_null=numpy.zeros(self.genome_length,dtype=bool)
-        self.is_fail=numpy.zeros(self.genome_length,dtype=bool)
+        self.is_filter_fail=numpy.zeros(self.genome_length,dtype=bool)
         self.is_het=numpy.zeros(self.genome_length,dtype=bool)
         self.is_snp=numpy.zeros(self.genome_length,dtype=bool)
 
@@ -1151,7 +1150,7 @@ class Genome(object):
                 if after=='z':
                     self.is_het[mask]=True
                 elif after=='o':
-                    self.is_fail[mask]=True
+                    self.is_filter_fail[mask]=True
                 elif after in ['a','c','t','g']:
                     self.is_snp[mask]=True
 
