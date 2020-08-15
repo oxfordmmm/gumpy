@@ -90,12 +90,25 @@ def test_Genome_valid_gene_mutation_snps():
 
     # correct protein SNPs
     assert reference.valid_gene_mutation("F@M1N")
+    assert reference.valid_gene_mutation("F@M1Z")
+    assert reference.valid_gene_mutation("F@M1O")
+    assert reference.valid_gene_mutation("F@M1X")
     assert reference.valid_gene_mutation("F@S2?")
     assert reference.valid_gene_mutation("F@S2=")
     assert reference.valid_gene_mutation("F@S2!")
+    assert reference.valid_gene_mutation("F@a-1c")
+    assert reference.valid_gene_mutation("F@a-1o")
+    assert reference.valid_gene_mutation("F@a-1z")
+    assert reference.valid_gene_mutation("F@a-1x")
     assert reference.valid_gene_mutation("M2@T76L")
     assert reference.valid_gene_mutation("M2@*?")
+    assert reference.valid_gene_mutation("M2@*Z")
+    assert reference.valid_gene_mutation("M2@*X")
+    assert reference.valid_gene_mutation("M2@*O")
     assert reference.valid_gene_mutation("M2@-*?")
+    assert reference.valid_gene_mutation("M2@-*o")
+    assert reference.valid_gene_mutation("M2@-*z")
+    assert reference.valid_gene_mutation("M2@-*x")
 
     # just badly formed
     with pytest.raises(Exception):
@@ -141,7 +154,7 @@ def test_Genome_valid_gene_mutation_snps():
 
     # bad target amino acids
     with pytest.raises(Exception):
-        assert reference.valid_gene_mutation("F@P1O")
+        assert reference.valid_gene_mutation("F@M1OO")
     with pytest.raises(Exception):
         assert reference.valid_gene_mutation("F@PKB")
     with pytest.raises(Exception):
@@ -239,6 +252,8 @@ def test_Genome_convert_variant_to_mutation():
     assert reference.convert_variant_to_mutation("N@t2c")=='N@M1T'
     assert reference.convert_variant_to_mutation("N@t2a")=='N@M1K'
     assert reference.convert_variant_to_mutation("N@t2g")=='N@M1R'
+    assert reference.convert_variant_to_mutation("N@t2o")=='N@M1O'
+    assert reference.convert_variant_to_mutation("N@t2x")=='N@M1X'
 
     with pytest.raises(Exception):
         assert reference.convert_variant_to_mutation("N@a1g")=='N@M1L'
