@@ -316,9 +316,9 @@ class Gene(object):
                 else:
                     MUTATIONS_dict['IS_NULL'].append(False)
                 if a=='o':
-                    MUTATIONS_dict['IS_FILTER_PASS'].append(True)
-                else:
                     MUTATIONS_dict['IS_FILTER_PASS'].append(False)
+                else:
+                    MUTATIONS_dict['IS_FILTER_PASS'].append(True)
                 MUTATIONS_dict['IN_CDS'].append(is_cds)
                 MUTATIONS_dict['IN_PROMOTER'].append(is_promoter)
                 MUTATIONS_dict['INDEL_LENGTH'].append(0)
