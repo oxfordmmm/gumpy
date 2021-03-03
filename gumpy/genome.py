@@ -725,6 +725,19 @@ class Genome(object):
                 snps+=1
         return(snps)
 
+    def apply_fasta(self,
+                    fasta_file=None,
+                    minimum_length_nulls=50):
+
+        (fasta_header,fasta_nucleotide_sequence)=_load_fastafile(self.fasta_file)
+
+        # look for stretches of Ns in the FASTA file that are >= minimum_length_nulls in length
+        # these need to be recorded as deletions using _permute_sequence IFF
+        #  * there are no SNPs already in that sequence (True for current test)
+        #  * there are no INDELS reported by Minos (i.e. from the VCF) in that sequence (True for current test)
+
+        pass
+
 
     def apply_vcf_file(self,
                        vcf_file=None,

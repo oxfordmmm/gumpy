@@ -418,6 +418,23 @@ def test_sample_05_list_variants_wrt():
 # use the subset argument to speed up the genome creation
 h37rv=Genome(genbank_file="config/H37rV_v3.gbk",name="H37rV_v3",gene_subset=['katG','rpoB','gyrA'])
 
+def test_Genome_apply_fasta():
+
+    # use gene M2 which spans 4687-5234 incl.
+    # if we use sample_01 there are variants 4687t>c, 4725t>c already in gene M2 and indels 4735_ins_2 and 4740_ins_2
+    # hence try applying a fasta AFTER the vcf which contains Ns that starts after the first M2 indel (which is after both SNPs) and finishs in the following M2_2 gene
+
+    sample_01.apply_fasta(fasta_file=TEST_CASE_DIR+'01.fasta')
+
+    # check that the indel has been flagged
+    assert sample.is_indel[sample.genome_index==5000]
+
+    # check that the indel length has been recorded (note it is negative since the Ns are a deletion)
+    assert sample.indel_length[sample.genome_index==5000]==-300
+
+    # the indel should then be picked up and identified
+    assert sample_01.list_variants_wrt(reference)==['4687t>c','4725t>c','4730c>z','13333c>z','4735_indel','4740_indel','5000_indel']
+
 def test_Genome_H37rV_katG():
 
     reversed_complement=''.join(h37rv.genome_sequence[h37rv.genome_feature_name=='katG'])[::-1]
