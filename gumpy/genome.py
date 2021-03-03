@@ -736,6 +736,9 @@ class Genome(object):
         #  * there are no SNPs already in that sequence (True for current test)
         #  * there are no INDELS reported by Minos (i.e. from the VCF) in that sequence (True for current test)
 
+        # use self._permute_sequence(index,coverage,indel_length=indel_length,indel_bases=(ref_bases,alt_bases))
+
+
         pass
 
 
