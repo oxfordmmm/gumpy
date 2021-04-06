@@ -654,7 +654,7 @@ class Genome(object):
         Note that takes account of HET and NULL calls via z and x, respectively
         """
 
-        complementary_bases = {'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'x':'x', 'z':'z', 'o':'o'}
+        complementary_bases = {'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'x':'x', 'z':'z', 'o':'o', 'n':'n', 'r':'y', 'y':'r', 's':'w', 'w':'s'}
 
         complement=[complementary_bases[i] for i in nucleotides_array]
 
