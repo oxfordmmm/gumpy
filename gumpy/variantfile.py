@@ -11,7 +11,6 @@ class VCFFile(VariantFile):
     def __init__(self, filepath):
 
         self.filepath=pathlib.Path(filepath)
-
         # read and store the header information from the VCF file
         self._read_header()
 
@@ -42,6 +41,12 @@ class VCFFile(VariantFile):
                                     'description':vcf_reader.header.formats[i].description,\
                                     'number':vcf_reader.header.formats[i].number }
 
+    def __repr__(self):
+        output=str(self.filepath)+'\n'
+        for i in self.contigs:
+            output+="%s, length %i" % (i,self.contigs[i]['length'])            
+        return(output)
+
     def apply_to_genome(self, genome):
 
         assert type(genome)==gumpy.Genome, 'the passed object must be an instance of a gumpy.Genome object'
@@ -67,4 +72,3 @@ class VCFFile(VariantFile):
 
             if counter>10:
                 break
-        

@@ -38,35 +38,64 @@ class NewGenome(object):
 
         for record in reference_genome.features:
 
-            if record.type in ['CDS','rRNA']:
+            if record.type not in ['CDS','rRNA']:
+                break
 
-                gene_name=None
-                type=None
-                codes_protein=True
+            gene_name=None
+            type=None
+            codes_protein=True
 
-                if 'gene' in record.qualifiers.keys():
+            if 'gene' in record.qualifiers.keys():
+                gene_name=record.qualifiers['gene'][0]
+                type='GENE'
 
-                    gene_name=record.qualifiers['gene'][0]
+            elif 'locus_tag' in record.qualifiers.keys():
+                gene_name=record.qualifiers['locus_tag'][0]
+                type="LOCUS"
 
-                    if record.type=='rRNA':
-                        type="RNA"
-                    else:
-                        type="GENE"
-                        codes_protein=True
+            if record.type=='rRNA':
+                type="RNA"
+                codes_protein=False
 
-                elif 'locus_tag' in record.qualifiers.keys():
+            if gene_name is None or (gene_subset is not None or gene_name not in gene_subset):
+                break
 
-                    gene_name=record.qualifiers['locus_tag'][0]
+            assert len(gene_name)<=20, "Gene "+gene_name+" is too long at "+str(len(gene_name))+" chars; need to change numpy.zeros definiton U20 to match"
 
-                    if record.type=='rRNA':
-                        type="RNA"
-                    else:
-                        type="LOCUS"
-                        codes_protein=True
+            gene_start=int(record.location.start)
+            gene_end=int(record.location.end)
 
+            gene_name+="_2" if gene_name in genes_found_so_far else ''
+            genes_found_so_far.append(gene_name)
+
+            if record.strand==1:
+
+                if previous_gene_reversed:
+                    gene_mask=(self.genome_index>gene_start) & (self.genome_index<=gene_end) & (~self.genome_is_cds)
                 else:
-                    continue
+                    gene_mask=(self.genome_index>gene_start) & (self.genome_index<=gene_end)
 
-                if gene_name is not None and (gene_subset is None or gene_name in gene_subset):
+                if codes_protein:
+                    gene_coding_numbering=numpy.floor_divide(self.genome_index[gene_mask]-gene_start+2,3)
+                else:
+                    gene_coding_numbering=self.genome_index[gene_mask]-gene_start
 
-                    assert len(gene_name)<=20, "Gene "+gene_name+" is too long at "+str(len(gene_name))+" chars; need to change numpy.zeros definiton U20 to match"
+                gene_coding_position=self.genome_index[gene_mask]-gene_start
+
+                previous_gene_reversed=False
+
+
+            self.genome_feature_type[mask]=type
+            self.genome_feature_name[mask]=gene_name
+
+            self.genome_position[gene_mask]=gene_coding_numbering
+
+            if codes_protein:
+                self.genome_amino_acid_number[gene_mask]=gene_coding_numbering
+
+            self.genome_nucleotide_number[gene_mask]=gene_coding_position
+
+            self.genome_is_cds[gene_mask]=True
+
+            self._gene_type[gene_name]=type
+            self._gene_codes_protein[gene_name]=codes_protein
