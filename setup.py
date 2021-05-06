@@ -6,9 +6,7 @@ setup(
         "numpy >= 1.13",
         "pytest >= 4.0.0",
         "Biopython >= 1.70",
-        "tqdm >= 4.19.5",
-        "pysam >= 0.15.2"
-    ],
+        "tqdm >= 4.19.5"],
     name='gumpy',
     version=__version__,
     author='Philip W Fowler',

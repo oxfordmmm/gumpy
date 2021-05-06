@@ -6,7 +6,7 @@ __version__="0.1"
 
 from .gene import Gene
 from .genotype import Genotype
-from .genome import Genome
+from .old_genome import OldGenome
 from .variantfile import VariantFile
 from .variantfile import VCFFile
-from .newgenome import NewGenome
+from .genome import Genome
