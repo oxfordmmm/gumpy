@@ -179,9 +179,9 @@ class Genome(object):
         header=">"
         if hasattr(self,'name'):
             header+=self.name+"|"
-        if hasattr(self,'id'):
+        if hasattr(self,'id') and isinstance(self.id,str) and len(self.id)>0:
             header+=self.id+"|"
-        if hasattr(self,'description'):
+        if hasattr(self,'description') and isinstance(self.description,str) and len(self.description)>0:
             header+=self.description+"|"
         header=header[:-1]
         header+="\n"
