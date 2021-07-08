@@ -21,15 +21,15 @@ def test_Genome_instantiate_genbank():
     assert reference.annotations['organism']=='Severe acute respiratory syndrome coronavirus 2'
 
     # check that the sequence starts and ends as we expect
-    assert reference.sequence[0]=='a'
-    assert reference.sequence[-1]=='a'
+    assert reference.nucleotide_sequence[0]=='a'
+    assert reference.nucleotide_sequence[-1]=='a'
 
     # check the number of genes
-    assert len(reference.features.keys())==12
+    assert len(reference.genes_lookup.keys())==12
 
     # try a normal gene
-    mask=(reference.feature_name=="S") & (reference.feature_is_cds)
-    sequence=reference.sequence[numpy.any(mask,axis=0)]
+    mask=(reference.stacked_gene_name=="S") & (reference.stacked_is_cds)
+    sequence=reference.nucleotide_sequence[numpy.any(mask,axis=0)]
     first_codon="".join(i for i in sequence[:3])
     assert first_codon=="atg"
     last_codon="".join(i for i in sequence[-3:])
