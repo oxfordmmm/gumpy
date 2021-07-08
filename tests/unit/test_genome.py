@@ -10,8 +10,12 @@ reference=Genome("config/NC_045512.2.gbk")
 
 def test_Genome_instantiate_genbank():
 
-    # check that the HMPV genome is the right length
+    # check that the SARS-CoV-2 genome is the right length
     assert reference.length==29903
+
+    assert reference.name=='NC_045512'
+
+    assert reference.id=='NC_045512.2'
 
     # check the species is stored correctly
     assert reference.annotations['organism']=='Severe acute respiratory syndrome coronavirus 2'
@@ -20,10 +24,11 @@ def test_Genome_instantiate_genbank():
     assert reference.sequence[0]=='a'
     assert reference.sequence[-1]=='a'
 
+    # check the number of genes
     assert len(reference.features.keys())==12
 
     # try a normal gene
-    mask=(reference.feature_name=="S") & (reference.is_cds)
+    mask=(reference.feature_name=="S") & (reference.feature_is_cds)
     sequence=reference.sequence[numpy.any(mask,axis=0)]
     first_codon="".join(i for i in sequence[:3])
     assert first_codon=="atg"
