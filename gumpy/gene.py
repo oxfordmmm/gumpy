@@ -66,6 +66,31 @@ class Gene(object):
             self._setup_conversion_dicts()
             self._translate_sequence()
 
+    def __eq__(self, other):
+        '''
+        Overloading the equality operator to provide a method for determining if two genes
+            are the same
+        Args:
+            other (gumpy.Gene) : The other gene object to compare against
+        Returns:
+            bool : Boolean showing equality
+        '''
+        #Default to true
+        check = True
+        #Check all fields
+        check = check and self.name == other.name
+        check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
+        check = check and numpy.all(self.index == other.index)
+        check = check and self.list_eq(self.nucleotide_number, other.nucleotide_number)
+        check = check and numpy.all(self.is_cds == other.is_cds)
+        check = check and numpy.all(self.is_promoter == other.is_promoter)
+        check = check and numpy.all(self.is_indel == other.is_indel)
+        check = check and numpy.all(self.indel_length == other.indel_length)
+        check = check and numpy.all(self.reverse_complement == other.reverse_complement)
+        check = check and numpy.all(self.codes_protein == other.codes_protein)
+        check = check and numpy.all(self.feature_type == other.feature_type)
+        return check
+
     @staticmethod
     def _complement(nucleotides_array):
         """
@@ -201,6 +226,23 @@ class Gene(object):
             mutations=None
 
         return(mutations)
+    
+    def list_eq(self, l1, l2):
+        '''
+        Function used to test equality of 2 lists easily (used in self.__eq__)
+        Args:
+            l1 (list) : List 1
+            l2 (list) : List 2
+        Returns:
+            bool : Boolean showing whether the 2 lists are element-wise equal
+        '''
+        if len(l1) != len(l2):
+            return False
+        for (x1, x2) in zip(l1, l2):
+            if x1 != x2:
+                return False
+        return True
+
 
 
     # def table_mutations_wrt(self,other):
