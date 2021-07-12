@@ -1,4 +1,5 @@
 
+import math
 import numpy, time, pickle, gzip
 
 from collections import defaultdict
@@ -473,12 +474,10 @@ class Genome(object):
         stacked_mask=self.stacked_gene_name==gene
 
         mask=numpy.any(stacked_mask,axis=0)
-        print("Got mask: ", gene)
 
         assert numpy.count_nonzero(mask)>0, "gene not found in genome!"
-        print("Passed check: ", gene)
 
-        conn.send(Gene(  name=gene,\
+        g = Gene(  name=gene,\
                                 nucleotide_sequence=self.nucleotide_sequence[mask],\
                                 index=self.nucleotide_index[mask],\
                                 nucleotide_number=self.stacked_nucleotide_number[stacked_mask],\
@@ -488,9 +487,8 @@ class Genome(object):
                                 indel_length=self.indel_length[mask],
                                 codes_protein=self.genes_lookup[gene]['codes_protein'],\
                                 reverse_complement=self.genes_lookup[gene]['reverse_complement'],\
-                                feature_type=self.genes_lookup[gene]['type']))
-        print("Sent gene: ", gene)
-        #TODO: Find the issue and fix with specific genes such as L within NC_004148.2.gbk
+                                feature_type=self.genes_lookup[gene]['type'])
+        conn.send(g)
 
     def _recreate_genes(self,show_progress_bar=False):
         """
@@ -506,7 +504,9 @@ class Genome(object):
             None
         """
 
-        list_of_genes=list(self.genes_lookup.keys())
+        import random
+
+        list_of_genes = list(self.genes_lookup.keys())
         print(list_of_genes)
 
         self.genes={}
@@ -515,33 +515,31 @@ class Genome(object):
         limit = 20
 
         # pass ALL the gene names to create all the Gene objects for the first time
-        for thread_index in tqdm(range(0, len(list_of_genes)),disable=not(show_progress_bar)):
+        for thread_index in tqdm(range(0, math.ceil(len(list_of_genes)/limit)),disable=not(show_progress_bar)):
+            print(thread_index)
             #TODO: Fix this so that more than 20 genes are processed
             threads = [(multiprocessing.Process(target=self.build_gene, args=(gene, child)), gene, parent) for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], [multiprocessing.Pipe() for i in range(limit)])]
             #Start some threads
             for i in range(limit):
                 if thread_index*limit+i < limit and thread_index*limit + i < len(threads):
                     # print(i)
-                    print("Starting: ", threads[thread_index*limit+i][1])
+                    # print("Starting: ", threads[thread_index*limit+i][1])
                     threads[thread_index*limit+i][0].start()
             #Wait for the threads to finish
             for i in range(limit):
                 if thread_index*limit + 1 < limit and thread_index*limit + i < len(threads):
-                    import time
-                    time.sleep(0.1)
-                    print("Waiting: ", threads[thread_index*limit+i][1], threads[thread_index*limit+i][0].is_alive())
-                    threads[thread_index*limit+i][0].join()
-                    print(i)
+                    #Get data from the pipe
                     recieved = threads[thread_index*limit+i][2].recv()
-                    print("i", i)
-                    print(threads[thread_index*limit+i])
-                    # print()
-                    # print(recieved)
+                    if recieved is None:
+                        continue
+                    #Rejoin the main thread
+                    threads[thread_index*limit+i][0].join()
+                    #Set the appropriate value in the genes dict
                     self.genes[threads[thread_index*limit+i][1]] = recieved
+                    #Close the threads and connections
                     threads[thread_index*limit+i][0].close()
-                    print("Done")
-                    print()
-            # thread.join()
+                    # threads[thread_index*limit+1][2].close()
+
         # for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
         #     # FIXME: this gene has ribosomal slippage in it...
         #     if gene=='ORF1ab':
@@ -1025,10 +1023,12 @@ class Genome2(object):
         stacked_mask=self.stacked_gene_name==gene
 
         mask=numpy.any(stacked_mask,axis=0)
+        # print("Got mask: ", gene)
 
         assert numpy.count_nonzero(mask)>0, "gene not found in genome!"
+        # print("Passed check: ", gene)
 
-        self.genes[gene]=Gene(  name=gene,\
+        g = Gene(  name=gene,\
                                 nucleotide_sequence=self.nucleotide_sequence[mask],\
                                 index=self.nucleotide_index[mask],\
                                 nucleotide_number=self.stacked_nucleotide_number[stacked_mask],\
@@ -1039,7 +1039,9 @@ class Genome2(object):
                                 codes_protein=self.genes_lookup[gene]['codes_protein'],\
                                 reverse_complement=self.genes_lookup[gene]['reverse_complement'],\
                                 feature_type=self.genes_lookup[gene]['type'])
-        print("Sent gene: ", gene)
+        # print("Built gene: ", gene)
+        self.genes[gene] = g
+        # print("Sent gene: ", gene)
 
     def _recreate_genes(self,show_progress_bar=False):
         """

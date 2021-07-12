@@ -2,16 +2,18 @@
 import gumpy
 
 
-g1 = gumpy.Genome("config/NC_000962.3.gbk")
+g1 = gumpy.Genome("config/NC_045512.2.gbk")
 print("Done new")
-g2 = gumpy.Genome2("config/NC_000962.3.gbk")
+g2 = gumpy.Genome2("config/NC_045512.2.gbk")
 print("Done old")
+print()
+print()
 print(g1 == g2)
 print(g1.genes == g2.genes)
-print(g1)
-print(g1.genes.keys())
-print(g2)
-print(g2.genes.keys())
+print(1, g1)
+print(1, g1.genes.keys())
+print(2, g2)
+print(2, g2.genes.keys())
 
 
 # g2 = gumpy.Genome("config/NC_004148.2.gbk")
