@@ -1,4 +1,4 @@
-import numpy, time, pickle, gzip, json, math, functools
+import numpy, time, pickle, gzip, json, math
 
 from collections import defaultdict
 
@@ -105,21 +105,65 @@ class Genome(object):
             other (gumpy.Genome) : The other Genome object to compare to
         Returns:
             bool : Boolean showing equality of the objects
-        '''
+        # '''
+        # for item in dir(self):
+        #     if item[0] == "_":
+        #         continue
+        #     try:
+        #         print("ITEM: ", item)
+        #         print("New: ", getattr(self, item))
+        #         print()
+        #         print("Old: ", getattr(other, item))
+        #         print()
+        #         print("Same: ", getattr(self, item) == getattr(other, item))
+        #         print("************")
+        #         print()
+        #     except:
+        #         continue
+
         check = True
-        check = check and self.genes == other.genes
+        # print("#", self.genes.keys(), other.genes.keys())
+        # print("Keys: ", self.genes.keys() == other.genes.keys())
+        # print("Values: ", self.genes.values() == other.genes.values())
+        # for (n, o) in zip(sorted(self.genes.keys()), sorted(other.genes.keys())):
+        #     print(n, o)
+        #     if n != o:
+        #         print("Not same keys: ", n, o)
+        #     elif self.genes[n] != other.genes[o]:
+        #         print(n, o)
+        #         print(self.genes[n])
+        #         print(other.genes[o])
+        #     else:
+        #         print("Fine: ", n)
+        #     print()
+        # print("Overall: ", self.genes == other.genes)
+        # print(len(self.genes.values()))
+        # print(len(self.genes.values()))
+        # print(self.nucleotide_sequence.shape, other.nucleotide_sequence.shape)
+        # print(self.nucleotide_sequence, other.nucleotide_sequence)
+        # check = check and self.genes == other.genes
+        # print("gene", check)
         check = check and self.name == other.name
+        # print("name", check)
         check = check and self.id == other.id
+        # print("id", check)
         check = check and self.description == other.description
+        # print("@",check)
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
+        # print("NS", check)
         check = check and numpy.all(self.nucleotide_index == other.nucleotide_index)
+        # print("NI", check)
         check = check and self.genes_lookup == other.genes_lookup
+        # print("GL", check)
         check = check and self.length == other.length
+        # print("len", check)
 
         #Check based on whether the stacked_gene_name contains the genes at positions (_, x) rather than (y, x)
         stacked_gene_name = [set(xs) for xs in zip(*self.stacked_gene_name.tolist())]
         stacked_gene_name_other = [set(xs) for xs in zip(*other.stacked_gene_name.tolist())]
         check = check and numpy.all(stacked_gene_name == stacked_gene_name_other)
+        # print("SGN", check, self.stacked_gene_name.shape, other.stacked_gene_name.shape)
+        # print([(i, n, o) for (i, (n, o)) in enumerate(zip(stacked_gene_name, stacked_gene_name_other)) if n != o])
 
         return check
     
@@ -365,155 +409,201 @@ class Genome(object):
                                         'start':gene_start,\
                                         'end':gene_end }
     
+    def __handle_rev_comp(self, rev_comp, start, end, i):
+        '''
+        Private function to handle the rev-comp changes required
+        Args:
+            rev_comp (bool) : Boolean to show if rev-comp is required
+            start (int) : Start index of the gene
+            end (int) : End index of the gene
+            i (int) : The index of the stacked row
+        '''
+        #Check if the arrays have the correct number of rows and add as required
+        while len(self.stacked_nucleotide_number) <= i:
+            self.stacked_is_cds=self._add_empty_row(self.stacked_is_cds)
+            self.stacked_is_reverse_complement=self._add_empty_row(self.stacked_is_reverse_complement)
+            self.stacked_is_promoter=self._add_empty_row(self.stacked_is_promoter)
+            self.stacked_nucleotide_number=self._add_empty_row(self.stacked_nucleotide_number)
+        #Update the required items for rev_comp
+        if rev_comp:
+            self.stacked_nucleotide_number[i][start-1:end-1] = numpy.mod(-1*(self.nucleotide_index[start-1:end-1]-end),self.length)
+            self.stacked_is_reverse_complement[i][start-1:end-1] = True
+        else:
+            self.stacked_nucleotide_number[i][start-1:end-1] = numpy.mod(1+self.nucleotide_index[start-1:end-1]-start,self.length)
+
+    def __fit_gene(self, mask, genes, genes_mask, start, end, gene_name, rev_comp):
+        '''
+        Private function to fit a gene into the genes based on the dot product of the masks
+        Args:
+            mask (numpy.array) : Boolean array showing positions where the gene lies
+            genes (numpy.array) : 2D numpy array of the format used for all stacked values
+            genes_mask (numpy.array) : The corresponding boolean mask arrays for the `genes` arg
+            start (int) : Start index of the gene
+            end (int) : End index of the gene
+            gene_name (str) : Name of the gene
+            rev_comp (bool) : Boolean to show whether the gene required a reverse complement
+        Returns:
+            (numpy_array) : Updated genes_mask array
+            (numpy_array) : Updated genes array
+            (int) : Row number on which this gene falls
+        '''
+        for (i, row) in enumerate(genes_mask):
+                if numpy.dot(row, mask) == False:
+                    #There is not a collision with this row
+                    #Add the row
+                    row[start-1:end-1] = True
+                    genes[i][start-1:end-1] = gene_name
+                    self.__handle_rev_comp(rev_comp, start, end, i)
+                    # if gene_name == "N":
+                    print(gene_name, i, start, end, self.stacked_nucleotide_number, self.stacked_nucleotide_number.shape, self.stacked_nucleotide_number[i][start-1:end-1].tolist())
+                    print()
+                    return genes_mask, genes, i
+        #If this point is reached, there has been no rows without collisions, so add one
+        genes_mask = numpy.vstack((genes_mask, mask))
+        new_row = numpy.array([gene_name if m else '' for m in mask])
+        genes = numpy.vstack((genes, new_row))
+        i += 1
+        self.__handle_rev_comp(rev_comp, start, end, i)
+        return genes_mask, genes, i
+    
     def find_overlaps(self):
         '''
         Function to find the sections of the genome in which there are overlapping genes
         This should be more efficient than the older version as it avoids consistent genome iteration
+        Use of the dot product on boolean arrays returns a single boolean showing collisions in almost linear time (10^-5 secs for TB size)
+            This can be used to determine which row the gene should be in
         '''
-        #Use of a dictionary allows constant time alterations
-        #This can then be expanded to the same format with minimal iterations
-        genes = numpy.array([dict() for x in range(self.length)])
-        for gene_name in self.genes_lookup:
-            # print(gene_name, genes)
+        #Default to all False values
+        genes_mask = numpy.array([numpy.array([False for x in range(self.length)])])
+        genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length))
+        positions = {}
+        for gene_name in tqdm(self.genes_lookup):
+            # print(gene_name)
             start = self.genes_lookup[gene_name]["start"]
             end = self.genes_lookup[gene_name]["end"]
-            # print(genes[range(start, end)])
-            #Start and end indices must be moved back 1 to account for range() behaviour
-            for index in range(start-1, end-1):
-                prev = None
-                if index > start -1:
-                    #Look backwards to check this position should have a certain index
-                    prev = genes[index - 1]
+            rev_comp=self.genes_lookup[gene_name]['reverse_complement']
 
-                if prev is None:
-                    #Index by number of items
-                    i = len(genes[index])
-                else:
-                    #The previous item was > 0 but no existing genes at this index
-                    if len(genes[index]) == 0:
-                        i = 0
-                    else:
-                        #Otherwise, keep the same index as previous index for this gene
-                        i = prev[gene_name]
+            if end<start:
 
-                #Add an entry to that index's dict for the gene name with the appropriate array number
-                genes[index][gene_name] = i
+                mask = numpy.logical_or((self.nucleotide_index>=start), (self.nucleotide_index<end))
+                end += self.length
 
-        #Reducing the genes list of dicts to a single dict for row finding used for rev-comp
-        positions = {}
-        for gene in genes:
-            for gene_name in gene.keys():
-                positions[gene_name] = gene[gene_name]
+            else:
 
-        #Restructure genes array to be a list of mappings of {index: gene}
-        genes = numpy.array([{gene[gene_name] : gene_name for gene_name in gene.keys()} for gene in genes])
-
-        #Find the number of arrays required to hold all genes
-        n_dimensions = max([len(index.keys()) for index in genes])
-
-        #Convert to nD array
-        # gene_names = numpy.array([numpy.array([gene[n] if gene.get(n) else '' for gene in genes]) for n in range(n_dimensions)])
-        gene_names = numpy.array([gene[0] if gene.get(0) else '' for gene in genes])
-        for n in range(1, n_dimensions):
-            gene_names = numpy.vstack((gene_names, numpy.array([gene[n] if gene.get(n) else '' for gene in genes])))
+                mask=(self.nucleotide_index>=start) & (self.nucleotide_index<end)
+            # print(mask)
+            genes_mask, genes, row = self.__fit_gene(mask, genes, genes_mask, start, end, gene_name, rev_comp)
+            positions[gene_name] = row
 
         #Set instance variable for the gene names
-        self.stacked_gene_name = gene_names
-        #Update instance variables to match the shape
-        self.stacked_is_cds = numpy.zeros(gene_names.shape,dtype=bool)
-        self.stacked_is_promoter=numpy.zeros(gene_names.shape,dtype=bool)
-        self.stacked_nucleotide_number=numpy.zeros(gene_names.shape,dtype='int')
-        self.stacked_is_reverse_complement=numpy.zeros(gene_names.shape,dtype=bool)
-        return positions, gene_names
+        self.stacked_gene_name = genes
+        # Update instance variables to match the shape
+        self.stacked_is_cds = numpy.zeros(genes.shape,dtype=bool)
+        self.stacked_is_promoter=numpy.zeros(genes.shape,dtype=bool)
+        self.stacked_nucleotide_number=numpy.zeros(genes.shape,dtype='int')
+        self.stacked_is_reverse_complement=numpy.zeros(genes.shape,dtype=bool)
+        # print(genes.tolist())
+        return positions, genes
 
 
 
 
     def _setup_arrays(self):
-        #TODO: Find why this produces different results for both genomes and genes
-        #       But it is 2x faster
         row_positions, test = self.find_overlaps()
 
-        for gene_name in tqdm(self.genes_lookup):
+        # for gene_name in tqdm(self.genes_lookup):
 
-            gene_start=self.genes_lookup[gene_name]['start']
-            gene_end=self.genes_lookup[gene_name]['end']
-            rev_comp=self.genes_lookup[gene_name]['reverse_complement']
+        #     gene_start=self.genes_lookup[gene_name]['start']
+        #     gene_end=self.genes_lookup[gene_name]['end']
+        #     rev_comp=self.genes_lookup[gene_name]['reverse_complement']
 
-            # deal with features that overlap the 'start' of the genome
-            if gene_end<gene_start:
+        #     # deal with features that overlap the 'start' of the genome
+        #     if gene_end<gene_start:
 
-                mask = numpy.logical_or((self.nucleotide_index>=gene_start), (self.nucleotide_index<gene_end))
-                gene_end += self.length
+        #         mask = numpy.logical_or((self.nucleotide_index>=gene_start), (self.nucleotide_index<gene_end))
+        #         gene_end += self.length
 
-            else:
+        #     else:
 
-                mask=(self.nucleotide_index>=gene_start) & (self.nucleotide_index<gene_end)
+        #         mask=(self.nucleotide_index>=gene_start) & (self.nucleotide_index<gene_end)
+        #     # if 2316708 in range(gene_start, gene_end):
+        #     #     print(gene_name)
+        #     # start in the top row of the arrays to see if the feature will "fit"
+        #     row=0
 
-            # start in the top row of the arrays to see if the feature will "fit"
-            # row=0
+        #     # below is True if it does fit, otherwise it will try the next row
+        #     # import time
+        #     # start = time.time()
+        #     # ~(numpy.all(self.stacked_gene_name[(row,mask)]==''))
+        #     # print("##", time.time() - start)
+        #     # print(mask)
+        #     # print(self.stacked_gene_name[(row,mask)])
+        #     # print()
+        #     while ~(numpy.all(self.stacked_gene_name[(row,mask)]=='')):
 
-            # below is True if it does fit, otherwise it will try the next row
-            # import time
-            # start = time.time()
-            # ~(numpy.all(self.stacked_gene_name[(row,mask)]==''))
-            # print("##", time.time() - start)
-            # print(mask)
-            # print(self.stacked_gene_name[(row,mask)])
-            # print()
-            # while ~(numpy.all(self.stacked_gene_name[(row,mask)]=='')):
+        #         row+=1
 
-            #     row+=1
+        #         n_rows=self.stacked_gene_name.shape[0]-1
 
-            #     n_rows=self.stacked_gene_name.shape[0]-1
+        #         # if we need a new row to accommodate overlapping genes, add one to all the essential numpy arrays
+        #         if row>n_rows:
+        #             self.stacked_gene_name=self._add_empty_row(self.stacked_gene_name)
+        #             self.stacked_is_cds=self._add_empty_row(self.stacked_is_cds)
+        #             self.stacked_is_reverse_complement=self._add_empty_row(self.stacked_is_reverse_complement)
+        #             self.stacked_is_promoter=self._add_empty_row(self.stacked_is_promoter)
+        #             self.stacked_nucleotide_number=self._add_empty_row(self.stacked_nucleotide_number)
 
-            #     # if we need a new row to accommodate overlapping genes, add one to all the essential numpy arrays
-            #     if row>n_rows:
-            #         self.stacked_gene_name=self._add_empty_row(self.stacked_gene_name)
-            #         self.stacked_is_cds=self._add_empty_row(self.stacked_is_cds)
-            #         self.stacked_is_reverse_complement=self._add_empty_row(self.stacked_is_reverse_complement)
-            #         self.stacked_is_promoter=self._add_empty_row(self.stacked_is_promoter)
-            #         self.stacked_nucleotide_number=self._add_empty_row(self.stacked_nucleotide_number)
+        #     self.stacked_gene_name[(row,mask)]=gene_name
+        #     # if row != row_positions[gene_name]:
+        #     #     print("~~~~", row, row_positions[gene_name], gene_name)
+        #     # print(gene_name)
+        #     # print(row_positions)
+        #     # row = row_positions[gene_name]
+        #     # print(row, gene_name)
+        #     # print(row, gene_name)
+        #     # print(gene_name, row)
 
-            # self.stacked_gene_name[(row,mask)]=gene_name
-            # if row != row_positions[gene_name]:
-            #     print(row, row_positions[gene_name], gene_name)
-            # print(gene_name)
-            # print(row_positions)
-            row = row_positions[gene_name]
-            # print(row, gene_name)
-            # print(gene_name, row)
-
-            if rev_comp:
-                self.stacked_nucleotide_number[(row,mask)]=numpy.mod(-1*(self.nucleotide_index[mask]-gene_end),self.length)
-                self.stacked_is_reverse_complement[(row,mask)]=True
-            else:
-                self.stacked_nucleotide_number[(row,mask)]=numpy.mod(1+self.nucleotide_index[mask]-gene_start,self.length)
+        #     if rev_comp:
+        #         self.stacked_nucleotide_number[(row,mask)]=numpy.mod(-1*(self.nucleotide_index[mask]-gene_end),self.length)
+        #         self.stacked_is_reverse_complement[(row,mask)]=True
+        #     else:
+        #         self.stacked_nucleotide_number[(row,mask)]=numpy.mod(1+self.nucleotide_index[mask]-gene_start,self.length)
 
         # do as many assignments outside the loop, i.e. in one go to improve performance
         self.stacked_is_cds=self.stacked_gene_name!=''
+        # with open("cds.json", "w") as f:
+        #     json.dump(self.stacked_is_cds.tolist(), f)
 
         self.n_rows=self.stacked_gene_name.shape[0]
-        print(self.n_rows)
+        # print("££", self.n_rows)
 
         self.stacked_nucleotide_index=numpy.tile(self.nucleotide_index,(self.n_rows,1))
+        # print("Old", self.stacked_nucleotide_index.shape)
 
         self.stacked_nucleotide_sequence=numpy.tile(self.nucleotide_sequence,(self.n_rows,1))
 
         # print(self.stacked_gene_name)
-        print(self.stacked_gene_name.shape)
+        # print(self.stacked_gene_name.shape)
         # print(self.stacked_gene_name[0, :100].tolist())
         # print((self.stacked_gene_name == test).tolist())
-        with open("0.json", "w") as f:
-            f.write(json.dumps(list(zip(self.stacked_gene_name[0].tolist(), test[0].tolist())), indent=4, sort_keys=True))
-        with open("1.json", "w") as f:
-            f.write(json.dumps(list(zip(self.stacked_gene_name[1].tolist(), test[1].tolist())), indent=4, sort_keys=True))
-        print(numpy.all(self.stacked_gene_name == test))
-        stacked_gene_name = [set(xs) for xs in zip(*self.stacked_gene_name.tolist())]
+        # for i in range(len(self.stacked_gene_name)):
+        #     with open(str(i)+".json", "w") as f:
+        #         f.write(json.dumps(list(zip(self.stacked_gene_name[i].tolist(), test[i].tolist())), indent=4, sort_keys=True))
+
+        # if len(self.stacked_gene_name) < len(test):
+        #     print(len(self.stacked_gene_name), len(test))
+        #     for i in range(len(test[len(self.stacked_gene_name):])):
+        #         with open(str(i)+"FAIL.json", "w") as f:
+        #             print(len(self.stacked_gene_name)+i)
+        #             f.write(json.dumps(test[len(self.stacked_gene_name)+i].tolist()))
+        # with open("1.json", "w") as f:
+        #     f.write(json.dumps(list(zip(self.stacked_gene_name[1].tolist(), test[1].tolist())), indent=4, sort_keys=True))
+        # print(numpy.all(self.stacked_gene_name == test))
+        # stacked_gene_name = [set(xs) for xs in zip(*self.stacked_gene_name.tolist())]
 
 
     def _assign_promoter_regions(self,default_promoter_length):
-
+        #TODO: This appears to be causing some issues now... Genes are off by exactly 100 bases
         assert isinstance(default_promoter_length,int), 'default_promoter_length must be an integer!'
 
         assert default_promoter_length>0, 'default_promoter_length must be greater than zero'
@@ -592,8 +682,9 @@ class Genome(object):
         stacked_mask=self.stacked_gene_name==gene
 
         mask=numpy.any(stacked_mask,axis=0)
+        # print(mask.tolist())
 
-        assert numpy.count_nonzero(mask)>0, "gene not found in genome!"
+        assert numpy.count_nonzero(mask)>0, "gene ("+gene+") not found in genome!"
 
         g = Gene(  name=gene,\
                                 nucleotide_sequence=self.nucleotide_sequence[mask],\
@@ -1157,7 +1248,7 @@ class Genome2(object):
         """
 
         list_of_genes=list(self.genes_lookup.keys())
-        print(list_of_genes)
+        # print(list_of_genes)
 
         self.genes={}
         # pool = multiprocessing.Pool(5)
