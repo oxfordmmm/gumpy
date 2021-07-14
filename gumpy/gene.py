@@ -83,34 +83,16 @@ class Gene(object):
         check = True
         #Check all fields
         check = check and self.name == other.name
-        # print("Name", check)
-        print("//", self.nucleotide_sequence.shape, other.nucleotide_sequence.shape, self.name, other.name)
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
-        # print("NS", check)
         check = check and numpy.all(self.index == other.index)
-        # print("Index", check)
         check = check and self.list_eq(self.nucleotide_number, other.nucleotide_number)
-        # print("NN", check)
         check = check and numpy.all(self.is_cds == other.is_cds)
-        # print("cds", check)
         check = check and numpy.all(self.is_promoter == other.is_promoter)
-        # print("Prom", check)
         check = check and numpy.all(self.is_indel == other.is_indel)
-        # print("Indel", check)
         check = check and numpy.all(self.indel_length == other.indel_length)
-        # print("IL", check)
         check = check and numpy.all(self.reverse_complement == other.reverse_complement)
-        # print("Revcomp", check)
         check = check and numpy.all(self.codes_protein == other.codes_protein)
-        # print("Codes", check)
         check = check and numpy.all(self.feature_type == other.feature_type)
-        # print("FT", checik)
-        # print(len(self.nucleotide_number), len(other.nucleotide_number))
-        # print(self.nucleotide_number)
-        # print(other.nucleotide_number)
-        # print(self.reverse_complement, other.reverse_complement)
-        # print(self.name, other.name)
-        # print()
         return check
 
     @staticmethod

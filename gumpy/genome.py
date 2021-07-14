@@ -1,14 +1,17 @@
-import numpy, time, pickle, gzip, json, math
-
+import gzip
+import math
+import multiprocessing
+import pickle
+import time
 from collections import defaultdict
 
-from scipy import ndimage
+import numpy
 from Bio import SeqIO
+from scipy import ndimage
 from tqdm import tqdm
 
 from gumpy import Gene
 
-import multiprocessing
 
 class Genome(object):
 
@@ -30,26 +33,26 @@ class Genome(object):
             timings=defaultdict(list)
             start_time=time.time()
 
-        self._parse_genbank_file(genbank_file,gene_subset)
+        self.__parse_genbank_file(genbank_file,gene_subset)
 
         if verbose:
             timings['parse genbank'].append(time.time()-start_time)
             start_time=time.time()
 
-        self._setup_arrays()
+        self.__setup_arrays()
 
         if verbose:
             timings['define arrays'].append(time.time()-start_time)
             start_time=time.time()
 
         if default_promoter_length>0:
-            self._assign_promoter_regions(default_promoter_length)
+            self.__assign_promoter_regions(default_promoter_length)
 
         if verbose:
             timings['promoter'].append(time.time()-start_time)
             start_time=time.time()
 
-        self._recreate_genes(show_progress_bar=True)
+        self.__recreate_genes(show_progress_bar=True)
 
         if verbose:
             timings['create genes'].append(time.time()-start_time)
@@ -60,6 +63,8 @@ class Genome(object):
 
         '''
         Overload the print function to write a summary of the genome.
+        Returns:
+            str : String including attributes for the genome
         '''
 
         output=""
@@ -87,6 +92,10 @@ class Genome(object):
 
         """
         Overload the subtraction operator so it returns a tuple of the indices where there differences between the two genomes
+        Args:
+            other (gumpy.Genome) : The other genome used in the subtraction
+        Returns:
+            numpy.array : Numpy array of the indicies where the two genomes differ in nucleotides
         """
 
         assert self.length==other.length, "genomes must have the same length!"
@@ -105,66 +114,17 @@ class Genome(object):
             other (gumpy.Genome) : The other Genome object to compare to
         Returns:
             bool : Boolean showing equality of the objects
-        # '''
-        # for item in dir(self):
-        #     if item[0] == "_":
-        #         continue
-        #     try:
-        #         print("ITEM: ", item)
-        #         print("New: ", getattr(self, item))
-        #         print()
-        #         print("Old: ", getattr(other, item))
-        #         print()
-        #         print("Same: ", getattr(self, item) == getattr(other, item))
-        #         print("************")
-        #         print()
-        #     except:
-        #         continue
-
+        '''
         check = True
-        # print("#", self.genes.keys(), other.genes.keys())
-        # print("Keys: ", self.genes.keys() == other.genes.keys())
-        # print("Values: ", self.genes.values() == other.genes.values())
-        # for (n, o) in zip(sorted(self.genes.keys()), sorted(other.genes.keys())):
-        #     print(n, o)
-        #     if n != o:
-        #         print("Not same keys: ", n, o)
-        #     elif self.genes[n] != other.genes[o]:
-        #         print(n, o)
-        #         print(self.genes[n])
-        #         print(other.genes[o])
-        #     else:
-        #         print("Fine: ", n)
-        #     print()
-        # print("Overall: ", self.genes == other.genes)
-        # print(len(self.genes.values()))
-        # print(len(self.genes.values()))
-        # print(self.nucleotide_sequence.shape, other.nucleotide_sequence.shape)
-        # print(self.nucleotide_sequence, other.nucleotide_sequence)
-        # check = check and self.genes == other.genes
-        # print("gene", check)
+        check = check and self.genes == other.genes
         check = check and self.name == other.name
-        # print("name", check)
         check = check and self.id == other.id
-        # print("id", check)
         check = check and self.description == other.description
-        # print("@",check)
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
-        # print("NS", check)
         check = check and numpy.all(self.nucleotide_index == other.nucleotide_index)
-        # print("NI", check)
         check = check and self.genes_lookup == other.genes_lookup
-        # print("GL", check)
         check = check and self.length == other.length
-        # print("len", check)
-
-        #Check based on whether the stacked_gene_name contains the genes at positions (_, x) rather than (y, x)
-        stacked_gene_name = [set(xs) for xs in zip(*self.stacked_gene_name.tolist())]
-        stacked_gene_name_other = [set(xs) for xs in zip(*other.stacked_gene_name.tolist())]
-        check = check and numpy.all(stacked_gene_name == stacked_gene_name_other)
-        # print("SGN", check, self.stacked_gene_name.shape, other.stacked_gene_name.shape)
-        # print([(i, n, o) for (i, (n, o)) in enumerate(zip(stacked_gene_name, stacked_gene_name_other)) if n != o])
-
+        check = check and numpy.all(self.stacked_gene_name.tolist() == other.stacked_gene_name.tolist())
         return check
     
     def __len__(self):
@@ -180,20 +140,14 @@ class Genome(object):
         Simply checks to see if the specified gene exists in the Genome object.
 
         Args:
-            gene_name (str) e.g. katG
+            gene_name (str) : Name of the gene e.g. katG
 
         Returns:
-            True/False
+            bool : Boolean showing if the genome contains a gene with that name
         '''
-
-        # convert from numpy array to Python list to avoid FutureWarning about comparing numpy arrays and Python objects
-        # https://stackoverflow.com/questions/40659212/futurewarning-elementwise-comparison-failed-returning-scalar-but-in-the-futur
-        list_of_genes=list(self.genes_lookup.keys())
-
-        if gene_name in list_of_genes:
-            return(True)
-        else:
-            return(False)
+        #Use of dict.get(obj) returns an object or None if obj does not exist in dict
+        #bool(None) = False, bool(obj) = True
+        return bool(self.genes_lookup.get(gene_name))
 
 
     def at_index(self,index):
@@ -201,10 +155,10 @@ class Genome(object):
         Returns the name of any genome features (genes, loci) at a specified genome index (1-based).
 
         Args:
-            index (int)
+            index : (int)
 
         Returns:
-            list of gene_names or locus_tags at that index in the genome
+            list : list of gene_names or locus_tags at that index in the genome
 
         '''
         assert isinstance(index,int), "index must be an integer!"
@@ -233,7 +187,7 @@ class Genome(object):
         Args:
             filename (str): path of the output file without the file extension
             compression (bool): whether to compress the pkl or not using gzip (default: True)
-            compresslevel (1-10): the gzip compression level, lower=faster (default:1)
+            compresslevel (int): the gzip compression level, lower=faster (default:1)
         '''
 
         assert isinstance(compression,bool)
@@ -300,7 +254,7 @@ class Genome(object):
         genome_string=''.join(self.nucleotide_sequence)
 
         # insert carriage returns so it looks pretty in the file...
-        output_string=self._insert_newlines(genome_string,every=chars_per_line)
+        output_string=self.__insert_newlines(genome_string,every=chars_per_line)
         output_string+="\n"
 
         # set the case accordingly
@@ -320,13 +274,26 @@ class Genome(object):
         OUTPUT.close()
 
 
-    def _add_empty_row(self,array):
+    def __add_empty_row(self,array):
+        '''
+        Private function to add an empty row of the correct type to a numpy array
+        Args:
+            array (numpy.array) : Array to add an empty row to
+        Returns:
+            (numpy.array): The same array with an empty row of the same length and dtype appended
+        '''
 
         empty_row=numpy.zeros((1,array.shape[1]),dtype=array.dtype)
 
         return(numpy.vstack((array,empty_row)))
 
-    def _parse_genbank_file(self,genbank_file,gene_subset):
+    def __parse_genbank_file(self,genbank_file,gene_subset):
+        '''
+        Private function to parse a genbank file
+        Args:
+            genbank_file (str) : Filename of the genbank file
+            gene_subset (list) : List of gene names used to extract just a subset of genes
+        '''
 
         reference_genome=SeqIO.read(genbank_file,'genbank')
 
@@ -420,11 +387,13 @@ class Genome(object):
         '''
         #Check if the arrays have the correct number of rows and add as required
         while len(self.stacked_nucleotide_number) <= i:
-            self.stacked_is_cds=self._add_empty_row(self.stacked_is_cds)
-            self.stacked_is_reverse_complement=self._add_empty_row(self.stacked_is_reverse_complement)
-            self.stacked_is_promoter=self._add_empty_row(self.stacked_is_promoter)
-            self.stacked_nucleotide_number=self._add_empty_row(self.stacked_nucleotide_number)
+            self.stacked_is_cds=self.__add_empty_row(self.stacked_is_cds)
+            self.stacked_is_reverse_complement=self.__add_empty_row(self.stacked_is_reverse_complement)
+            self.stacked_is_promoter=self.__add_empty_row(self.stacked_is_promoter)
+            self.stacked_nucleotide_number=self.__add_empty_row(self.stacked_nucleotide_number)
         #Update the required items for rev_comp
+        #Use of array slicing here introduces speedups as not all of the array should be considered
+        #(Previous method applied a mask which requires full array consideration rather than direct access)
         if rev_comp:
             self.stacked_nucleotide_number[i][start-1:end-1] = numpy.mod(-1*(self.nucleotide_index[start-1:end-1]-end),self.length)
             self.stacked_is_reverse_complement[i][start-1:end-1] = True
@@ -434,6 +403,8 @@ class Genome(object):
     def __fit_gene(self, mask, genes, genes_mask, start, end, gene_name, rev_comp):
         '''
         Private function to fit a gene into the genes based on the dot product of the masks
+            numpy.dot([bool], [bool])-> bool showing if there are collisions of True values within args
+            This takes 10^-5 seconds which is a significant improvement on use of numpy.all() iteration of 10^-2 seconds for TB length genome
         Args:
             mask (numpy.array) : Boolean array showing positions where the gene lies
             genes (numpy.array) : 2D numpy array of the format used for all stacked values
@@ -445,165 +416,80 @@ class Genome(object):
         Returns:
             (numpy_array) : Updated genes_mask array
             (numpy_array) : Updated genes array
-            (int) : Row number on which this gene falls
         '''
         for (i, row) in enumerate(genes_mask):
-                if numpy.dot(row, mask) == False:
-                    #There is not a collision with this row
-                    #Add the row
-                    row[start-1:end-1] = True
-                    genes[i][start-1:end-1] = gene_name
-                    self.__handle_rev_comp(rev_comp, start, end, i)
-                    # if gene_name == "N":
-                    print(gene_name, i, start, end, self.stacked_nucleotide_number, self.stacked_nucleotide_number.shape, self.stacked_nucleotide_number[i][start-1:end-1].tolist())
-                    print()
-                    return genes_mask, genes, i
+            #Use of the dot product of masks allows determining if a gene will fit in an array
+            if numpy.dot(row, mask) == False:
+                #There is not a collision with this row
+                #Add the row
+                row[start-1:end-1] = True
+                genes[i][start-1:end-1] = gene_name
+                self.__handle_rev_comp(rev_comp, start, end, i)
+                return genes_mask, genes
         #If this point is reached, there has been no rows without collisions, so add one
         genes_mask = numpy.vstack((genes_mask, mask))
         new_row = numpy.array([gene_name if m else '' for m in mask])
         genes = numpy.vstack((genes, new_row))
         i += 1
         self.__handle_rev_comp(rev_comp, start, end, i)
-        return genes_mask, genes, i
+        return genes_mask, genes
     
-    def find_overlaps(self):
+    def __find_overlaps(self):
         '''
-        Function to find the sections of the genome in which there are overlapping genes
+        Private function to find the sections of the genome in which there are overlapping genes
         This should be more efficient than the older version as it avoids consistent genome iteration
         Use of the dot product on boolean arrays returns a single boolean showing collisions in almost linear time (10^-5 secs for TB size)
             This can be used to determine which row the gene should be in
         '''
         #Default to all False values
-        genes_mask = numpy.array([numpy.array([False for x in range(self.length)])])
-        genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length))
-        positions = {}
+        genes_mask = numpy.array([numpy.array([False for x in range(self.length)])]) #Boolean mask to show gene presence at indicies
+        genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length)) #Gene names
+
         for gene_name in tqdm(self.genes_lookup):
-            # print(gene_name)
+            #Get the start/end/rev_comp values
             start = self.genes_lookup[gene_name]["start"]
             end = self.genes_lookup[gene_name]["end"]
             rev_comp=self.genes_lookup[gene_name]['reverse_complement']
 
+            #Determine the boolean mask for this gene
             if end<start:
-
                 mask = numpy.logical_or((self.nucleotide_index>=start), (self.nucleotide_index<end))
                 end += self.length
-
             else:
-
                 mask=(self.nucleotide_index>=start) & (self.nucleotide_index<end)
-            # print(mask)
-            genes_mask, genes, row = self.__fit_gene(mask, genes, genes_mask, start, end, gene_name, rev_comp)
-            positions[gene_name] = row
+            
+            #Fit the gene into the stacked arrays
+            genes_mask, genes = self.__fit_gene(mask, genes, genes_mask, start, end, gene_name, rev_comp)
 
         #Set instance variable for the gene names
         self.stacked_gene_name = genes
-        # Update instance variables to match the shape
-        self.stacked_is_cds = numpy.zeros(genes.shape,dtype=bool)
-        self.stacked_is_promoter=numpy.zeros(genes.shape,dtype=bool)
-        self.stacked_nucleotide_number=numpy.zeros(genes.shape,dtype='int')
-        self.stacked_is_reverse_complement=numpy.zeros(genes.shape,dtype=bool)
-        # print(genes.tolist())
-        return positions, genes
 
 
 
 
-    def _setup_arrays(self):
-        row_positions, test = self.find_overlaps()
-
-        # for gene_name in tqdm(self.genes_lookup):
-
-        #     gene_start=self.genes_lookup[gene_name]['start']
-        #     gene_end=self.genes_lookup[gene_name]['end']
-        #     rev_comp=self.genes_lookup[gene_name]['reverse_complement']
-
-        #     # deal with features that overlap the 'start' of the genome
-        #     if gene_end<gene_start:
-
-        #         mask = numpy.logical_or((self.nucleotide_index>=gene_start), (self.nucleotide_index<gene_end))
-        #         gene_end += self.length
-
-        #     else:
-
-        #         mask=(self.nucleotide_index>=gene_start) & (self.nucleotide_index<gene_end)
-        #     # if 2316708 in range(gene_start, gene_end):
-        #     #     print(gene_name)
-        #     # start in the top row of the arrays to see if the feature will "fit"
-        #     row=0
-
-        #     # below is True if it does fit, otherwise it will try the next row
-        #     # import time
-        #     # start = time.time()
-        #     # ~(numpy.all(self.stacked_gene_name[(row,mask)]==''))
-        #     # print("##", time.time() - start)
-        #     # print(mask)
-        #     # print(self.stacked_gene_name[(row,mask)])
-        #     # print()
-        #     while ~(numpy.all(self.stacked_gene_name[(row,mask)]=='')):
-
-        #         row+=1
-
-        #         n_rows=self.stacked_gene_name.shape[0]-1
-
-        #         # if we need a new row to accommodate overlapping genes, add one to all the essential numpy arrays
-        #         if row>n_rows:
-        #             self.stacked_gene_name=self._add_empty_row(self.stacked_gene_name)
-        #             self.stacked_is_cds=self._add_empty_row(self.stacked_is_cds)
-        #             self.stacked_is_reverse_complement=self._add_empty_row(self.stacked_is_reverse_complement)
-        #             self.stacked_is_promoter=self._add_empty_row(self.stacked_is_promoter)
-        #             self.stacked_nucleotide_number=self._add_empty_row(self.stacked_nucleotide_number)
-
-        #     self.stacked_gene_name[(row,mask)]=gene_name
-        #     # if row != row_positions[gene_name]:
-        #     #     print("~~~~", row, row_positions[gene_name], gene_name)
-        #     # print(gene_name)
-        #     # print(row_positions)
-        #     # row = row_positions[gene_name]
-        #     # print(row, gene_name)
-        #     # print(row, gene_name)
-        #     # print(gene_name, row)
-
-        #     if rev_comp:
-        #         self.stacked_nucleotide_number[(row,mask)]=numpy.mod(-1*(self.nucleotide_index[mask]-gene_end),self.length)
-        #         self.stacked_is_reverse_complement[(row,mask)]=True
-        #     else:
-        #         self.stacked_nucleotide_number[(row,mask)]=numpy.mod(1+self.nucleotide_index[mask]-gene_start,self.length)
+    def __setup_arrays(self):
+        '''
+        Private function to initalise all of the required arrays, fitting the gene names into the 
+            correct places within stacked arrays
+        '''
+        self.__find_overlaps()
 
         # do as many assignments outside the loop, i.e. in one go to improve performance
         self.stacked_is_cds=self.stacked_gene_name!=''
-        # with open("cds.json", "w") as f:
-        #     json.dump(self.stacked_is_cds.tolist(), f)
 
         self.n_rows=self.stacked_gene_name.shape[0]
-        # print("££", self.n_rows)
 
         self.stacked_nucleotide_index=numpy.tile(self.nucleotide_index,(self.n_rows,1))
-        # print("Old", self.stacked_nucleotide_index.shape)
 
         self.stacked_nucleotide_sequence=numpy.tile(self.nucleotide_sequence,(self.n_rows,1))
 
-        # print(self.stacked_gene_name)
-        # print(self.stacked_gene_name.shape)
-        # print(self.stacked_gene_name[0, :100].tolist())
-        # print((self.stacked_gene_name == test).tolist())
-        # for i in range(len(self.stacked_gene_name)):
-        #     with open(str(i)+".json", "w") as f:
-        #         f.write(json.dumps(list(zip(self.stacked_gene_name[i].tolist(), test[i].tolist())), indent=4, sort_keys=True))
 
-        # if len(self.stacked_gene_name) < len(test):
-        #     print(len(self.stacked_gene_name), len(test))
-        #     for i in range(len(test[len(self.stacked_gene_name):])):
-        #         with open(str(i)+"FAIL.json", "w") as f:
-        #             print(len(self.stacked_gene_name)+i)
-        #             f.write(json.dumps(test[len(self.stacked_gene_name)+i].tolist()))
-        # with open("1.json", "w") as f:
-        #     f.write(json.dumps(list(zip(self.stacked_gene_name[1].tolist(), test[1].tolist())), indent=4, sort_keys=True))
-        # print(numpy.all(self.stacked_gene_name == test))
-        # stacked_gene_name = [set(xs) for xs in zip(*self.stacked_gene_name.tolist())]
-
-
-    def _assign_promoter_regions(self,default_promoter_length):
-        #TODO: This appears to be causing some issues now... Genes are off by exactly 100 bases
+    def __assign_promoter_regions(self,default_promoter_length):
+        '''
+        Private function to assign promoter regions to genes
+        Args:
+            default_promoter_length (int) : The default length a promoter for a gene should be
+        '''
         assert isinstance(default_promoter_length,int), 'default_promoter_length must be an integer!'
 
         assert default_promoter_length>0, 'default_promoter_length must be greater than zero'
@@ -648,7 +534,7 @@ class Genome(object):
         self.stacked_is_promoter[mask]=True
 
     @staticmethod
-    def _insert_newlines(string: str, every=70):
+    def __insert_newlines(string: str, every=70):
         '''
         Simple private method for inserting a carriage return every N characters into a long string.
 
@@ -663,9 +549,9 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
     
-    def build_gene(self, gene, conn=None):
+    def __build_gene(self, gene, conn=None):
         '''
-        Function to build the gumpy.Gene object
+        Private function to build the gumpy.Gene object
         Args:
             gene (str) : The name of the gene
             conn (multiprocessing.connection=None) : Connection object from a multiprocessing.Pipe(), default to None
@@ -679,10 +565,10 @@ class Genome(object):
                 conn.send(None)
             return None
 
+        #The mask for all stacked arrays (N-dim)
         stacked_mask=self.stacked_gene_name==gene
-
+        #The mask for singular arrays (1-dim) by collapsing stacked mask to 1-dim
         mask=numpy.any(stacked_mask,axis=0)
-        # print(mask.tolist())
 
         assert numpy.count_nonzero(mask)>0, "gene ("+gene+") not found in genome!"
 
@@ -702,7 +588,7 @@ class Genome(object):
         else:
             return g
 
-    def _recreate_genes(self,show_progress_bar=False):
+    def __recreate_genes(self,show_progress_bar=False):
         """
         Private method to re-instantiate the passed list Genes.
 
@@ -717,7 +603,6 @@ class Genome(object):
         """
 
         list_of_genes = list(self.genes_lookup.keys())
-        # print(list_of_genes)
 
         self.genes={}
 
@@ -729,11 +614,16 @@ class Genome(object):
         if len(list_of_genes) <= limit:
             #Single threaded
             for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
-                self.genes[gene] = self.build_gene(gene, conn=None)
+                self.genes[gene] = self.__build_gene(gene, conn=None)
+            return
 
-        # pass ALL the gene names to create all the Gene objects for the first time
+        #Multithreading
         for thread_index in tqdm(range(0, math.ceil(len(list_of_genes)/limit)),disable=not(show_progress_bar)):
-            threads = [(multiprocessing.Process(target=self.build_gene, args=(gene, child)), gene, parent) for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], [multiprocessing.Pipe() for i in range(limit)])]
+            #Get the communication pipes required
+            pipes = [multiprocessing.Pipe() for i in range(limit)]
+            #Get some threads
+            threads = [(multiprocessing.Process(target=self.__build_gene, args=(gene, child)), gene, parent) 
+                        for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], pipes)]
             #Start some threads
             for i in range(limit):
                 if i < len(threads):
@@ -779,26 +669,26 @@ class Genome2(object):
             timings=defaultdict(list)
             start_time=time.time()
 
-        self._parse_genbank_file(genbank_file,gene_subset)
+        self.__parse_genbank_file(genbank_file,gene_subset)
 
         if verbose:
             timings['parse genbank'].append(time.time()-start_time)
             start_time=time.time()
 
-        self._setup_arrays()
+        self.__setup_arrays()
 
         if verbose:
             timings['define arrays'].append(time.time()-start_time)
             start_time=time.time()
 
         if default_promoter_length>0:
-            self._assign_promoter_regions(default_promoter_length)
+            self.__assign_promoter_regions(default_promoter_length)
 
         if verbose:
             timings['promoter'].append(time.time()-start_time)
             start_time=time.time()
 
-        self._recreate_genes(show_progress_bar=True)
+        self.__recreate_genes(show_progress_bar=True)
 
         if verbose:
             timings['create genes'].append(time.time()-start_time)
@@ -972,7 +862,7 @@ class Genome2(object):
         genome_string=''.join(self.nucleotide_sequence)
 
         # insert carriage returns so it looks pretty in the file...
-        output_string=self._insert_newlines(genome_string,every=chars_per_line)
+        output_string=self.__insert_newlines(genome_string,every=chars_per_line)
         output_string+="\n"
 
         # set the case accordingly
@@ -992,13 +882,13 @@ class Genome2(object):
         OUTPUT.close()
 
 
-    def _add_empty_row(self,array):
+    def __add_empty_row(self,array):
 
         empty_row=numpy.zeros((1,array.shape[1]),dtype=array.dtype)
 
         return(numpy.vstack((array,empty_row)))
 
-    def _parse_genbank_file(self,genbank_file,gene_subset):
+    def __parse_genbank_file(self,genbank_file,gene_subset):
 
         reference_genome=SeqIO.read(genbank_file,'genbank')
 
@@ -1081,11 +971,11 @@ class Genome2(object):
                                         'start':gene_start,\
                                         'end':gene_end }
     def make_arrays(self):
-        self.stacked_gene_name=self._add_empty_row(self.stacked_gene_name)
-        self.stacked_is_cds=self._add_empty_row(self.stacked_is_cds)
-        self.stacked_is_reverse_complement=self._add_empty_row(self.stacked_is_reverse_complement)
-        self.stacked_is_promoter=self._add_empty_row(self.stacked_is_promoter)
-        self.stacked_nucleotide_number=self._add_empty_row(self.stacked_nucleotide_number)
+        self.stacked_gene_name=self.__add_empty_row(self.stacked_gene_name)
+        self.stacked_is_cds=self.__add_empty_row(self.stacked_is_cds)
+        self.stacked_is_reverse_complement=self.__add_empty_row(self.stacked_is_reverse_complement)
+        self.stacked_is_promoter=self.__add_empty_row(self.stacked_is_promoter)
+        self.stacked_nucleotide_number=self.__add_empty_row(self.stacked_nucleotide_number)
     def check(self, row, mask):
         return ~(numpy.all(self.stacked_gene_name[(row,mask)]==''))
     def mask(self, gene_start, gene_end):
@@ -1100,7 +990,7 @@ class Genome2(object):
         self.stacked_nucleotide_index=numpy.tile(self.nucleotide_index,(self.n_rows,1))
 
         self.stacked_nucleotide_sequence=numpy.tile(self.nucleotide_sequence,(self.n_rows,1))
-    def _setup_arrays(self):
+    def __setup_arrays(self):
 
         for gene_name in tqdm(self.genes_lookup):
 
@@ -1144,7 +1034,7 @@ class Genome2(object):
         self.tile_check()
 
 
-    def _assign_promoter_regions(self,default_promoter_length):
+    def __assign_promoter_regions(self,default_promoter_length):
 
         assert isinstance(default_promoter_length,int), 'default_promoter_length must be an integer!'
 
@@ -1190,7 +1080,7 @@ class Genome2(object):
         self.stacked_is_promoter[mask]=True
 
     @staticmethod
-    def _insert_newlines(string: str, every=70):
+    def __insert_newlines(string: str, every=70):
         '''
         Simple private method for inserting a carriage return every N characters into a long string.
 
@@ -1233,7 +1123,7 @@ class Genome2(object):
         self.genes[gene] = g
         # print("Sent gene: ", gene)
 
-    def _recreate_genes(self,show_progress_bar=False):
+    def __recreate_genes(self,show_progress_bar=False):
         """
         Private method to re-instantiate the passed list Genes.
 

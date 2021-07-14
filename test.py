@@ -6,7 +6,7 @@ start = time.time()
 # g1 = gumpy.Genome("config/NC_000962.3.gbk")
 g1 = gumpy.Genome("config/NC_004148.2.gbk")
 print("Done new: ", time.time() - start)
-
+print(g1.contains_gene("F"))
 start = time.time()
 # g2 = gumpy.Genome2("config/NC_000962.3.gbk")
 g2 = gumpy.Genome2("config/NC_004148.2.gbk")
