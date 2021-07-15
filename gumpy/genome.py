@@ -422,17 +422,18 @@ class Genome(object):
             if numpy.dot(row, mask) == False:
                 #There is not a collision with this row
                 #Add the row
+                #Start/End have to be adjusted to account for 0 indexing of arrays and 1 indexing of genetics
                 row[start-1:end-1] = True
                 genes[i][start-1:end-1] = gene_name
                 self.__handle_rev_comp(rev_comp, start, end, i)
-                return genes_mask, genes
+                return genes_mask, genes, i
         #If this point is reached, there has been no rows without collisions, so add one
         genes_mask = numpy.vstack((genes_mask, mask))
         new_row = numpy.array([gene_name if m else '' for m in mask])
         genes = numpy.vstack((genes, new_row))
         i += 1
         self.__handle_rev_comp(rev_comp, start, end, i)
-        return genes_mask, genes
+        return genes_mask, genes, i
     
     def __find_overlaps(self):
         '''
@@ -444,7 +445,7 @@ class Genome(object):
         #Default to all False values
         genes_mask = numpy.array([numpy.array([False for x in range(self.length)])]) #Boolean mask to show gene presence at indicies
         genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length)) #Gene names
-
+        self.gene_rows = dict()#Dict to pull out row indicies for each gene in the stacked arrays
         for gene_name in tqdm(self.genes_lookup):
             #Get the start/end/rev_comp values
             start = self.genes_lookup[gene_name]["start"]
@@ -459,7 +460,11 @@ class Genome(object):
                 mask=(self.nucleotide_index>=start) & (self.nucleotide_index<end)
             
             #Fit the gene into the stacked arrays
-            genes_mask, genes = self.__fit_gene(mask, genes, genes_mask, start, end, gene_name, rev_comp)
+            genes_mask, genes, row = self.__fit_gene(mask, genes, genes_mask, start, end, gene_name, rev_comp)
+            self.gene_rows[gene_name] = row
+        
+        #Singular array to determine if there are genes in places within the genome
+        self.genes_mask = numpy.any(genes_mask, axis=0)
 
         #Set instance variable for the gene names
         self.stacked_gene_name = genes
@@ -499,39 +504,54 @@ class Genome(object):
         #  (ii) we need to ensure that only unassigned bases can be labelled as promoters and each should only 'belong' to a single feature
         # the latter is especially difficult when you have two genes next to one another, one reverse complement, since their promoters can
         # 'fight' for space. It is this problem that means we have to grow each promoter out one base at a time
-
+        
+        #Populate a dictionary to store the starts/ends of genes as they grow with promoters
+        start_end = {gene_name : {
+                                "start": self.genes_lookup[gene_name]["start"],
+                                "end": self.genes_lookup[gene_name]["end"]}
+                    for gene_name in self.genes_lookup}
         for promoter in tqdm(range(1,default_promoter_length+1)):
 
-            # awkward logic to cope with genetic numbering without zeros i.e. -2, -1, 1, 2
-            if promoter==1:
-                mask=self.stacked_nucleotide_number==1
-            else:
-                mask=self.stacked_nucleotide_number==-1*(promoter-1)
+            #Replacement `start_end` because dictionaries can't be changed during iteration
+            new_start_end = dict()
+            for gene_name in start_end:
+                #Get the associated start/end
+                start = start_end[gene_name]["start"]
+                end = start_end[gene_name]["end"]
+                rev_comp = self.genes_lookup[gene_name]["reverse_complement"]
+                #Check if the region which the gene would grow into is empty
+                if rev_comp:
+                    #Indexing is weird so stacked_array[i][end-1] is the end of the gene
+                    #   making stacked_array[i][end] the next item on the right
+                    if end == len(self.nucleotide_sequence):
+                        #If the end would be out of range, loop back around to position 0
+                        end = 0
+                    pos = end
+                else:
+                    #Similar indexing issue except indexing starts on start-1
+                    #   so start-2 is the next item on the left
+                    pos = start -2
+                if self.genes_mask[pos] == True:
+                    #There is a gene here already so skip it
+                    continue
+                else:
+                    #This position is free so set the appropriate values
+                    new_start_end[gene_name] = start_end[gene_name] #Retain gene for future expansions
+                    #Get the row index for stacked arrays
+                    row = self.gene_rows[gene_name]
 
-            # pick out the forward features first
-            before=(mask) & (~self.stacked_is_reverse_complement)
-            gaps=numpy.tile(~numpy.any(self.stacked_gene_name!='',axis=0),(self.n_rows,1))
-
-            # use a scikit-image function to grow out
-            after=ndimage.grey_dilation(before,footprint=[[1,0,0]],mode='wrap') & gaps
-            before=ndimage.grey_dilation(after,footprint=[[0,0,1]],mode='wrap')
-
-            if numpy.sum(after)>0:
-                self.stacked_gene_name[after]=self.stacked_gene_name[before]
-                self.stacked_nucleotide_number[after]=-1*promoter
-
-            before=(mask) & (self.stacked_is_reverse_complement)
-            gaps=numpy.tile(~numpy.any(self.stacked_gene_name!='',axis=0),(self.n_rows,1))
-            after=ndimage.grey_dilation(before,footprint=[[0,0,1]],mode='wrap') & gaps
-            before=ndimage.grey_dilation(after,footprint=[[1,0,0]],mode='wrap')
-
-            if numpy.sum(after)>0:
-                self.stacked_gene_name[after]=self.stacked_gene_name[before]
-                self.stacked_nucleotide_number[after]=-1*promoter
-                self.stacked_is_reverse_complement[after]=True
-
-        mask=self.stacked_nucleotide_number<0
-        self.stacked_is_promoter[mask]=True
+                    #Set appropriate values
+                    self.stacked_gene_name[row][pos] = gene_name
+                    self.stacked_nucleotide_number[row][pos] = -1*promoter
+                    self.stacked_is_reverse_complement[row][pos] = rev_comp
+                    self.stacked_is_promoter[row][pos] = True
+                    self.genes_mask[pos] = True
+                    #Move the start/end values appropriately
+                    if rev_comp:
+                        new_start_end[gene_name]["end"] = end + 1
+                    else:
+                        new_start_end[gene_name]["start"] = start - 1
+            start_end = new_start_end
 
     @staticmethod
     def __insert_newlines(string: str, every=70):
@@ -607,7 +627,7 @@ class Genome(object):
         self.genes={}
 
         #Limit of how many processes can be open at once
-        limit = 25
+        limit = 50
 
         #As there is some overhead for multithreading, there are cases where this is actually slower
         #So add a check to use a single thread if the number of required iterations is less than the limit

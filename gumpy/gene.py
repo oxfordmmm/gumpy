@@ -64,11 +64,7 @@ class Gene(object):
 
         if self.codes_protein:
             self._setup_conversion_dicts()
-            try:
-                self._translate_sequence()
-            except ValueError:
-                print(self.name, len(self.nucleotide_sequence))
-                raise ValueError
+            self._translate_sequence()
 
     def __eq__(self, other):
         '''
@@ -110,6 +106,7 @@ class Gene(object):
         return(numpy.array(complement))
 
     def _translate_sequence(self):
+        #TODO: Optimise this - may require some extra knowledge on why it is done like this...
 
         # this will ensure that only amino acids with all three bases present
         unique,counts=numpy.unique(self.triplet_number,return_counts=True)
