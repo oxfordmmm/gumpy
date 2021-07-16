@@ -8,5 +8,5 @@ from .gene import Gene
 from .genotype import Genotype
 from .old_genome import OldGenome
 from .variantfile import VariantFile
-from .variantfile import VCFFile
+# from .variantfile import VCFFile
 from .genome import Genome, Genome2

@@ -1,23 +1,36 @@
 
-import numpy, pandas
+import numpy
 
 # FIXME: problems with rrs, mfpB
-
 class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
-
-    def __init__(self,  name=None,\
-                        nucleotide_sequence=None,\
-                        index=None,\
-                        nucleotide_number=None,\
-                        is_cds=None,\
-                        is_promoter=None,\
-                        is_indel=None,\
-                        indel_length=None,\
-                        reverse_complement=False,\
-                        codes_protein=True,\
-                        feature_type=None ):
+    def __init__(self, *args, **kwargs):
+        #Set the kwargs
+        #UPDATE THIS AS REQUIRED
+        allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter', 
+                        'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type', 
+                        'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number', 
+                        'codons', 'amino_acid_sequence']
+        for key in kwargs.keys():
+            if key in allowed_kwargs:
+                setattr(self, key, kwargs[key])
+        #If reloading a Gene, 
+        if "reloading" in kwargs.keys():
+            return
+        
+        #Set default values based on kwargs
+        name = kwargs.get("name")
+        nucleotide_sequence = kwargs.get("nucleotide_sequence")
+        index = kwargs.get("index")
+        nucleotide_number = kwargs.get("nucleotide_number")
+        is_cds = kwargs.get("is_cds")
+        is_promoter = kwargs.get("is_promoter")
+        is_indel = kwargs.get("is_indel")
+        indel_length = kwargs.get("indel_length")
+        reverse_complement = True if kwargs.get("reverse_complement") == True else False
+        codes_protein = False if kwargs.get("codes_protein") == False else True
+        feature_type = kwargs.get("feature_type")
 
         assert name is not None, "must provide a gene name!"
         self.name=name
@@ -89,6 +102,28 @@ class Gene(object):
         check = check and numpy.all(self.reverse_complement == other.reverse_complement)
         check = check and numpy.all(self.codes_protein == other.codes_protein)
         check = check and numpy.all(self.feature_type == other.feature_type)
+        if self.codes_protein:
+            check = check and numpy.all(self.amino_acid_sequence == other.amino_acid_sequence)
+            check = check and numpy.all(self.codons == other.codons)
+        if not check:
+            print(self.name)
+            print("name", self.name == other.name)
+            print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
+            print(self.nucleotide_sequence, self.nucleotide_sequence.shape)
+            print(other.nucleotide_sequence, other.nucleotide_sequence.shape)
+            print("index", numpy.all(self.index == other.index))
+            print("NN", numpy.all(self.nucleotide_number == other.nucleotide_number))
+            print("is_cds", numpy.all(self.is_cds == other.is_cds))
+            print("is_promoter", numpy.all(self.is_promoter == other.is_promoter))
+            print("is_indel", numpy.all(self.is_indel == other.is_indel))
+            print("indel_len", numpy.all(self.indel_length == other.indel_length))
+            print("rev_comp", numpy.all(self.reverse_complement == other.reverse_complement))
+            print("codes_protein", numpy.all(self.codes_protein == other.codes_protein))
+            print("feature_type", numpy.all(self.feature_type == other.feature_type))
+            if self.codes_protein:
+                print("AAS", numpy.all(self.amino_acid_sequence == other.amino_acid_sequence))
+                print("codons", numpy.all(self.codons == other.codons))
+            print()
         return check
 
     @staticmethod

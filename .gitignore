@@ -108,3 +108,6 @@ venv.bak/
 
 # Ignore sequence.*
 bin/sequence.*
+
+#Saved Genome objects are json files
+*.json

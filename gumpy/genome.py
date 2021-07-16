@@ -2,7 +2,11 @@ import gzip
 import math
 import multiprocessing
 import pickle
+from re import T
 import time
+import copy
+import json
+import base64
 from collections import defaultdict
 
 import numpy
@@ -12,16 +16,34 @@ from tqdm import tqdm
 
 from gumpy import Gene
 
-
 class Genome(object):
 
-    def __init__(self,\
-                genbank_file,\
-                show_progress_bar=False,\
-                gene_subset=None,\
-                default_promoter_length=100,\
-                max_gene_name_length=20,
-                verbose=False):
+    def __init__(self, *args, **kwargs):
+        if len(args) != 1:
+            if "reloading" not in kwargs.keys():
+                #A genbank file has not been given so warn user
+                print("No genbank file was given, setting up minimal detail for this Genome")
+            #Setup the kwargs
+            #UPDATE THIS AS REQUIRED
+            allowed_kwargs = ['verbose', 'gene_subset', 'max_gene_name_length', 'nucleotide_sequence', 'name', 'id', 
+                            'description', 'length', 'nucleotide_index', 'stacked_gene_name', 'stacked_is_cds', 'stacked_is_promoter', 
+                            'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations', 
+                            'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes']
+            for key in kwargs.keys():
+                #Use of a whitelist of kwargs allowed to stop overriding of functions from loading malicious file
+                if key in allowed_kwargs:
+                    setattr(self, key, kwargs[key])
+            return
+        else:
+            #Set values for kwargs to defaults if not provided
+            show_progress_bar = kwargs.get("show_progress_bar", False)
+            gene_subset = kwargs.get("gene_subset")
+            default_promoter_length = kwargs.get("default_promoter_length", 100)
+            max_gene_name_length = kwargs.get("max_gene_name_length", 20)
+            verbose = kwargs.get("verbose", False)
+            #Set the args value to the genbank file
+            genbank_file = args[0]
+            
 
         assert isinstance(default_promoter_length,int) and default_promoter_length>=0, "the promoter length must be a positive integer!"
 
@@ -58,7 +80,34 @@ class Genome(object):
             timings['create genes'].append(time.time()-start_time)
             for i in timings:
                 print("%20s %6.3f s" % (i, numpy.sum(timings[i])))
-
+        
+        self.__convert_references()
+    
+    def __convert_references(self):
+        '''Convert BIOPython Reference objects to normal dictionaries. They do not
+            appear to have any greater application than storing structured data, so 
+            removing the object wrappers appears to be a clean way to combat the object's
+            issues with serialization.
+        '''
+        for (i, reference) in enumerate(self.annotations["references"]):
+            new_ref = {}
+            for key in vars(reference):
+                #This key contains unhelpfully structured data
+                if key == "location":
+                    new_loc = []
+                    for item in vars(reference)[key]:
+                        loc = {}
+                        for item_key in vars(item):
+                            if item_key == "_start" or item_key == "_end":
+                                loc[item_key] = getattr(item, item_key).position
+                            elif getattr(item, item_key) is not None:
+                                loc[item_key] = getattr(item, item_key)
+                        new_loc.append(loc)
+                    new_ref[key] = new_loc
+                else:
+                    new_ref[key] = vars(reference)[key]
+            self.annotations["references"][i] = new_ref
+                        
     def __repr__(self):
 
         '''
@@ -117,14 +166,27 @@ class Genome(object):
         '''
         check = True
         check = check and self.genes == other.genes
+        # print("genes", self.genes == other.genes)
         check = check and self.name == other.name
+        # print("Name", self.name == other.name)
         check = check and self.id == other.id
+        # print("ID", self.id == other.id)
         check = check and self.description == other.description
+        # print("Desc", self.description == other.description)
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
+        # print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
         check = check and numpy.all(self.nucleotide_index == other.nucleotide_index)
+        # print("NI", numpy.all(self.nucleotide_index == other.nucleotide_index))
         check = check and self.genes_lookup == other.genes_lookup
+        # print("gene lookup", self.genes_lookup == other.genes_lookup)
         check = check and self.length == other.length
+        # print("len", self.length == other.length)
         check = check and numpy.all(self.stacked_gene_name.tolist() == other.stacked_gene_name.tolist())
+        # print("SGN", numpy.all(self.stacked_gene_name.tolist() == other.stacked_gene_name.tolist()))
+        # print(self.stacked_gene_name, self.stacked_gene_name.shape)
+        # print(other.stacked_gene_name, other.stacked_gene_name.shape)
+        # print()
+
         return check
     
     def __len__(self):
@@ -201,6 +263,147 @@ class Genome(object):
 
         pickle.dump(self,OUTPUT)
         OUTPUT.close()
+    
+    
+    @staticmethod
+    def load(filename):
+        '''Experimental loading utilising JSON and base64 encoding of numpy arrays
+
+        Args:
+            filename (str): Path to the file to load
+
+        Returns:
+            gumpy.Genome: The resulting Genome object
+        '''        
+
+        #Define a helper function to load a numpy array
+        def load_numpy(dtype, data, shape):
+            d_type = numpy.dtype(dtype)
+            d_array = numpy.frombuffer(base64.decodestring(bytes(data, 'utf-8')), d_type)
+            d_array = d_array.reshape(shape)
+            return d_array
+
+        #Define a helper function to load a Gene object
+        def load_gene(name, value):
+            loaded_gene = {"reloading": True}
+            for g_attr in value.keys():
+                g_a_type = value[g_attr][0]
+                g_a_val = value[g_attr][1]
+                if (g_a_type == "<class 'bool'>" or g_a_type == "<class 'NoneType'>" or
+                    g_a_type == "<class 'str'>" or g_a_type == "<class 'int'>" or g_a_type == "<class 'float'>"
+                    or g_a_type == "dict" or g_a_type == "<class 'dict'>"):
+                    loaded_gene[g_attr] = g_a_val
+                elif g_a_type == "numpy.array":
+                    val = load_numpy(*g_a_val)
+                    loaded_gene[g_attr] = val
+                else:
+                    assert False, name
+            return Gene(**loaded_gene)
+
+        inp = json.load(open(filename))
+
+        to_load = {"reloading": True}
+        for field in tqdm(inp.keys()):
+            # print(field)
+            f_type = inp[field][0]
+            f_value = inp[field][1]
+            if (f_type == "<class 'bool'>" or f_type == "<class 'NoneType'>" or
+                f_type == "<class 'str'>" or f_type == "<class 'int'>" or f_type == "<class 'float'>"
+                or f_type == "dict"):
+                to_load[field] = f_value
+            else:
+                #These fields require some wrangling to re-load
+                if f_type == "genes":
+                    loaded_genes = {}
+                    for gene_name in f_value.keys():
+                        loaded_genes[gene_name] = load_gene(gene_name, f_value[gene_name])
+                    to_load["genes"] = loaded_genes
+                if f_type == "numpy.array":
+                    to_load[field] = load_numpy(*f_value)
+            # print()
+        return Genome(**to_load)
+    
+    def save(self, filename):
+        '''Experimental way to save the entire object (and Gene objects) based on
+            json and base64 encoding rather than relying on pickles
+            Based on numpy serialisation detailed here by daniel451:
+                https://stackoverflow.com/questions/30698004/how-can-i-serialize-a-numpy-array-while-preserving-matrix-dimensions
+            This is definitely space inefficient (~1.7GB for a TB genome) but faster than re-instanciation
+
+        Args:
+            filename (str): Filename for the output file
+        '''
+        def save_numpy(numpy_obj):
+            '''Helper function to save a numpy object
+
+            Args:
+                numpy_obj (numpy.array): Numpy array to save
+            Returns:
+                list : List of (dtype, base64 encoded object, shape)
+            '''            
+            return [str(numpy_obj.dtype), base64.b64encode(numpy_obj).decode("utf-8"), numpy_obj.shape]
+        def save_gene(gene):
+            '''Helper function to save a Gene object
+
+            Args:
+                gene (gumpy.gene): Gene object to save
+            Returns:
+                dict : Dictionary mapping attribute names to serialized numpy arrays
+            '''
+            #Output dict
+            output = {}
+            #Get all attributes (variables)
+            attributes = [(attr, getattr(gene, attr)) for attr in vars(gene)]
+            for (name, attr) in attributes:
+                #Find the attributes which require attention
+                if type(attr) not in [bool, str, int, float, list, type(None)]:
+                    #Check specifically for numpy arrays
+                    if type(attr) == type(numpy.array([])):
+                        val = ("numpy.array", save_numpy(attr))
+                    #And dicts as the genes dict stores Gene objects
+                    elif type(attr) == dict:
+                        if Gene in [type(value) for value in attr.values()]:
+                            val = {}
+                            for key in attr.values():
+                                #Convert each Gene object
+                                val[key] = save_gene(attr[key])
+                            val = ("genes", val)
+                        else:
+                            val = (str(type(attr)), attr)
+                    else:
+                        val = (str(type(attr)), attr)
+                else:
+                    val = (str(type(attr)), attr)
+                output[name] = val
+            return output
+        #Output dict
+        output = {}
+        #Get all attributes (variables)
+        attributes = [(attr, getattr(self, attr)) for attr in vars(self)]
+        for (name, attr) in attributes:
+            #Find the attributes which require attention
+            if type(attr) not in [bool, str, int, float, list, type(None)]:
+                #Check specifically for numpy arrays
+                if type(attr) == type(numpy.array([])):
+                    val = ("numpy.array", save_numpy(attr))
+                #And dicts as the genes dict stores Gene objects
+                elif type(attr) == dict:
+                    if Gene in [type(value) for value in attr.values()]:
+                        val = {}
+                        for key in attr.keys():
+                            #Convert each Gene object
+                            val[key] = save_gene(attr[key])
+                        val = ("genes", val)
+                    else:
+                        val = ("dict", attr)
+                else:
+                    val = (str(type(attr)), attr)
+            else:
+                val = (str(type(attr)), attr)
+            output[name] = val
+        #Write the output to a json file
+        json.dump(output, open(filename, "w"))
+
 
     def save_sequence(self,filename=None):
 
@@ -621,7 +824,6 @@ class Genome(object):
         Returns:
             None
         """
-
         list_of_genes = list(self.genes_lookup.keys())
 
         self.genes={}
@@ -661,6 +863,40 @@ class Genome(object):
                     self.genes[threads[i][1]] = recieved
                     #Close the threads and connections
                     threads[i][0].close()
+    
+    def apply_variant_file(self, vcf):
+        '''Functiont to apply a variant file to the genome  - producing a replica genome with the specified changes
+
+        Args:
+            vcf (gumpy.VariantFile): The VariantFile object for the VCF
+
+        Returns:
+            gumpy.Genome: The resulting Genome object
+        '''
+        #Replicate this Genome object
+        genome = copy.deepcopy(self)
+        #Change the nucleotide indicies
+        for change in vcf.changes.keys():
+            # print(genome.nucleotide_sequence, genome.nucleotide_sequence.shape)
+            genome.nucleotide_sequence[change] = vcf.changes[change][0]
+
+        #Rebuild the genes with this new information
+        #However, calling __recreate_genes() has a high overhead due to finding the masks
+        #So instead, pull the existing data out of the gene objects, change as required and recall __init__()
+        # for gene in self.genes:
+        #     name=None,\
+        #     nucleotide_sequence=None,\
+        #     index=None,\
+        #     nucleotide_number=None,\
+        #     is_cds=None,\
+        #     is_promoter=None,\
+        #     is_indel=None,\
+        #     indel_length=None,\
+        #     reverse_complement=False,\
+        #     codes_protein=True,\
+        #     feature_type=None
+        
+        return genome
         
 
 
