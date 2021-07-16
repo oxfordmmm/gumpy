@@ -2,11 +2,11 @@ import gumpy
 import time
 
 start = time.time()
-g1 = gumpy.Genome("config/NC_000962.3.gbk")
-# g1 = gumpy.Genome("config/NC_004148.2.gbk")
+# g1 = gumpy.Genome("config/NC_000962.3.gbk")
+g1 = gumpy.Genome("config/NC_004148.2.gbk")
 print("Done new: ", time.time() - start)
-# vcf = gumpy.VariantFile("tests/test-cases/05.vcf")
-# g2 = g1.apply_variant_file(vcf)
+vcf = gumpy.VariantFile("tests/test-cases/01.vcf")
+g2 = g1.apply_variant_file(vcf)
 # print(g1 == g2)
 # print(g1.nucleotide_sequence)
 # print(g2.nucleotide_sequence)

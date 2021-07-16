@@ -329,6 +329,9 @@ class Genome(object):
             Based on numpy serialisation detailed here by daniel451:
                 https://stackoverflow.com/questions/30698004/how-can-i-serialize-a-numpy-array-while-preserving-matrix-dimensions
             This is definitely space inefficient (~1.7GB for a TB genome) but faster than re-instanciation
+            If this causes issues (possibly due to transferring saved files between machines), it may be possible to 
+                change numpy serialization to convert to/from lists, although it is likely that this will be significantly more
+                computationally expensive
 
         Args:
             filename (str): Filename for the output file
@@ -873,28 +876,22 @@ class Genome(object):
         Returns:
             gumpy.Genome: The resulting Genome object
         '''
+        assert max(vcf.changes.keys()) <= self.length, "The VCF file details changes outside of this genome!"
         #Replicate this Genome object
         genome = copy.deepcopy(self)
+        original = {}
         #Change the nucleotide indicies
         for change in vcf.changes.keys():
             # print(genome.nucleotide_sequence, genome.nucleotide_sequence.shape)
+            original[change] = genome.nucleotide_sequence[change]
             genome.nucleotide_sequence[change] = vcf.changes[change][0]
 
         #Rebuild the genes with this new information
-        #However, calling __recreate_genes() has a high overhead due to finding the masks
-        #So instead, pull the existing data out of the gene objects, change as required and recall __init__()
-        # for gene in self.genes:
-        #     name=None,\
-        #     nucleotide_sequence=None,\
-        #     index=None,\
-        #     nucleotide_number=None,\
-        #     is_cds=None,\
-        #     is_promoter=None,\
-        #     is_indel=None,\
-        #     indel_length=None,\
-        #     reverse_complement=False,\
-        #     codes_protein=True,\
-        #     feature_type=None
+        genome.__recreate_genes()
+
+        #Save the changes which were made
+        genome.original = original
+        genome.changes = vcf.changes
         
         return genome
         
