@@ -569,7 +569,7 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
     
-    def __build_gene(self, gene, conn=None):
+    def _build_gene(self, gene, conn=None):
         '''
         Private function to build the gumpy.Gene object
         Args:
@@ -627,14 +627,14 @@ class Genome(object):
         self.genes={}
 
         #Limit of how many processes can be open at once
-        limit = 50
+        limit = 10 #On Linux this works at 25-50 but Windows has weird issues so 10 is the max for 16BG RAM
 
         #As there is some overhead for multithreading, there are cases where this is actually slower
         #So add a check to use a single thread if the number of required iterations is less than the limit
         if len(list_of_genes) <= limit:
             #Single threaded
             for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
-                self.genes[gene] = self.__build_gene(gene, conn=None)
+                self.genes[gene] = self._build_gene(gene, conn=None)
             return
 
         #Multithreading
@@ -642,7 +642,7 @@ class Genome(object):
             #Get the communication pipes required
             pipes = [multiprocessing.Pipe() for i in range(limit)]
             #Get some threads
-            threads = [(multiprocessing.Process(target=self.__build_gene, args=(gene, child)), gene, parent) 
+            threads = [(multiprocessing.Process(target=self._build_gene, args=(gene, child)), gene, parent) 
                         for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], pipes)]
             #Start some threads
             for i in range(limit):
