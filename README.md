@@ -8,6 +8,7 @@ Genetics with Numpy
 Genome objects can be created by passing a filename of a genbank file
 ```
 from gumpy import Genome
+
 g = Genome("filename.gbk")
 ```
 
@@ -15,6 +16,7 @@ g = Genome("filename.gbk")
 VariantFile objects can be created by passing a filename of a vcf file
 ```
 from gumpy import VariantFile
+
 vcf = VariantFile("filename.vcf")
 ```
 
@@ -24,8 +26,10 @@ The mutations defined in a vcf file can be applied to a reference genome to prod
 If a contig is set within the vcf, the length of the contig should match the length of the genome. Otherwise, if the vcf details changes within the genome range, they will be made.
 ```
 from gumpy import Genome, VariantFile
+
 reference_genome = Genome("reference.gbk")
 vcf = VariantFile("filename.vcf)
+
 resultant_genome = reference_genome.apply_variant_file(vcf)
 ```
 
@@ -33,8 +37,10 @@ resultant_genome = reference_genome.apply_variant_file(vcf)
 Two genomes of the same length can be easily compared, including equality and changes between the two.
 ```
 from gumpy import Genome
+
 g1 = Genome("filename1.gbk")
 g2 = Genome("filename2.gbk")
+
 g1 == g2 #Equality check
 g1 - g2 #Returns a numpy array of the indicies where the two genomes differ in nucleotide sequences
 ```
@@ -44,6 +50,7 @@ When a Genome object is instanciated, it is populated with Gene objects for each
 These genes can also be compared.
 ```
 from gumpy import Genome, Gene
+
 g1 = Genome("filename1.gbk")
 g2 = Genome("filename2.gbk")
 
@@ -59,9 +66,13 @@ g1_gene1 - g2_gene1 #Returns the indicies within the gene where the two genes di
 Due to how long it takes to create a Genome object, it may be beneficial to save the object to disk.
 ```
 from gumpy import Genome
+
 g = Genome("filename.gbk")
+
 g.save("output.json") #Saves the object to a JSON format
+
 g1 = Genome.load("output.json) #Reloads the object from the JSON
+
 g == g1 #True
 ```
 

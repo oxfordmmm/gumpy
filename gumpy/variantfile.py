@@ -1,4 +1,4 @@
-import pysam
+import pysam, numpy
 
 
 class VCFRecord(object):
@@ -106,23 +106,37 @@ class VariantFile(object):
         '''Function to find changes within the genome based on the variant file
         '''
         #Use a dict to store the changes with keys as indicies
-        #{index: (base, {calls: base}) ...} where a base of * represents wildcard
+        #{index: (base, {calls: base}) ...} where a base of * represents wildtype
         self.changes = {}
         for record in self.records:
             #VCF files are 1 indexed so alter index to be 0 indexed
             key = record.pos - 1
             ref = record.ref
             alts = record.alts
+            #Check for singular null call
+            if alts is None:
+                alts = ('x', )
+            alts = [call if call is not None else 'x' for call in alts]
+            alts = tuple([call.lower() if len(call) == 1 else numpy.array(list(call.lower())) for call in alts])
             if len(alts) == 1:
                 if len(alts[0]) > 1:
                     #Indel so use x
-                    call = 'x'
+                    call = alts
                 else:
                     #Single call so set it as such
                     call = alts[0]
             else:
-                #Het call so use z
-                call = 'z'
+                if numpy.any([len(call) > 1 for call in alts]):
+                    #There is at least one indel call so record that
+                    # call = ("@@", ) +alts
+                    call = 'z'
+                elif len(set(alts)) == len(alts) or len(set(alts)) > 1:
+                    #Check to make sure the multi-calling has different calls
+                    #Het call so use z
+                    call = 'z'
+                else:
+                    assert False, "Weird call: "+str(alts)
+                
 
             #Get the number of reads for each call (and wildcard)
             n_reads = record.values.get("COV")
@@ -130,94 +144,9 @@ class VariantFile(object):
             assert n_reads is not None, "There is no number of reads on at least one line of the file (COV)"
 
             #Get the most frequent call
-            if max(n_reads) == 0:
-                #Wildcard is the most common (TODO)
-                # assert False, "Wildcard is the most common..."
-                call = 'x'
+            # if max(n_reads) == 0:
+            #     #Wildtype is the most common (TODO)
+            #     call = 'x'
             alts = ('*', ) + alts
             self.changes[key] = (call, {n: base for (n, base) in zip(n_reads, alts)})
-        # print(self.changes)
-
-
-
-
-
-
-
-
-
-
-'''
-class VariantFile(object):
-
-    def __init__(self, filename=None):
-        a=2
-
-
-class VCFFile(VariantFile):
-
-    def __init__(self, filepath):
-
-        self.filepath=pathlib.Path(filepath)
-        # read and store the header information from the VCF file
-        self._read_header()
-
-
-    def _read_header(self):
-
-        vcf_reader = pysam.VariantFile(self.filepath)
-
-        # store the VCF version
-        self.version=vcf_reader.header.version
-
-        # store the reference contigs, allowing for multiple entries
-        self.contigs={}
-
-        for i in list(vcf_reader.header.contigs):
-            self.contigs[i]={ 'length': int(vcf_reader.header.contigs[i].length)}
-
-        # store the filters applied, allowing for multiple filters
-        self.filters={}
-        for i in list(vcf_reader.header.filters):
-            self.filters[i]={ 'description': vcf_reader.header.filters[i].description}
-
-        self.info_fields={}
-
-        for i in list(vcf_reader.header.formats):
-
-            self.info_fields[i] = {  'type':vcf_reader.header.formats[i].type.lower(),\
-                                    'description':vcf_reader.header.formats[i].description,\
-                                    'number':vcf_reader.header.formats[i].number }
-
-    def __repr__(self):
-        output=str(self.filepath)+'\n'
-        for i in self.contigs:
-            output+="%s, length %i" % (i,self.contigs[i]['length'])            
-        return(output)
-
-    def apply_to_genome(self, genome):
-
-        assert type(genome)==gumpy.Genome, 'the passed object must be an instance of a gumpy.Genome object'
-
-        assert len(self.contigs)==1, 'only VCF files that apply to a single contig can be parsed'
-
-        for ref_name in self.contigs:
-            assert genome.genome_length==self.contigs[ref_name]['length'], 'recorded length of reference does not match passed Genome!'
-
-        vcf_reader = pysam.VariantFile(self.filepath)
-
-        counter=0
-
-        for record in vcf_reader:
-
-            for sample_idx, (sample_name, sample_info) in enumerate(
-                record.samples.items()
-            ):
-
-                print(sample_name, sample_info.keys())
-
-                counter+=1
-
-            if counter>10:
-                break
-'''
+            # print(call, alts)

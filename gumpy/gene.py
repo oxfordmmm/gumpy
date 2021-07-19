@@ -1,4 +1,3 @@
-
 import numpy
 
 # FIXME: problems with rrs, mfpB
@@ -28,8 +27,8 @@ class Gene(object):
         is_promoter = kwargs.get("is_promoter")
         is_indel = kwargs.get("is_indel")
         indel_length = kwargs.get("indel_length")
-        reverse_complement = True if kwargs.get("reverse_complement") == True else False
-        codes_protein = False if kwargs.get("codes_protein") == False else True
+        reverse_complement = kwargs.get("reverse_complement", False)
+        codes_protein = kwargs.get("codes_protein", True)
         feature_type = kwargs.get("feature_type")
 
         assert name is not None, "must provide a gene name!"
@@ -105,25 +104,25 @@ class Gene(object):
         if self.codes_protein:
             check = check and numpy.all(self.amino_acid_sequence == other.amino_acid_sequence)
             check = check and numpy.all(self.codons == other.codons)
-        if not check:
-            print(self.name)
-            print("name", self.name == other.name)
-            print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
-            print(self.nucleotide_sequence, self.nucleotide_sequence.shape)
-            print(other.nucleotide_sequence, other.nucleotide_sequence.shape)
-            print("index", numpy.all(self.index == other.index))
-            print("NN", numpy.all(self.nucleotide_number == other.nucleotide_number))
-            print("is_cds", numpy.all(self.is_cds == other.is_cds))
-            print("is_promoter", numpy.all(self.is_promoter == other.is_promoter))
-            print("is_indel", numpy.all(self.is_indel == other.is_indel))
-            print("indel_len", numpy.all(self.indel_length == other.indel_length))
-            print("rev_comp", numpy.all(self.reverse_complement == other.reverse_complement))
-            print("codes_protein", numpy.all(self.codes_protein == other.codes_protein))
-            print("feature_type", numpy.all(self.feature_type == other.feature_type))
-            if self.codes_protein:
-                print("AAS", numpy.all(self.amino_acid_sequence == other.amino_acid_sequence))
-                print("codons", numpy.all(self.codons == other.codons))
-            print()
+        # if not check:
+        #     print(self.name)
+        #     print("name", self.name == other.name)
+        #     print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
+        #     print(self.nucleotide_sequence, self.nucleotide_sequence.shape)
+        #     print(other.nucleotide_sequence, other.nucleotide_sequence.shape)
+        #     print("index", numpy.all(self.index == other.index))
+        #     print("NN", numpy.all(self.nucleotide_number == other.nucleotide_number))
+        #     print("is_cds", numpy.all(self.is_cds == other.is_cds))
+        #     print("is_promoter", numpy.all(self.is_promoter == other.is_promoter))
+        #     print("is_indel", numpy.all(self.is_indel == other.is_indel))
+        #     print("indel_len", numpy.all(self.indel_length == other.indel_length))
+        #     print("rev_comp", numpy.all(self.reverse_complement == other.reverse_complement))
+        #     print("codes_protein", numpy.all(self.codes_protein == other.codes_protein))
+        #     print("feature_type", numpy.all(self.feature_type == other.feature_type))
+        #     if self.codes_protein:
+        #         print("AAS", numpy.all(self.amino_acid_sequence == other.amino_acid_sequence))
+        #         print("codons", numpy.all(self.codons == other.codons))
+        #     print()
         return check
 
     @staticmethod
