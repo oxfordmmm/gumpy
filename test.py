@@ -1,10 +1,12 @@
 import gumpy
 import time
+import sys
 
 vcf = gumpy.VariantFile("tests/test-cases/05.vcf")
+# sys.exit()
 start = time.time()
-g1 = gumpy.Genome("config/NC_000962.3.gbk")
-# g1 = gumpy.Genome.load("test.json")
+# g1 = gumpy.Genome("config/NC_000962.3.gbk")
+g1 = gumpy.Genome.load("test.json")
 # g1 = gumpy.Genome("config/NC_004148.2.gbk")
 print("Done new: ", time.time() - start)
 g2 = g1.apply_variant_file(vcf)
@@ -12,9 +14,9 @@ g2 = g1.apply_variant_file(vcf)
 # print(g1.nucleotide_sequence)
 # print(g2.nucleotide_sequence)
 
-start = time.time()
-g1.save("test.json") #Dumps TB in ~13s
-print("Dumped", time.time() - start)
+# start = time.time()
+# g1.save("test.json") #Dumps TB in ~13s
+# print("Dumped", time.time() - start)
 # start = time.time()
 # g3 = gumpy.Genome.load("test.json") #Loads TB in ~9s
 # print("Loaded", time.time() - start)

@@ -90,6 +90,12 @@ class Genome(object):
                 print("%20s %6.3f s" % (i, numpy.sum(timings[i])))
         
         self.__convert_references()
+
+        #Set default attributes for items populated when a VCF is applied
+        self.indels = None
+        self.changes = None
+        self.original = None
+        self.calls = None
     
     def __convert_references(self):
         '''Convert BIOPython Reference objects to normal dictionaries. They do not
@@ -783,9 +789,10 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
     
-    def __build_gene(self, gene, conn=None):
+    def _build_gene(self, gene, conn=None):
         '''
         Private function to build the gumpy.Gene object
+        (Should be private with leading `__` but a cross-platform bug means this causes crashes)
         Args:
             gene (str) : The name of the gene
             conn (multiprocessing.connection=None) : Connection object from a multiprocessing.Pipe(), default to None
@@ -847,7 +854,7 @@ class Genome(object):
         if len(list_of_genes) <= limit:
             #Single threaded
             for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
-                self.genes[gene] = self.__build_gene(gene, conn=None)
+                self.genes[gene] = self._build_gene(gene, conn=None)
             return
 
         #Multithreading
@@ -855,7 +862,7 @@ class Genome(object):
             #Get the communication pipes required
             pipes = [multiprocessing.Pipe() for i in range(limit)]
             #Get some threads
-            threads = [(multiprocessing.Process(target=self.__build_gene, args=(gene, child)), gene, parent) 
+            threads = [(multiprocessing.Process(target=self._build_gene, args=(gene, child)), gene, parent) 
                         for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], pipes)]
             #Start some threads
             for i in range(limit):
@@ -886,21 +893,38 @@ class Genome(object):
         '''
         assert max(vcf.changes.keys()) <= self.length, "The VCF file details changes outside of this genome!"
         #Replicate this Genome object
+        print("Copying the genome...")
         genome = copy.deepcopy(self)
-        original = {}
+
+        '''
+        Using numpy's fancy array indexing may provide neat code, and provides some speed
+            in some cases, the constant time access of a standard dictionary results in 
+            faster code when the mask only contains a few True values. 
+        For TB length arrays with a ~0.1% True mask, applying a mask takes ~10^-3s
+            Applying a dictionary to the same array takes ~10^-4s
+            ~0.1% True mask is a reasonable amount for this task as a VCF file is ~4000 entries
+        '''
+        genome.indels = dict()
+        genome.changes = dict()
+        genome.original = dict()
         #Change the nucleotide indicies
-        for change in vcf.changes.keys():
-            # print(genome.nucleotide_sequence, genome.nucleotide_sequence.shape)
+        print("Updating the genome...")
+        for change in tqdm(vcf.changes.keys()):
+            genome.original[change] = genome.nucleotide_sequence[change]
             if type(vcf.changes[change][0]) == str:
                 #Only set values if the change is to a single nucleotide
-                original[change] = genome.nucleotide_sequence[change]
                 genome.nucleotide_sequence[change] = vcf.changes[change][0]
+                #Record the changes in the format (old_base, new_base)
+                genome.changes[change] = (genome.original[change], vcf.changes[change][0])
+            else:
+                #It was an indel, so add the indel call to the indels dict
+                genome.indels[change] = vcf.changes[change][0]
 
         #Rebuild the genes with this new information
-        genome.__recreate_genes()
+        print("Rebuilding the Gene objects with the updated genome...")
+        genome.__recreate_genes(show_progress_bar=True)
 
-        #Save the changes which were made
-        genome.original = original
-        genome.changes = vcf.changes
+        #Save all of the calls in the format {arr_index: (n_reads, call)}
+        genome.calls = {index: vcf.changes[index][1] for index in vcf.changes.keys()}
 
         return genome

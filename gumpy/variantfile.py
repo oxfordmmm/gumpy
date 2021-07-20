@@ -107,7 +107,9 @@ class VariantFile(object):
         '''
         #Use a dict to store the changes with keys as indicies
         #{index: (base, {calls: base}) ...} where a base of * represents wildtype
+        #Where index is 0 indexed for array access
         self.changes = {}
+        # i = 0
         for record in self.records:
             #VCF files are 1 indexed so alter index to be 0 indexed
             key = record.pos - 1
@@ -126,6 +128,14 @@ class VariantFile(object):
                     #Single call so set it as such
                     call = alts[0]
             else:
+                '''
+                4 Different types of het calls found:
+                    1. SNP het call e.g A->(G, T)
+                    2. indel het call e.g A->(ACT, AGT)
+                    3. indel-indel het call e.g ACG->(CGT, ATG)
+                    4. Mixed SNP and indel het call e.g A->(A, T, ACT, GTC)
+                How to determine insertion/deletion from an indel??
+                '''
                 if numpy.any([len(call) > 1 for call in alts]):
                     #There is at least one indel call so record that
                     # call = ("@@", ) +alts
@@ -148,5 +158,7 @@ class VariantFile(object):
             #     #Wildtype is the most common (TODO)
             #     call = 'x'
             alts = ('*', ) + alts
-            self.changes[key] = (call, {n: base for (n, base) in zip(n_reads, alts)})
+            self.changes[key] = (call, list(zip(n_reads, alts)))
+            # print(i, list(zip(n_reads, alts)))
+            # i += 1
             # print(call, alts)
