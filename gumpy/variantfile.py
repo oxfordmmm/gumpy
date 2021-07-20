@@ -5,7 +5,7 @@ class VCFRecord(object):
     '''
     Class for VCF records
     '''
-    def __init__(self, record, sample):
+    def __init__(self, *args, **kwargs):
         '''Constructor, pulls the data out of the pysam object
         into a more useable format
 
@@ -14,6 +14,17 @@ class VCFRecord(object):
             sample_num (str) : Name of the sample to consider. Used for possible cases
                                 where there is more than 1 sample per record
         '''
+        if len(args) != 2:
+            #Rebuilding...
+            assert "reloading" in kwargs.keys(), "Incorrect arguments given."
+            allowed_kwargs = ['chrom', 'pos', 'ref', 'alts', 'qual', 'filter', 'info', 'values']
+            for key in kwargs.keys():
+                if key in allowed_kwargs:
+                    setattr(self, key, kwargs[key])
+            return
+        else:
+            record = args[0]
+            sample = args[1]
         #Save some of the easier to get to attributes
         self.chrom = record.chrom
         self.pos = record.pos
@@ -61,12 +72,22 @@ class VariantFile(object):
     Class to instanciate a variant file (VCF)
     Used to apply a VCF file to a genome
     '''
-    def __init__(self, filename):
+    def __init__(self, *args, **kwargs):
         '''
         Constructor. Reads the VCF file and sets up values
         Args:
             filename (str) : The name of the VCF file
         '''
+        if len(args) != 1:
+            #Rebuilding...
+            assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
+            allowed_kwargs = ['VCF_VERSION', 'contig_lengths', 'formats', 'records', 'changes']
+            for key in kwargs.keys():
+                if key in allowed_kwargs:
+                    setattr(self, key, kwargs[key])
+            return
+        else:
+            filename = args[0]
         #Use pysam to parse the VCF
         vcf = pysam.VariantFile(filename)
 

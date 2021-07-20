@@ -1,11 +1,13 @@
 import base64
 import copy
+from gumpy.variantfile import VCFRecord, VariantFile
 import gzip
 import json
 import math
 import multiprocessing
 import pickle
 import time
+import sys
 from collections import defaultdict
 
 import numpy
@@ -13,11 +15,23 @@ from Bio import SeqIO
 from tqdm import tqdm
 
 from gumpy import Gene
+import gumpy
 
 
 class Genome(object):
 
     def __init__(self, *args, **kwargs):
+        '''
+        Constructor for the Genome object.
+        Args:
+            genbank_file (str) : The path to the genbank file
+            show_progress_bar (bool, optional) : Boolean as whether to show a progress bar when building Gene objects. Defaults to True
+            gene_subset (list, optional) : List of gene names used to extract just a subset of genes. Defaults to None
+            default_promoter_length (int, optional) : Size of the default promoter. Defaults to 100
+            max_gene_name_length (int, optional) : Size of the longest gene name. Defaults to 20
+            verbose (bool, optional) : Boolean as whether to give verbose statements. Defaults to False
+            multithreaded (bool, optional) : Boolean as whether to multithread the building of Gene objects. Only Makes a change on Linux.
+        '''        
         if len(args) != 1:
             if "reloading" not in kwargs.keys():
                 #A genbank file has not been given so warn user
@@ -27,7 +41,8 @@ class Genome(object):
             allowed_kwargs = ['verbose', 'gene_subset', 'max_gene_name_length', 'nucleotide_sequence', 'name', 'id', 
                             'description', 'length', 'nucleotide_index', 'stacked_gene_name', 'stacked_is_cds', 'stacked_is_promoter', 
                             'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations', 
-                            'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes']
+                            'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes',
+                            'multithreaded', 'indels', 'changes', 'original', 'calls', 'variant_file']
             for key in kwargs.keys():
                 '''
                 Use of a whitelist of kwargs allowed to stop overriding of functions from loading malicious file
@@ -44,11 +59,12 @@ class Genome(object):
             return
         else:
             #Set values for kwargs to defaults if not provided
-            show_progress_bar = kwargs.get("show_progress_bar", False)
+            show_progress_bar = kwargs.get("show_progress_bar", True)
             gene_subset = kwargs.get("gene_subset")
             default_promoter_length = kwargs.get("default_promoter_length", 100)
             max_gene_name_length = kwargs.get("max_gene_name_length", 20)
             verbose = kwargs.get("verbose", False)
+            self.multithreaded = kwargs.get("multithreaded", False)
             #Set the args value to the genbank file
             genbank_file = args[0]
             
@@ -82,7 +98,7 @@ class Genome(object):
             timings['promoter'].append(time.time()-start_time)
             start_time=time.time()
 
-        self.__recreate_genes(show_progress_bar=True)
+        self.__recreate_genes(show_progress_bar=show_progress_bar)
 
         if verbose:
             timings['create genes'].append(time.time()-start_time)
@@ -251,175 +267,143 @@ class Genome(object):
             return(None)
         else:
             return(putative_genes)
-
-
-    def save_pickle(self,filename=None,compression=True,compresslevel=1):
-        '''
-        Save the genome as a pickle.
-
-        The main use for this is to save time by having to recreate a reference Genome object each time, which
-        for bacterial genomes can take 5-10 mins.
-
-        Args:
-            filename (str): path of the output file without the file extension
-            compression (bool): whether to compress the pkl or not using gzip (default: True)
-            compresslevel (int): the gzip compression level, lower=faster (default:1)
-        '''
-
-        assert isinstance(compression,bool)
-        assert filename is not None
-        assert compresslevel in range(1,10), "compresslevel must be in range 1-9!"
-
-        if compression:
-            OUTPUT=gzip.open(filename+".gz",'wb',compresslevel=compresslevel)
-        else:
-            OUTPUT=open(filename,'wb')
-
-        pickle.dump(self,OUTPUT)
-        OUTPUT.close()
     
-    
-    @staticmethod
-    def load(filename):
-        '''Experimental loading utilising JSON and base64 encoding of numpy arrays
-
-        Args:
-            filename (str): Path to the file to load
-
-        Returns:
-            gumpy.Genome: The resulting Genome object
-        '''        
-
-        #Define a helper function to load a numpy array
-        def load_numpy(dtype, data, shape):
-            d_type = numpy.dtype(dtype)
-            d_array = numpy.frombuffer(base64.decodestring(bytes(data, 'utf-8')), d_type)
-            d_array = d_array.reshape(shape)
-            return d_array
-
-        #Define a helper function to load a Gene object
-        def load_gene(name, value):
-            loaded_gene = {"reloading": True}
-            for g_attr in value.keys():
-                g_a_type = value[g_attr][0]
-                g_a_val = value[g_attr][1]
-                if (g_a_type == "<class 'bool'>" or g_a_type == "<class 'NoneType'>" or
-                    g_a_type == "<class 'str'>" or g_a_type == "<class 'int'>" or g_a_type == "<class 'float'>"
-                    or g_a_type == "dict" or g_a_type == "<class 'dict'>"):
-                    loaded_gene[g_attr] = g_a_val
-                elif g_a_type == "numpy.array":
-                    val = load_numpy(*g_a_val)
-                    loaded_gene[g_attr] = val
-                else:
-                    assert False, name+" has a weird value of type: "+g_a_type
-            return Gene(**loaded_gene)
-
-        inp = json.load(open(filename))
-
-        to_load = {"reloading": True}
-        for field in tqdm(inp.keys()):
-            # print(field)
-            f_type = inp[field][0]
-            f_value = inp[field][1]
-            if (f_type == "<class 'bool'>" or f_type == "<class 'NoneType'>" or
-                f_type == "<class 'str'>" or f_type == "<class 'int'>" or f_type == "<class 'float'>"
-                or f_type == "dict"):
-                to_load[field] = f_value
-            else:
-                #These fields require some wrangling to re-load
-                if f_type == "genes":
-                    loaded_genes = {}
-                    for gene_name in f_value.keys():
-                        loaded_genes[gene_name] = load_gene(gene_name, f_value[gene_name])
-                    to_load["genes"] = loaded_genes
-                if f_type == "numpy.array":
-                    to_load[field] = load_numpy(*f_value)
-            # print()
-        return Genome(**to_load)
-    
-    def save(self, filename):
+    def save(self, filename, compression_level=None):
         '''Experimental way to save the entire object (and Gene objects) based on
             json and base64 encoding rather than relying on pickles
             Based on numpy serialisation detailed here by daniel451:
                 https://stackoverflow.com/questions/30698004/how-can-i-serialize-a-numpy-array-while-preserving-matrix-dimensions
-            This is definitely space inefficient (~1.7GB for a TB genome) but faster than re-instanciation
+            This is definitely space inefficient (~1.7GB for a TB genome) but faster than re-instanciation. Using compression, this can be reduced to <100MB
             If this causes issues (possibly due to transferring saved files between machines), it may be possible to 
                 change numpy serialization to convert to/from lists, although it is likely that this will be significantly more
                 computationally expensive
 
         Args:
-            filename (str): Filename for the output file
-        '''
-        def save_numpy(numpy_obj):
-            '''Helper function to save a numpy object
-
-            Args:
-                numpy_obj (numpy.array): Numpy array to save
-            Returns:
-                list : List of (dtype, base64 encoded object, shape)
-            '''            
-            return [str(numpy_obj.dtype), base64.b64encode(numpy_obj).decode("utf-8"), numpy_obj.shape]
-        def save_gene(gene):
-            '''Helper function to save a Gene object
-
-            Args:
-                gene (gumpy.gene): Gene object to save
-            Returns:
-                dict : Dictionary mapping attribute names to serialized numpy arrays
-            '''
-            #Output dict
-            output = {}
-            #Get all attributes (variables)
-            attributes = [(attr, getattr(gene, attr)) for attr in vars(gene)]
-            for (name, attr) in attributes:
-                #Find the attributes which require attention
-                if type(attr) not in [bool, str, int, float, list, type(None)]:
-                    #Check specifically for numpy arrays
-                    if type(attr) == type(numpy.array([])):
-                        val = ("numpy.array", save_numpy(attr))
-                    #And dicts as the genes dict stores Gene objects
-                    elif type(attr) == dict:
-                        if Gene in [type(value) for value in attr.values()]:
-                            val = {}
-                            for key in attr.values():
-                                #Convert each Gene object
-                                val[key] = save_gene(attr[key])
-                            val = ("genes", val)
-                        else:
-                            val = (str(type(attr)), attr)
-                    else:
-                        val = (str(type(attr)), attr)
-                else:
-                    val = (str(type(attr)), attr)
-                output[name] = val
-            return output
-        #Output dict
-        output = {}
-        #Get all attributes (variables)
-        attributes = [(attr, getattr(self, attr)) for attr in vars(self)]
-        for (name, attr) in tqdm(attributes):
-            #Find the attributes which require attention
-            if type(attr) not in [bool, str, int, float, list, type(None)]:
-                #Check specifically for numpy arrays
-                if type(attr) == type(numpy.array([])):
-                    val = ("numpy.array", save_numpy(attr))
-                #And dicts as the genes dict stores Gene objects
-                elif type(attr) == dict:
-                    if Gene in [type(value) for value in attr.values()]:
-                        val = {}
-                        for key in attr.keys():
-                            #Convert each Gene object
-                            val[key] = save_gene(attr[key])
-                        val = ("genes", val)
-                    else:
-                        val = ("dict", attr)
-                else:
-                    val = (str(type(attr)), attr)
-            else:
-                val = (str(type(attr)), attr)
-            output[name] = val
+            filename (str): Path to the file to save in
+            compression_level (int, optional): Level of compression to use (1-9), when None is given, no compression is used. Defaults to None.
+        '''        
+        output = self.__save(self, None)
         #Write the output to a json file
-        json.dump(output, open(filename, "w"))
+        if compression_level is not None and compression_level in range(1,10):
+            json.dump(output, gzip.open(filename, "wt", compresslevel=compression_level))
+        else:
+            json.dump(output, open(filename, "w"), indent=2)
+
+    def __save(self, obj, output, name=None):
+        '''Helper function to recursively convert and save each object
+
+        Args:
+            obj (object): Any object
+            output (list/dict): Aggregator for outputs
+            name (str, optional): Name of the attribute to be stored as in the dict. Defaults to None.
+
+        Returns:
+            dict/list/tuple: Either aggregated output or a single output depending on if aggregation was required
+        '''        
+        # print(obj)
+        if type(obj) in [bool, int, str, float, complex, bytes, bytearray] or obj is None:
+            #Fundamental data types which need no conversions
+            to_return = obj
+        elif type(obj) == type(numpy.array([])):
+            #Convert numpy arrays to 3 item lists
+            to_return = [str(obj.dtype), base64.b64encode(obj).decode("utf-8"), obj.shape]
+        elif type(obj) == list:
+            #Convert items in a list
+            to_return = [self.__save(x, []) for x in obj]
+        elif type(obj) == tuple:
+            #Convert items in a tuple
+            to_return = tuple([self.__save(x, []) for x in obj])
+        elif type(obj) == dict:
+            #Keys should be hashable so ignore them but convert the values
+            to_return = {key: self.__save(obj[key], {}) for key in obj.keys()}
+        elif type(obj) in [Gene, Genome, VariantFile, VCFRecord]:
+            #Convert items to dicts
+            attributes = [(attr, getattr(obj, attr)) for attr in vars(obj)]
+            to_return = {}
+            for (a_name, attr) in attributes:
+                to_return[a_name] = self.__save(attr, {})
+        elif str(type(obj)) == "<class 'numpy.str_'>":
+            #Not sure where these come from, but some numpy.str_ items exist so treat them as strings
+            to_return = str(obj)
+        else:
+            #Other types are not allowed.
+            assert False, "Object of weird type: "+str(obj)+str(type(obj))
+        
+        
+        if name is not None:
+            #This attribute has a name so add it to the output and return it
+            if type(output) == dict:
+                output[name] = (str(type(obj)), to_return)
+            elif type(output) == list:
+                output.append(str(type(obj)), to_return)
+            return output
+        else:
+            #Unnamed, so just return it
+            return (str(type(obj)), to_return)
+    
+
+    @staticmethod
+    def load(filename):
+        '''Load the object using base64 encoding and JSON
+
+        Args:
+            filename (str): Path to the saved file
+        '''        
+        def _load(type_, obj, output, name=None):
+            '''Helper function to recursively load an object
+
+            Args:
+                type_ (str): String of the type which the object should be
+                obj (object): Any input object
+            '''
+            if type_ in [str(type(t)) for t in [bool(), int(), str(), float(), complex(), bytes(), bytearray(), None]]:
+                #Fundamental data types which need no conversions
+                to_return = obj
+            elif type_ == str(type(numpy.array([]))):
+                #Convert numpy arrays to 3 item lists
+                d_type = numpy.dtype(obj[0])
+                d_array = numpy.frombuffer(base64.decodestring(bytes(obj[1], 'utf-8')), d_type)
+                to_return = d_array.reshape(obj[2])
+            elif type_ == str(type(list())):
+                #Convert items in a list
+                to_return = [_load(t, o, []) for (t, o) in obj]
+            elif type_ == str(type(tuple())):
+                #Convert items in a tuple
+                to_return = tuple([_load(t, o, []) for (t, o) in obj])
+            elif type_ == str(type(dict())):
+                #Keys should be hashable so ignore them but convert the values
+                to_return = {key: _load(*obj[key], {}) for key in obj.keys()}
+            elif type_ == str(Gene):
+                to_return = Gene(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
+            elif type_ == str(Genome):
+                to_return = Genome(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
+            elif type_ == str(VariantFile):
+                to_return = VariantFile(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
+            elif type_ == str(VCFRecord):
+                to_return = VCFRecord(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
+            elif type_ == "<class 'numpy.str_'>":
+                to_return = numpy.str_(obj)
+            else:
+                #Other types are not allowed.
+                assert False, "Object of weird type: "+str(obj)+str(type(obj))
+
+            if name is not None:
+                #This attribute has a name so add it to the output and return it
+                if type(output) == dict:
+                    output[name] = to_return
+                elif type(output) == list:
+                    output.append(to_return)
+                return output
+            else:
+                #Unnamed, so just return it
+                return to_return
+        try:
+            inp = json.load(gzip.open(filename, "rt"))
+        except gzip.BadGzipFile:
+            #Not a gzipped file so try with normal open
+            inp = json.load(open(filename))
+        return _load(*inp, {})
+
 
 
     def save_sequence(self,filename=None):
@@ -837,10 +821,7 @@ class Genome(object):
         hence necessary after applying a vcf file, albeit only for those genes whose sequence has been altered.
 
         Args:
-            show_progress_bar (True/False)  whether to show the (tqdm) progress bar
-
-        Returns:
-            None
+            show_progress_bar (bool):  whether to show the (tqdm) progress bar
         """
         list_of_genes = list(self.genes_lookup.keys())
 
@@ -851,7 +832,9 @@ class Genome(object):
 
         #As there is some overhead for multithreading, there are cases where this is actually slower
         #So add a check to use a single thread if the number of required iterations is less than the limit
-        if len(list_of_genes) <= limit:
+        #Due to several other cross-platform issues, it is also worth restricting multithreading to Linux as this is the
+        #   only tested platform with speedup from it. Also included is a switch to enable/disable
+        if len(list_of_genes) <= limit or sys.platform!="linux" or self.multithreaded==False:
             #Single threaded
             for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
                 self.genes[gene] = self._build_gene(gene, conn=None)
@@ -926,5 +909,6 @@ class Genome(object):
 
         #Save all of the calls in the format {arr_index: (n_reads, call)}
         genome.calls = {index: vcf.changes[index][1] for index in vcf.changes.keys()}
+        genome.variant_file = vcf
 
         return genome
