@@ -2,27 +2,42 @@ import gumpy
 import time
 import sys
 
+g = gumpy.Genome("config/TEST-DNA.gbk")
+# g.save("testing.json")
+
+
+# x = ["" for i in list("aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc")]
+# x[28:61] = ["B" for b in range(27, 60)]
+# print(len(range(27, 60)))
+# x[3:31] = ["A" for a in range(4, 31)]
+# x[89::] = ["C" for c in range(9)]
+# print(len(range(4, 31)))
+# print([j for (i, j) in enumerate(x)])
+# print("".join(x))
+
+
+
 # vcf = gumpy.VariantFile("tests/test-cases/01.vcf")
 # print([attr for attr in vars(vcf)])
 # print([attr for attr in vars(vcf.records[0])])
 # sys.exit()
-start = time.time()
-g1 = gumpy.Genome("config/NC_000962.3.gbk", multithreaded=True)
-# g1 = gumpy.Genome.load("test.json.gz")
-# g1 = gumpy.Genome("config/NC_004148.2.gbk")
-print("Done new: ", time.time() - start)
-# g2 = g1.apply_variant_file(vcf)
-# print(g1 == g2)
-# print(g1.nucleotide_sequence)
-# print(g2.nucleotide_sequence)
+# start = time.time()
+# g1 = gumpy.Genome("config/NC_000962.3.gbk", multithreaded=True)
+# # g1 = gumpy.Genome.load("test.json.gz")
+# # g1 = gumpy.Genome("config/NC_004148.2.gbk")
+# print("Done new: ", time.time() - start)
+# # g2 = g1.apply_variant_file(vcf)
+# # print(g1 == g2)
+# # print(g1.nucleotide_sequence)
+# # print(g2.nucleotide_sequence)
 
-start = time.time()
-g1.save("test.json.gz", compression_level=1) #Dumps TB in ~13s
-print("Dumped", time.time() - start)
-start = time.time()
-g3 = gumpy.Genome.load("test.json.gz") #Loads TB in ~9s
-print("Loaded", time.time() - start)
-print(g1 == g3)
+# start = time.time()
+# g1.save("test.json.gz", compression_level=1) #Dumps TB in ~13s
+# print("Dumped", time.time() - start)
+# start = time.time()
+# g3 = gumpy.Genome.load("test.json.gz") #Loads TB in ~9s
+# print("Loaded", time.time() - start)
+# print(g1 == g3)
 # print([(attr) for attr in vars(g3)])
 # print([(attr) for attr in vars(g3.genes["yajC"])])
 # print(g3.nucleotide_sequence)

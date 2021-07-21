@@ -1,0 +1,75 @@
+LOCUS       TEST_RNA              99 bp ss-RNA     linear   VRL 21-JUL-2021
+DEFINITION  TEST_RNA, complete genome.
+ACCESSION   TEST_RNA
+VERSION     TEST_RNA.1
+DBLINK      BioProject: RNAID
+KEYWORDS    RNA.
+SOURCE      TEST_RNA_SOURCE
+  ORGANISM  TEST_RNA_ORGANISM
+REFERENCE   1  (bases 1 to 99)
+  AUTHORS   Test,1., Test,2., Test,3.
+  TITLE     Test title for a reference for an RNA strand
+  JOURNAL   Test journal for an RNA strand
+   PUBMED   1
+COMMENT     This is some comment about TEST_RNA genome.
+FEATURES             Location/Qualifiers
+     source          1..99
+                     /organism="TEST_RNA"
+                     /mol_type="genomic RNA"
+                     /isolate="RNA-ISO"
+                     /db_xref="taxon:1"
+     gene            4..30
+                     /gene="A"
+                     /locus_tag="TEST_RNA_A"
+                     /db_xref="GeneID:1"
+     mRNA            4..30
+                     /gene="A"
+                     /locus_tag="TEST_RNA_A"
+                     /product="nucleoprotein"
+                     /db_xref="GeneID:1"
+     CDS             4..30
+                     /gene="A"
+                     /locus_tag="TEST_RNA_A"
+                     /codon_start=1
+                     /product="nucleoprotein"
+                     /protein_id="PROTEIN_A"
+                     /db_xref="GeneID:1"
+                     /translation="KKTPPPGGG"
+     gene            28..60
+                     /gene="B"
+                     /locus_tag="TEST_RNA_B"
+                     /db_xref="GeneID:2"
+     mRNA            28..60
+                     /gene="B"
+                     /locus_tag="TEST_RNA_B"
+                     /product="nucleoprotein"
+                     /db_xref="GeneID:2"
+     CDS             28..60
+                     /gene="B"
+                     /locus_tag="TEST_RNA_B"
+                     /codon_start=1
+                     /product="nucleoprotein"
+                     /protein_id="PROTEIN_B"
+                     /db_xref="GeneID:2"
+                     /translation="GGFFF!KKNPPP"
+     gene            91..96
+                     /gene="C"
+                     /locus_tag="TEST_RNA_C"
+                     /db_xref="GeneID:3"
+     mRNA            91..96
+                     /gene="C"
+                     /locus_tag="TEST_RNA_C"
+                     /product="nucleoprotein"
+                     /db_xref="GeneID:3"
+     CDS             91..96
+                     /gene="C"
+                     /locus_tag="TEST_RNA_C"
+                     /codon_start=1
+                     /product="nucleoprotein"
+                     /protein_id="PROTEIN_C"
+                     /db_xref="GeneID:3"
+                     /translation="PP"
+ORIGIN      
+        1 aaaaaaaaaa cccccccccc gggggggggg tttttttttt aaaaaaaaaa cccccccccc
+       61 gggggggggg tttttttttt aaaaaaaaaa ccccccccc
+//

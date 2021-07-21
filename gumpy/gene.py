@@ -11,11 +11,11 @@ class Gene(object):
                         'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type', 
                         'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number', 
                         'codons', 'amino_acid_sequence']
-        for key in kwargs.keys():
-            if key in allowed_kwargs:
-                setattr(self, key, kwargs[key])
-        #If reloading a Gene, 
+        #If reloading a Gene, just set the attributes and return
         if "reloading" in kwargs.keys():
+            for key in kwargs.keys():
+                if key in allowed_kwargs:
+                    setattr(self, key, kwargs[key])
             return
         
         #Set default values based on kwargs
@@ -93,7 +93,7 @@ class Gene(object):
         check = check and self.name == other.name
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
         check = check and numpy.all(self.index == other.index)
-        check = check and self.list_eq(self.nucleotide_number, other.nucleotide_number)
+        check = check and self.__list_eq(self.nucleotide_number, other.nucleotide_number)
         check = check and numpy.all(self.is_cds == other.is_cds)
         check = check and numpy.all(self.is_promoter == other.is_promoter)
         check = check and numpy.all(self.is_indel == other.is_indel)
@@ -262,7 +262,7 @@ class Gene(object):
 
         return(mutations)
     
-    def list_eq(self, l1, l2):
+    def __list_eq(self, l1, l2):
         '''
         Function used to test equality of 2 lists easily (used in self.__eq__)
         Args:
@@ -509,6 +509,8 @@ class Gene(object):
 
 
     def valid_variant(self, variant):
+        #TODO: Fix or remove this?? self.positions does not exist... Is it referring to self.index?
+        #Surely it would make more sense to actually return False at some point instead of raising an AssertaionError??
 
         assert variant is not None, "variant must be specified! e.g. FIXME"
 

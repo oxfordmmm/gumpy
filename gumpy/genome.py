@@ -5,7 +5,6 @@ import gzip
 import json
 import math
 import multiprocessing
-import pickle
 import time
 import sys
 from collections import defaultdict
@@ -15,8 +14,6 @@ from Bio import SeqIO
 from tqdm import tqdm
 
 from gumpy import Gene
-import gumpy
-
 
 class Genome(object):
 
@@ -112,6 +109,7 @@ class Genome(object):
         self.changes = None
         self.original = None
         self.calls = None
+        self.variant_file = None
     
     def __convert_references(self):
         '''Convert BIOPython Reference objects to normal dictionaries. They do not
@@ -306,6 +304,9 @@ class Genome(object):
             to_return = obj
         elif type(obj) == type(numpy.array([])):
             #Convert numpy arrays to 3 item lists
+            if obj.flags["C_CONTIGUOUS"] == False:
+                #Some arrays are not contiguous, so make them contiguous as base64 requires it
+                obj = numpy.ascontiguousarray(obj, obj.dtype)
             to_return = [str(obj.dtype), base64.b64encode(obj).decode("utf-8"), obj.shape]
         elif type(obj) == list:
             #Convert items in a list
@@ -673,9 +674,6 @@ class Genome(object):
         #Set instance variable for the gene names
         self.stacked_gene_name = genes
 
-
-
-
     def __setup_arrays(self):
         '''
         Private function to initalise all of the required arrays, fitting the gene names into the 
@@ -691,7 +689,6 @@ class Genome(object):
         self.stacked_nucleotide_index=numpy.tile(self.nucleotide_index,(self.n_rows,1))
 
         self.stacked_nucleotide_sequence=numpy.tile(self.nucleotide_sequence,(self.n_rows,1))
-
 
     def __assign_promoter_regions(self,default_promoter_length):
         '''
@@ -725,12 +722,12 @@ class Genome(object):
                 rev_comp = self.genes_lookup[gene_name]["reverse_complement"]
                 #Check if the region which the gene would grow into is empty
                 if rev_comp:
-                    #Indexing is weird so stacked_array[i][end-1] is the end of the gene
-                    #   making stacked_array[i][end] the next item on the right
+                    #Indexing is weird so stacked_array[i][end-2] is the end of the gene
+                    #   making stacked_array[i][end-1] the next item on the right
                     if end == len(self.nucleotide_sequence):
                         #If the end would be out of range, loop back around to position 0
                         end = 0
-                    pos = end
+                    pos = end -1
                 else:
                     #Similar indexing issue except indexing starts on start-1
                     #   so start-2 is the next item on the left
