@@ -179,39 +179,23 @@ class Gene(object):
             output+=", codes for protein\n"
         else:
             output+="\n"
-        promoter_sequence=self.nucleotide_sequence[self.is_promoter]
-        if promoter_sequence.size!=0:
-            output+="".join(i for i in promoter_sequence[:string_length])
-            output+="..."
-            output+="".join(i for i in promoter_sequence[-string_length:])
-            output+="\n"
-            promoter_numbering=self.nucleotide_number[self.is_promoter]
-            output+="".join(str(i)+" " for i in promoter_numbering[:string_length])
-            output+="..."
-            output+="".join(str(i)+" " for i in promoter_numbering[-string_length:])
-            output+="\n"
+        if self.nucleotide_sequence[self.is_promoter].size!=0:
+            #Updated to use numpy.printoptions to control the formatting
+            #Does return as `['a' 'c' 't' 'g']`` rather than `actg` but fixes formatting issues from old code
+            #   such as repeating elements if len(promoter) <= string_length
+            with numpy.printoptions(threshold=string_length*2):
+                output += str(self.nucleotide_sequence[self.is_promoter]) + "\n"
+                output += str(self.nucleotide_number[self.is_promoter]) + "\n"
         else:
             output+="promoter likely in adjacent gene(s)\n"
         if self.codes_protein:
-            output+="".join(i for i in self.amino_acid_sequence[:string_length])
-            output+="..."
-            output+="".join(i for i in self.amino_acid_sequence[-string_length:])
-            output+="\n"
-            output+="".join(str(i)+" " for i in self.amino_acid_number[:string_length])
-            output+="..."
-            output+="".join(str(i)+" " for i in self.amino_acid_number[-string_length:])
-            output+="\n"
+            with numpy.printoptions(threshold=string_length*2):
+                output += str(self.amino_acid_sequence) + "\n"
+                output += str(self.amino_acid_number)
         else:
-            gene_sequence=self.nucleotide_sequence[self.is_cds]
-            output+="".join(i for i in gene_sequence[:string_length])
-            output+="..."
-            output+="".join(i for i in gene_sequence[-string_length:])
-            output+="\n"
-            gene_numbering=self.nucleotide_number[self.is_cds]
-            output+="".join(str(i)+" " for i in gene_numbering[:string_length])
-            output+="..."
-            output+="".join(str(i)+" " for i in gene_numbering[-string_length:])
-            output+="\n"
+            with numpy.printoptions(threshold=string_length*2):
+                output += str(self.nucleotide_sequence[self.is_cds]) + "\n"
+                output += str(self.nucleotide_number[self.is_cds])
 
         if output.strip()=="":
             output=None

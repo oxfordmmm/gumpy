@@ -7,6 +7,10 @@ pytestmark = pytest.mark.filterwarnings("ignore")
 
 def test_instanciate_genome_rna():
     genome = gumpy.Genome("config/TEST-RNA.gbk")
+    g2 = gumpy.Genome("config/TEST-RNA.gbk", multithreaded=True)
+    #Check that multithreading gives the same result.
+    #If not testing on Linux the multithreaded code will never be touched...
+    assert genome == g2
 
     #Testing generic attributes such as name and length
     assert len(genome) == 99
@@ -340,7 +344,7 @@ def test_instanciate_vcf():
             "id": 4
         }
     }
-    assert len(vcf.records) == 5
+    assert len(vcf.records) == 6
 
     #Due to the dict structure here, several asserts are required
     changes = {
@@ -348,7 +352,8 @@ def test_instanciate_vcf():
         15: ('t', [(0, '*'), (68, 't')]),
         27: ('z', [(1, '*'), (99, 't'), (100, 'c')]),
         71: (numpy.array(['g', 'c', 'c']), [(0, '*'), (68, numpy.array(['g', 'c', 'c']))]),
-        77: ('z', [(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 't')]),
+        77: ('z', [(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 'g')]),
+        89: ('x', [(0, '*'), (68, 'x')])
     }
     assert vcf.changes.keys() == changes.keys()
     for key in changes.keys():
@@ -356,8 +361,79 @@ def test_instanciate_vcf():
         for ((n_reads1, call1), (n_reads2, call2)) in zip(vcf.changes[key][1], changes[key][1]):
             assert n_reads1 == n_reads2
             assert numpy.all(call1 == call2)
-    #TODO: Finish this...
-        
+
+    #Testing record objects
+
+    #Features common to all record objects:
+    for record in vcf.records:
+        assert record.chrom == "TEST_DNA"
+    #Pos
+    assert vcf.records[0].pos == 2
+    assert vcf.records[1].pos == 16
+    assert vcf.records[2].pos == 28
+    assert vcf.records[3].pos == 72
+    assert vcf.records[4].pos == 78
+    assert vcf.records[5].pos == 90
+
+    #Ref
+    assert vcf.records[0].ref == "A"
+    assert vcf.records[1].ref == "C"
+    assert vcf.records[2].ref == "G"
+    assert vcf.records[3].ref == "T"
+    assert vcf.records[4].ref == "T"
+    assert vcf.records[5].ref == "A"
+
+    #Alt
+    assert numpy.all(vcf.records[0].alts == ("G", ))
+    assert numpy.all(vcf.records[1].alts == ("T", ))
+    assert numpy.all(vcf.records[2].alts == ("T", "C"))
+    assert numpy.all(vcf.records[3].alts == ("GCC", ))
+    assert numpy.all(vcf.records[4].alts == ("GTT", "G"))
+    assert numpy.all(vcf.records[5].alts == None)
+
+    #Qual
+    assert vcf.records[0].qual == None
+    assert vcf.records[1].qual == None
+    assert vcf.records[2].qual == None
+    assert vcf.records[3].qual == None
+    assert vcf.records[4].qual == None
+    assert vcf.records[5].qual == None
+
+    #Filter
+    assert vcf.records[0].filter == "PASS"
+    assert vcf.records[1].filter == "."
+    assert vcf.records[2].filter == "PASS"
+    assert vcf.records[3].filter == "PASS"
+    assert vcf.records[4].filter == "."
+    assert vcf.records[5].filter == "."
+
+    #Other fields
+    assert vcf.records[0].info == {'KMER': 15}
+    assert vcf.records[1].info == {'KMER': 15}
+    assert vcf.records[2].info == {'KMER': 15}
+    assert vcf.records[3].info == {'KMER': 15}
+    assert vcf.records[4].info == {'KMER': 15}
+    assert vcf.records[5].info == {'KMER': 15}
+
+    print(vcf.records[0].values.keys())
+    #GT
+    gt = [record.values["GT"] for record in vcf.records]
+    #None is given as a GT value for null values for alts
+    assert numpy.all(gt == [(1, 1), (1, 1), (1, 2), (1, 1), (1, 1), (None, None)])
+    #DP
+    dp = [record.values["DP"] for record in vcf.records]
+    assert numpy.all(dp == [68, 68, 200, 68, 68, 68])
+    #COV
+    cov = [record.values["COV"] for record in vcf.records]
+    assert numpy.all(cov == [(0, 68), (0, 68), (1, 99, 100), (0, 68), (0, 48, 20), (0, 68)])
+    #GT_CONF
+    gt_conf = [record.values["GT_CONF"] for record in vcf.records]
+    assert numpy.all(gt_conf == [613.77, 613.77, 613.77, 63.77, 63.77, 63.77])
+
+    #Quick test for VCFRecord.__repr__()
+    assert vcf.records[0].__repr__() == "TEST_DNA\t2\tA\t('G',)\tNone\tPASS\tGT:DP:COV:GT_CONF\t(1, 1):68:(0, 68):613.77\n"
+
+
 # import pytest, numpy, copy
 
 # from pathlib import Path

@@ -2,7 +2,7 @@ import gumpy
 import time
 import sys
 
-g = gumpy.Genome("config/TEST-DNA.gbk")
+# g = gumpy.Genome("config/TEST-DNA.gbk")
 # g.save("testing.json")
 
 
@@ -21,11 +21,11 @@ g = gumpy.Genome("config/TEST-DNA.gbk")
 # print([attr for attr in vars(vcf)])
 # print([attr for attr in vars(vcf.records[0])])
 # sys.exit()
-# start = time.time()
-# g1 = gumpy.Genome("config/NC_000962.3.gbk", multithreaded=True)
+start = time.time()
+g1 = gumpy.Genome("config/NC_000962.3.gbk", multithreaded=True)
 # # g1 = gumpy.Genome.load("test.json.gz")
 # # g1 = gumpy.Genome("config/NC_004148.2.gbk")
-# print("Done new: ", time.time() - start)
+print("Done new: ", time.time() - start)
 # # g2 = g1.apply_variant_file(vcf)
 # # print(g1 == g2)
 # # print(g1.nucleotide_sequence)

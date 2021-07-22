@@ -47,6 +47,9 @@ class VCFRecord(object):
         #Get the values
         self.values = {}
         for (key, item) in record.samples[sample].items():
+            if key == "GT_CONF":
+                #Due to how pysam reads floats, there are some erroneously long dps, so round
+                item = round(item, 2)
             self.values[key] = item
     
     def __repr__(self):
@@ -121,9 +124,9 @@ class VariantFile(object):
         
         # print(self.records)
 
-        self.find_changes()
+        self.__find_changes()
     
-    def find_changes(self):
+    def __find_changes(self):
         '''Function to find changes within the genome based on the variant file
         '''
         #Use a dict to store the changes with keys as indicies
