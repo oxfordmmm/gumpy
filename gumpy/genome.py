@@ -13,7 +13,7 @@ import numpy
 from Bio import SeqIO
 from tqdm import tqdm
 
-from gumpy import Gene
+from gumpy import Gene, GenomeDifference
 
 class Genome(object):
 
@@ -27,7 +27,8 @@ class Genome(object):
             default_promoter_length (int, optional) : Size of the default promoter. Defaults to 100
             max_gene_name_length (int, optional) : Size of the longest gene name. Defaults to 20
             verbose (bool, optional) : Boolean as whether to give verbose statements. Defaults to False
-            multithreaded (bool, optional) : Boolean as whether to multithread the building of Gene objects. Only Makes a change on Linux.
+            multithreaded (bool, optional) : Boolean as whether to multithread the building of Gene objects. Only Makes a change on Linux. Defaults to False
+            is_reference (bool, optional) : Boolean showing whether this genome is a reference genome, i.e. mutations can be derrived from it. Defaults to False
         '''        
         if len(args) != 1:
             if "reloading" not in kwargs.keys():
@@ -39,7 +40,7 @@ class Genome(object):
                             'description', 'length', 'nucleotide_index', 'stacked_gene_name', 'stacked_is_cds', 'stacked_is_promoter', 
                             'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations', 
                             'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes',
-                            'multithreaded', 'indels', 'changes', 'original', 'calls', 'variant_file']
+                            'multithreaded', 'indels', 'changes', 'original', 'calls', 'variant_file', 'is_reference']
             for key in kwargs.keys():
                 '''
                 Use of a whitelist of kwargs allowed to stop overriding of functions from loading malicious file
@@ -62,6 +63,7 @@ class Genome(object):
             max_gene_name_length = kwargs.get("max_gene_name_length", 20)
             verbose = kwargs.get("verbose", False)
             self.multithreaded = kwargs.get("multithreaded", False)
+            self.is_reference = kwargs.get("is_reference", False)
             #Set the args value to the genbank file
             genbank_file = args[0]
             
@@ -165,23 +167,23 @@ class Genome(object):
             output+=str(len(self.gene_subset))+' gene/loci have been included.'
         return(output)
 
-    def __sub__(self,other):
+    def __sub__(self, other):
 
         """
         Overload the subtraction operator so it returns a tuple of the indices where there differences between the two genomes
         Args:
             other (gumpy.Genome) : The other genome used in the subtraction
         Returns:
-            numpy.array : Numpy array of the indicies where the two genomes differ in nucleotides
+            GenomeDifference: GenomeDifference object to store the differences
         """
+        #Initial checks
+        if self == other:
+            #If they are the same genome, return None as there is no difference
+            return None
 
-        assert self.length==other.length, "genomes must have the same length!"
+        assert len(self) == len(other), "Genomes should be the same length!"
 
-        mask=self.nucleotide_sequence!=other.nucleotide_sequence
-
-        mask+=self.indel_length!=0
-
-        return(self.nucleotide_index[mask])
+        return GenomeDifference(self, other)
     
     def __eq__(self, other):
         '''
@@ -907,5 +909,7 @@ class Genome(object):
         #Save all of the calls in the format {arr_index: (n_reads, call)}
         genome.calls = {index: vcf.changes[index][1] for index in vcf.changes.keys()}
         genome.variant_file = vcf
+        #The genome has been altered so not a reference genome
+        genome.is_reference = False
 
         return genome

@@ -4,6 +4,7 @@
 
 __version__="0.1"
 
+from .difference import GenomeDifference
 from .gene import Gene
 from .genotype import Genotype
 from .variantfile import VariantFile

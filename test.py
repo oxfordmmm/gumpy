@@ -17,16 +17,23 @@ import sys
 
 
 
-# vcf = gumpy.VariantFile("tests/test-cases/01.vcf")
+vcf = gumpy.VariantFile("tests/test-cases/05.vcf")
 # print([attr for attr in vars(vcf)])
 # print([attr for attr in vars(vcf.records[0])])
 # sys.exit()
 start = time.time()
-g1 = gumpy.Genome("config/NC_000962.3.gbk", multithreaded=True)
+g1 = gumpy.Genome("config/NC_000962.3.gbk", multithreaded=True, is_reference=True)
 # # g1 = gumpy.Genome.load("test.json.gz")
-# # g1 = gumpy.Genome("config/NC_004148.2.gbk")
+# g1 = gumpy.Genome("config/NC_004148.2.gbk", is_reference=True)
 print("Done new: ", time.time() - start)
-# # g2 = g1.apply_variant_file(vcf)
+g2 = g1.apply_variant_file(vcf)
+diff = g1 - g2
+print(diff.snp)
+print(diff.nucleotides)
+print(diff.amino_acids)
+print(diff.indels)
+print(diff.het_calls)
+print(diff.mutations)
 # # print(g1 == g2)
 # # print(g1.nucleotide_sequence)
 # # print(g2.nucleotide_sequence)
