@@ -28,7 +28,7 @@ If a contig is set within the vcf, the length of the contig should match the len
 from gumpy import Genome, VariantFile
 
 reference_genome = Genome("reference.gbk")
-vcf = VariantFile("filename.vcf)
+vcf = VariantFile("filename.vcf")
 
 resultant_genome = reference_genome.apply_variant_file(vcf)
 ```
@@ -38,11 +38,18 @@ Two genomes of the same length can be easily compared, including equality and ch
 ```
 from gumpy import Genome
 
-g1 = Genome("filename1.gbk")
-g2 = Genome("filename2.gbk")
+g1 = Genome("filename1.gbk", is_reference=True) #A reference genome
+g2 = g1.apply_variant_file(VariantFile("filename2.vcf")) #A genome which has been altered by a VCF
 
 g1 == g2 #Equality check
-g1 - g2 #Returns a numpy array of the indicies where the two genomes differ in nucleotide sequences
+
+diff = g2 - g1 #Subtraction returns a GenomeDifference object
+print(diff.snp) #SNP distance between the two genomes
+print(diff.nucleotides) #Array of nucleotides in g2 which are different in g1
+print(diff.codons) #Array of codons in g2 which are different in g1
+print(diff.indels) #Array of indels in g2 where there are indels in either g1 or g2
+print(diff.het_calls) #Array of calls with coverages for every het call in both g1 and g2
+print(diff.mutations) #Array of mutations within the genes in g2 compared to the reference of g1
 ```
 
 ### Compare genes within genomes

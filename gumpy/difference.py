@@ -5,8 +5,7 @@ Classes for difference objects
 '''
 
 class GenomeDifference(object):
-    def __init__(self, genome1, genome2):
-        '''GenomeDifference object is used to return the difference between two genomes.
+    '''GenomeDifference object is used to return the difference between two genomes.
         The difference can be viewed in one of two ways:
             `diff`: Arrays of the values from genome1 where there are different values in genome2, 
                     or values which exist in genome1 but not genome2 depending on which is more appropriate (closer to classical subtraction).
@@ -15,6 +14,25 @@ class GenomeDifference(object):
                     and more difficult to wrangle meaningful information from.
         This option can be set by using the `update_view()` method
 
+        Instance variables:
+            `snp` (int): SNP distance between the two genomes
+            `indices` (numpy.array): Array of array indices where the two genomes differ in nucleotides
+            `nucleotides` (numpy.array): Array of differences in nucleotides. Exact format depends on which view is selected.
+            `codons` (numpy.array): Array of differences in codons. Exact format depends on which view is selected.
+            `amino_acids` (numpy.array): Array of differences in amino acids. Exact format depends on which view is selected.
+            `indel_indices` (numpy.array): Array of indices where the two genomes have indels
+            `indels` (numpy.array): Array of differences in nucleotides. Exact format depends on which view is selected.
+            `het_indices` (numpy.array): Array of indices where there are het calls in either genome
+            `het_calls` (numpy.array): Array of het_calls at `het_indices`. Exact format depends on which view is selected.
+            `mutations` (numpy.array): Array of mutations within genes of a mutant genome given one of the genomes is a reference genome.
+            `genome1_mutations` (numpy.array): Array of mutations within genes of genome1 compared to a reference. Only set once `find_mutations()` has been called
+            `genome2_mutations` (numpy.array): Array of mutations within genes of genome2 compared to a reference. Only set once `find_mutations()` has been called
+        Methods:
+            `update_view(method: str) -> None`: Used to change the viewing method for instance variables. `method` values are either `diff` or `full`
+            `find_mutations(reference: gumpy.Genome) -> numpy.array`: Used to find the mutations within the genes of the geomes when neither are reference genomes. Exact format depends on which view is selected.
+    '''
+    def __init__(self, genome1, genome2):
+        '''Constructor for the GenomeDifference object. Called implictly when `genome1 - genome2` is performed.
         Args:
             genome1 (gumpy.Genome): A Genome object to compare against
             genome2 (gumpy.Genome): The other Genome object
@@ -26,7 +44,9 @@ class GenomeDifference(object):
 
         #Calculate SNPs
         self.snp = self.__snp_distance()
-
+        '''
+        Where applicable, the `full` diference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
+        '''
         #Calculate differences
         self.indices = self.__indices()
         self.__nucleotides_full = self.__nucleotides()
@@ -226,6 +246,32 @@ class GenomeDifference(object):
         else:
             return numpy.array([(self.genome1.calls.get(index), self.genome2.calls.get(index)) for index in self.het_indices])
     
+    def __raise_mutations_warning(self, reference, mutant):
+        '''Give a warning to the user that the genes within the two genomes are different.
+        Warning displays names of the genes which differ.
+
+        Args:
+            reference (gumpy.Genome): Genome object for a reference genome
+            mutant (gumpy.Genome): Genome object for a mutated genome
+        '''        
+        message = "The genomes do not have the same genes. "
+        if len(set(reference.genes.keys()).difference(set(mutant.genes.keys()))) > 0:
+            #There are genes in the reference which are not in the mutant
+            message += "The reference has genes ("
+            for gene in set(reference.genes.keys()).difference(set(mutant.genes.keys())):
+                message += gene+", "
+            message = message[:-2]#Remove trailing comma
+            message += ") which are not present in the mutant. "
+        if len(set(mutant.genes.keys()).difference(set(reference.genes.keys()))) > 0:
+            #There are genes in the reference which are not in the mutant
+            message += "The mutant has genes ("
+            for gene in set(mutant.genes.keys()).difference(set(reference.genes.keys())):
+                message += gene+", "
+            message = message[:-2]#Remove trailing comma
+            message += ") which are not present in the reference. "
+        message += "Continuing only with genes which exist in both genomes."
+        warnings.warn(message, UserWarning)
+    
     def __mutations(self, reference=None, mutant=None):
         '''Find the mutations within genes. Mutations outside of genes are not considered. FIXME if this is required.
 
@@ -249,22 +295,7 @@ class GenomeDifference(object):
         if reference.genes.keys() != mutant.genes.keys():
             #Get only the genes which are the same but give a warning
             genes = set(reference.genes.keys()).intersection(set(mutant.genes.keys()))
-            message = "The genomes do not have the same genes. "
-            if len(set(reference.genes.keys()).difference(set(mutant.genes.keys()))) > 0:
-                #There are genes in the reference which are not in the mutant
-                message += "The reference has genes ("
-                for gene in set(reference.genes.keys()).difference(set(mutant.genes.keys())):
-                    message += gene+", "
-                message = message[:-2]#Remove trailing comma
-                message += ") which are not present in the mutant. "
-            if len(set(mutant.genes.keys()).difference(set(reference.genes.keys()))) > 0:
-                #There are genes in the reference which are not in the mutant
-                message += "The mutant has genes ("
-                for gene in set(mutant.genes.keys()).difference(set(reference.genes.keys())):
-                    message += gene+", "
-                message = message[:-2]#Remove trailing comma
-                message += ") which are not present in the reference. "
-            warnings.warn(message, UserWarning)
+            self.__raise_mutations_warning(self, reference, mutant)
         else:
             genes = reference.genes.keys()
 
