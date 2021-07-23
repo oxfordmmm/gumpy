@@ -1,4 +1,4 @@
-LOCUS       TEST_DNA              99 bp ss-DNA     linear   VRL 21-JUL-2021
+LOCUS       TEST_DNA              99 bp DNA     linear   VRL 21-JUL-2021
 DEFINITION  TEST_DNA, complete genome.
 ACCESSION   TEST_DNA
 VERSION     TEST_DNA.1

@@ -365,7 +365,7 @@ class Genome(object):
             elif type_ == str(type(numpy.array([]))):
                 #Convert numpy arrays to 3 item lists
                 d_type = numpy.dtype(obj[0])
-                d_array = numpy.frombuffer(base64.decodestring(bytes(obj[1], 'utf-8')), d_type)
+                d_array = numpy.frombuffer(base64.decodebytes(bytes(obj[1], 'utf-8')), d_type)
                 to_return = d_array.reshape(obj[2])
             elif type_ == str(type(list())):
                 #Convert items in a list

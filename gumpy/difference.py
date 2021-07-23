@@ -16,12 +16,12 @@ class GenomeDifference(object):
 
         Instance variables:
             `snp` (int): SNP distance between the two genomes
-            `indices` (numpy.array): Array of array indices where the two genomes differ in nucleotides
+            `indices` (numpy.array): Array of genome indices where the two genomes differ in nucleotides
             `nucleotides` (numpy.array): Array of differences in nucleotides. Exact format depends on which view is selected.
             `codons` (numpy.array): Array of differences in codons. Exact format depends on which view is selected.
             `amino_acids` (numpy.array): Array of differences in amino acids. Exact format depends on which view is selected.
             `indel_indices` (numpy.array): Array of indices where the two genomes have indels
-            `indels` (numpy.array): Array of differences in nucleotides. Exact format depends on which view is selected.
+            `indels` (numpy.array): Array of differences in inels. Exact format depends on which view is selected.
             `het_indices` (numpy.array): Array of indices where there are het calls in either genome
             `het_calls` (numpy.array): Array of het_calls at `het_indices`. Exact format depends on which view is selected.
             `mutations` (numpy.array): Array of mutations within genes of a mutant genome given one of the genomes is a reference genome.
@@ -37,7 +37,6 @@ class GenomeDifference(object):
             genome1 (gumpy.Genome): A Genome object to compare against
             genome2 (gumpy.Genome): The other Genome object
         '''
-        #TODO: Add detailed tests for all of this
         self.genome1 = genome1
         self.genome2 = genome2
         self.__view_method = "diff"
@@ -92,6 +91,47 @@ class GenomeDifference(object):
             self.het_calls = self.__full_to_diff(self.__het_calls_full)
         self.__view_method = method
     
+    def __check_none(self, arr, check):
+        '''Recursive function to determine if a given array is all None values.
+        Due to the shape of some arrays, implicit equality checking causes warnings
+
+        Args:
+            arr (array-like): Array to check
+            check (bool): Boolean to propagate the check
+        Returns:
+            bool: True when all None values in all arrays/sub-arrays
+        '''
+        if check == False:
+            #No point in continuing
+            return False
+        for elem in arr:
+            if type(elem) in [list, tuple, type(numpy.array([]))]:
+                check = check and self.__check_none(elem, check)
+            else:
+                check = check and (elem is None)
+        return check
+    
+    def __check_any(self, arr1, arr2, check):
+        '''Recursive function to determine if given arrays are the different at any point.
+        Required due to implicit equality of weird shape arrays causing warnings
+
+        Args:
+            arr1 (array-like): Array 1
+            arr2 (array-like): Array 2
+            check (bool): Boolean accumulator
+
+        Returns:
+            bool: True when the two lists are different at any point
+        '''      
+        if type(arr1) != type(arr2):
+            return True
+        for (e1, e2) in zip(arr1, arr2):
+            if type(e1) in [list, tuple, type(numpy.array([]))]:
+                check = check or self.__check_any(e1, e2, check)
+            else:
+                check = check or (e1 != e2)
+        return check  
+    
     def __full_to_diff(self, array):
         '''Convert an array from a full view to a diff view
 
@@ -100,9 +140,9 @@ class GenomeDifference(object):
         Returns:
             numpy.array: Array of values from genome1
         '''        
-        array = numpy.array([item1 for (item1, item2) in array if numpy.any(item1 != item2)])
+        array = numpy.array([item1 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
         #Check for all None values
-        if numpy.all(array == None):
+        if self.__check_none(array, True):
             return None
         else:
             return array
@@ -161,7 +201,6 @@ class GenomeDifference(object):
         codons = []
         c = ""
         for index in range(1, len(nucleotides)+1):
-            # print(index%3)
             c += nucleotides[index-1]
             if index % 3 == 0:
                 #There have been 3 bases seen so add the codon
@@ -244,7 +283,7 @@ class GenomeDifference(object):
         elif self.genome2.calls is None:
             return numpy.array([(self.genome1.calls[index], None) for index in self.het_indices], dtype=object)
         else:
-            return numpy.array([(self.genome1.calls.get(index), self.genome2.calls.get(index)) for index in self.het_indices])
+            return numpy.array([(self.genome1.calls.get(index), self.genome2.calls.get(index)) for index in self.het_indices], dtype=object)
     
     def __raise_mutations_warning(self, reference, mutant):
         '''Give a warning to the user that the genes within the two genomes are different.
@@ -295,7 +334,7 @@ class GenomeDifference(object):
         if reference.genes.keys() != mutant.genes.keys():
             #Get only the genes which are the same but give a warning
             genes = set(reference.genes.keys()).intersection(set(mutant.genes.keys()))
-            self.__raise_mutations_warning(self, reference, mutant)
+            self.__raise_mutations_warning(reference, mutant)
         else:
             genes = reference.genes.keys()
 
@@ -305,7 +344,22 @@ class GenomeDifference(object):
             if gene_mutation is not None:
                 for mutation in gene_mutation:
                     mutations.append(gene+"@"+mutation)
-        return numpy.array(mutations)
+        return numpy.array(sorted(mutations))
+    
+    def __pad_mutations(self, arr1, arr2):
+        '''Pad lists of mutations to be the same length so zip() doesn't loose results
+
+        Args:
+            arr1 (numpy.array): Array1
+            arr2 (numpy.array): Array2
+        Returns:
+            numpy.array, numpy.array: The two arrays padded to be the same length
+        '''        
+        while len(arr1) > len(arr2):
+            arr2 = numpy.append(arr2, None)
+        while len(arr2) > len(arr1):
+            arr1 = numpy.append(arr1, None)
+        return arr1, arr2
     
     def find_mutations(self, reference):
         '''Version of self.__mutations() which takes a reference genome for when neither genome is a reference - finding the difference in mutations.
@@ -322,9 +376,13 @@ class GenomeDifference(object):
         self.genome1_mutations = self.__mutations(reference=reference, mutant=self.genome1)
         self.genome2_mutations = self.__mutations(reference=reference, mutant=self.genome2)
         if self.__view_method == "full":
-            return numpy.array(list(zip(self.genome1_mutations, self.genome2_mutations)))
+            return numpy.array(
+                list(zip(
+                    *self.__pad_mutations(
+                        sorted(self.genome1_mutations), sorted(self.genome2_mutations))
+                    )))
         if self.__view_method == "diff":
-            return sorted(list(set(self.genome1_mutations).difference(set(self.genome2.mutations))))
+            return sorted(list(set(self.genome1_mutations).difference(set(self.genome2_mutations))))
 
 
 
