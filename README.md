@@ -12,6 +12,25 @@ from gumpy import Genome
 g = Genome("filename.gbk")
 ```
 
+#### Multithreaded parsing
+Due to the slow nature of some parts of instanciating a Genome object, part of it can be considerable sped up through multithreading.
+Because of how multithreading works in Python, this is only beneficial when using Linux - **and so is disabled on ALL other platforms** 
+To utilise mutlithreading on a Linux platform, use the `multithreaded` flag when instanciating a Genome:
+```
+from gumpy import Genome
+
+g = Genome("filename.gbk", multithreaded=True)
+```
+
+#### Setting a genome as a reference genome
+When comparing two Genomes, it is helpful to know if a Genome is a reference genome.
+This allows ease of finding mutations. To do this, use the `is_reference` flag when instanciating a Genome.
+```
+from gumpy import Genome
+
+g = Genome("filename.gbk", is_reference=True)
+```
+
 ### Parse a VCF file
 VariantFile objects can be created by passing a filename of a vcf file
 ```

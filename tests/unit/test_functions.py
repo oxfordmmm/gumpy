@@ -238,10 +238,8 @@ def test_genome_difference():
     assert diff2.find_mutations(g1) == []
     diff.update_view("full")
     assert numpy.all(diff.find_mutations(g1) == numpy.array([
-        list(zip(
-            sorted(['A@g-2a', 'A@S5P', 'A@Z9G', 'B@Z1G', 'C@A2G']),
-            sorted(['A@g-2a', 'A@S5P', 'A@Z9G', 'B@Z1G'])+[None]
-        ))]))
+            ['C@A2G', None]
+        ]))
 
     
 

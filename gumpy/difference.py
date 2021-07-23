@@ -376,11 +376,13 @@ class GenomeDifference(object):
         self.genome1_mutations = self.__mutations(reference=reference, mutant=self.genome1)
         self.genome2_mutations = self.__mutations(reference=reference, mutant=self.genome2)
         if self.__view_method == "full":
-            return numpy.array(
-                list(zip(
-                    *self.__pad_mutations(
-                        sorted(self.genome1_mutations), sorted(self.genome2_mutations))
-                    )))
+            return numpy.array([
+                (m1, m2) for (m1, m2) in 
+                    list(zip(
+                        *self.__pad_mutations(
+                            sorted(self.genome1_mutations), sorted(self.genome2_mutations))
+                        ))
+                if m1 != m2])
         if self.__view_method == "diff":
             return sorted(list(set(self.genome1_mutations).difference(set(self.genome2_mutations))))
 
