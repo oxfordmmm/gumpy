@@ -1,4 +1,4 @@
-import pytest, gumpy, copy, numpy
+import pytest, gumpy, copy, numpy, os
 
 #As BioPython thinks that the locus line of the TEST-RNA.gbk is malformed, it gives a warning
 #So ignore it to stop failing tests...
@@ -15,6 +15,9 @@ def test_genome_functions():
     assert g1 != g2
 
     #Testing saving and loading a genome
+    #Ensure that the saves directory exists
+    if not os.path.exists('tests/saves'):
+        os.makedirs('tests/saves')
     #Uncompressed
     g1.save("tests/saves/TEST-DNA.json")
     assert gumpy.Genome.load("tests/saves/TEST-DNA.json") == g1
