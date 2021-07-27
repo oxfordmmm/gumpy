@@ -14,6 +14,11 @@ def test_genome_functions():
     g2.nucleotide_sequence[5] = "t"
     assert g1 != g2
 
+    #Ensure that adding verbose arg to constructor doesn't change object's value
+    #It should add values to the timings dict, but this is unimportant to the values so is not checked in the __eq__
+    g2 = gumpy.Genome("config/TEST-DNA.gbk", verbose=True)
+    assert g1 == g2
+
     #Testing saving and loading a genome
     #Ensure that the saves directory exists
     if not os.path.exists('tests/saves'):
@@ -25,24 +30,56 @@ def test_genome_functions():
     g1.save("tests/saves/TEST-DNA.json.gz", compression_level=1)
     assert gumpy.Genome.load("tests/saves/TEST-DNA.json.gz") == g1
 
+    #Saving the sequence
+    g1.save_sequence("tests/saves/TEST-DNA-SEQ")
+    #Reloading to check this is saved correctly
+    with numpy.load("tests/saves/TEST-DNA-SEQ.npz") as seq:
+        s = []
+        for i in seq["sequence"]:
+            s.append(i)
+    assert numpy.all(g1.nucleotide_sequence == s)
+
+    #FASTA save
+    g1.save_fasta("tests/saves/TEST-DNA.fasta")
+    #Reload FASTA
+    with open("tests/saves/TEST-DNA.fasta") as f:
+        data = [line.replace("\n", "") for line in f]
+        header = data[0]
+        data = ''.join(data[1::]).lower()
+    assert header == ">TEST_DNA|TEST_DNA.1|TEST_DNA, complete genome"
+    assert data == "aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc"
+
     #Len
     assert g1.length == len(g1)
 
     #contains_gene()
     assert g1.contains_gene("A") == True
     assert g1.contains_gene("Not_A_Gene") == False
+    try:
+        g1.contains_gene(None)
+        assert False
+    except AssertionError as e:
+        assert str(e) == "Gene name must be string. Gene name provided was of type: <class 'NoneType'>"
+    try:
+        g1.contains_gene(g1)
+        assert False
+    except AssertionError as e:
+        assert str(e) == "Gene name must be string. Gene name provided was of type: <class 'gumpy.genome.Genome'>"
 
     #at_index()
     try:
         g1.at_index([])
+        assert False
     except AssertionError as e:
         assert str(e) == "index must be an integer!"
     try:
         g1.at_index(-1)
+        assert False
     except AssertionError as e:
         assert str(e) == "index must be a positive integer!"
     try:
         g1.at_index(1000)
+        assert False
     except AssertionError as e:
         assert str(e) == "index must be less than the length of the genome!"
     
@@ -88,6 +125,10 @@ def test_gene_functions():
         "['K' 'K' 'T' 'P' 'P' 'P' 'G' 'G' 'G']",
         "[1 2 3 4 5 6 7 8 9]"
     ]
+
+    g2.name = "A"
+    g2.nucleotide_sequence[2] = "g"
+    assert g1.list_mutations_wrt(g2) == ["g-1a"]
 
 def test_apply_vcf():
     #Will fail if the test_instanciate.py fails for test_instanciate_vcf()
@@ -237,11 +278,10 @@ def test_genome_difference():
     assert diff.find_mutations(g1) == ["C@A2G"]
     assert diff2.find_mutations(g1) == []
     diff.update_view("full")
+    diff2.update_view("full")
     assert numpy.all(diff.find_mutations(g1) == numpy.array([
             ['C@A2G', None]
         ]))
-
-    
-
-   
-
+    assert numpy.all(diff2.find_mutations(g1) == numpy.array([
+        [None, "C@A2G"]
+    ]))

@@ -237,6 +237,7 @@ class Genome(object):
         Returns:
             bool : Boolean showing if the genome contains a gene with that name
         '''
+        assert type(gene_name) == str, "Gene name must be string. Gene name provided was of type: "+str(type(gene_name))
         #Use of dict.get(obj) returns an object or None if obj does not exist in dict
         #bool(None) = False, bool(obj) = True
         return bool(self.genes_lookup.get(gene_name))
