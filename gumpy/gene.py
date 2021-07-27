@@ -2,9 +2,22 @@ import numpy
 
 # FIXME: problems with rrs, mfpB
 class Gene(object):
-
     """Gene object that uses underlying numpy arrays"""
     def __init__(self, *args, **kwargs):
+        '''Constructor for the Gene object.
+        Args:
+            name (str, optional): Name of the gene. Defaults to None
+            nucleotide_sequence (numpy.array, optional): Numpy array of the nucleotide sequence. Defaults to None
+            index (numpy.array, optional): Numpy array of the gene indices. Defaults to None
+            nucleotide_number (numpy.array, optional): Numpy array of the gene numbering. Defaults to None
+            is_cds (numpy.array, optional): Numpy array to act as a mask for whether given elements are codons. Defaults to None
+            is_promoter (numpy.array, optional): Numpy array to act as a mask for whether given elements are promoters. Defaults to None
+            is_indel (numpy.array, optional): Numpy array to act as a mask for whether given elements are indels. Defaults to None
+            indel_length (numpy.array, optional): Numpy array denoting the lengths of the indels whenever is_indel==True. Defaults to None
+            reverse_complement (boolean, optional): Boolean showing whether this gene is reverse complement. Defaults to False
+            codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
+            feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
+        '''
         #Set the kwargs
         #UPDATE THIS AS REQUIRED
         allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter', 
@@ -203,6 +216,14 @@ class Gene(object):
         return(output)
 
     def list_mutations_wrt(self,other):
+        '''Generate a list of mutations between this Gene object and a provided other.
+        The mutations are given in the GARC
+
+        Args:
+            other (gumpy.Gene): Other Gene object.
+        Returns:
+            list: List of strings showing the mutations between the two Genes.
+        '''
 
         assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
         assert self.name==other.name, "both genes must be identical!"
@@ -470,7 +491,15 @@ class Gene(object):
     def __sub__(self,other):
 
         """
-        Overload the subtraction operator so it returns a tuple of the differences between the two genes
+        Overload the subtraction operator so it returns a tuple of the differences between the two genes.
+        Differences are given in the form of an array of gene indices where the two Genes differ.
+        
+        Args:
+            other (gumpy.Gene): Other gene object
+        Raises:
+            AssertationErrors: Raises errors if the Genes are not the same gene (same length, name and codes_protein are required)
+        Returns:
+            numpy.array: Numpy array of gene indices where the Genes are different.
         """
 
         assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
@@ -493,6 +522,18 @@ class Gene(object):
 
 
     def valid_variant(self, variant):
+        '''Determines if a given variant is valid
+
+        Args:
+            variant (str): String of a mutation in GARC
+
+        Raises:
+            TypeError: TypeError is raised if the variant is malformed
+            AssertationError: AssertationError is raised if the vairant is not valid
+
+        Returns:
+            bool: Returns True when the variant is valid. Never returns False.
+        '''
         #TODO: Fix or remove this?? self.positions does not exist... Is it referring to self.index?
         #Surely it would make more sense to actually return False at some point instead of raising an AssertaionError??
 

@@ -302,7 +302,7 @@ class GenomeDifference(object):
             message = message[:-2]#Remove trailing comma
             message += ") which are not present in the mutant. "
         if len(set(mutant.genes.keys()).difference(set(reference.genes.keys()))) > 0:
-            #There are genes in the reference which are not in the mutant
+            #There are genes in the mutant which are not in the reference
             message += "The mutant has genes ("
             for gene in set(mutant.genes.keys()).difference(set(reference.genes.keys())):
                 message += gene+", "
@@ -317,6 +317,12 @@ class GenomeDifference(object):
         Returns:
             numpy.array: Array of mutations in GARC
         '''        
+        '''
+        TODO: 
+        Would it be beneficial to include the mutations within regions which are not classed as genes?
+        Is there a form for this within GARC, or would this have to be expanded for this purpose?
+        Would this give nucleotide mutations or amino acid mutations?
+        '''
         if reference is None and mutant is None:
             #Use XOR to determine if there is 1 reference
             if self.genome1.is_reference ^ self.genome2.is_reference:
@@ -404,3 +410,30 @@ def setup_codon_aa_dict():
     aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXXZZZZXZOOOOOXOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXXZZZZXZOOOOOXOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXXZZZZXZOOOOOXOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXXZZZZXZOOOOOXOOXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXXZZZZXZOOOOOXOOOOOOXOOOOOOXOOOOOOXOOOOOOXOOXXXXXXXOOOOXOOOOOOXOO'
     all_codons = [a+b+c for a in bases for b in bases for c in bases]
     return dict(zip(all_codons, aminoacids))
+
+
+'''
+TODO:
+Other potentially helpful additions:
+VCF file differences:
+    With Genomes, a comparison of VariantFile objects applied may be helpful but this is ambiguous.
+        Is this for the difference in:
+            Metadata fields/values?
+            Record fields?
+            Record values at specific positions where the genomes differ?
+            Records in general?
+            Coverage for calls?
+    For this reason a VCFDifference object may be helpful, but handling this when 1 of the genomes does not have a VCF is then ambiguous
+
+Gene differences:
+    Currently differences in Gene objects are handled by returning a list of gene positions where the two Genes differ.
+    However, it would be relatively trivial to have further information extracted upon Gene.__sub__()'s call.
+        This would include:
+            Gene positions different
+            Nucleotide differences
+            Codon differences
+            Amino acid differences
+            Mutation in the GARC
+        This would likely all be stored in a GeneDifference object
+        But as to whether this would actually be helpful is why I haven't yet implemented this...
+'''

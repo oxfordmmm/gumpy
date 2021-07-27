@@ -4,6 +4,15 @@ import pysam, numpy
 class VCFRecord(object):
     '''
     Class for VCF records
+    Instance variables:
+        `chrom` (str): Name of the sample.
+        `pos` (int): Genome index for the change.
+        `ref` (str): Reference value for the nucleotide.
+        `alts` (tuple(str)): Alternative calls. Tuple can contain single values and indels.
+        `qual` (None): Values for quality (values other than None have yet to be found in testing files...).
+        `filter` (str): Whether this record has pass the filter.
+        `info` (dict): Dictionary of key->value for the info fields.
+        `values` (dict): Dictionary of key->value for the values. Usually this is the FORMAT field names with their corresponding values.
     '''
     def __init__(self, *args, **kwargs):
         '''Constructor, pulls the data out of the pysam object
@@ -74,6 +83,12 @@ class VariantFile(object):
     '''
     Class to instanciate a variant file (VCF)
     Used to apply a VCF file to a genome
+    Instance variables:
+        `VCF_VERSION` (tuple(int)): Tuple of ints to show the VCF version of the file. e.g 3.2 would be (3, 2).
+        `contig_lengths` (dict): Dictionary mapping contig_name->length for all defined contigs.
+        `formats` (dict): Dictionary mapping format_name->dict(description, id, type).
+        `records` (list(VCFRecord)): List of VCFRecord objects for each record within the file.
+        `changes` (dict): Dictionary mapping array_index->(call, [(n_reads, alt_call)])
     '''
     def __init__(self, *args, **kwargs):
         '''

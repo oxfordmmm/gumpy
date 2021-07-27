@@ -3,6 +3,21 @@
 # gumpy
 Genetics with Numpy
 
+## Documentation
+Easy access to documentation for public methods can be found using the `pydoc` module from a terminal:
+```
+python -m pydoc -b gumpy
+```
+This should open a browser window showing documentation for all loaded modules. Navigating to `gumpy (package)` should bring up available files to view documentation.
+
+Docstrings contain documentation for almost all methods if documentation of private methods is required.
+
+## Testing
+A suite of tests can be run from a terminal:
+```
+python -m pytest --cov=gumpy -vv
+```
+
 ## Usage
 ### Parse a genbank file
 Genome objects can be created by passing a filename of a genbank file
