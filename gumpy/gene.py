@@ -260,7 +260,12 @@ class Gene(object):
         pos=list(self.nucleotide_number[mask])
         length=list(self.indel_length[mask])
         for (p,l) in zip(pos,length):
-            mutations.append(str(int(p))+"_indel")
+            if not l:
+                mutations.append(str(int(p))+"_indel_"+str(l))
+            elif l > 0:
+                mutations.append(str(p)+"_ins_"+str(l))
+            else:
+                mutations.append(str(p)+"_del_"+str(l))
 
         if not mutations:
             mutations=None

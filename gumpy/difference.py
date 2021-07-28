@@ -1,4 +1,4 @@
-import numpy, warnings
+import numpy, warnings, copy
 
 '''
 Classes for difference objects
@@ -39,7 +39,7 @@ class GenomeDifference(object):
         '''
         self.genome1 = genome1
         self.genome2 = genome2
-        self.__view_method = "diff"
+        self._view_method = "diff"
 
         #Calculate SNPs
         self.snp = self.__snp_distance()
@@ -48,23 +48,23 @@ class GenomeDifference(object):
         '''
         #Calculate differences
         self.indices = self.__indices()
-        self.__nucleotides_full = self.__nucleotides()
+        self._nucleotides_full = self.__nucleotides()
 
-        self.__codons_full = self.__codons()
-        self.__amino_acids_full = self.__amino_acids()
+        self._codons_full = self.__codons()
+        self._amino_acids_full = self.__amino_acids()
 
         #These are only valid when a VCF has been applied to at least 1 of the genomes
         self.indel_indices = self.__indel_indices()
-        self.__indels_full = self.__indels()
+        self._indels_full = self.__indels()
 
         self.het_indices = self.__het_indices()
-        self.__het_calls_full = self.__het_calls()
+        self._het_calls_full = self.__het_calls()
 
         #Find the mutations if one of the genomes is a reference genome
         #This does not require any re-formatting to meet the `diff` view
         self.mutations = self.__mutations()
 
-        self.update_view(self.__view_method)
+        self.update_view(self._view_method)
     
     def update_view(self, method):
         '''Update the viewing method. Can either be `diff` or `full`:
@@ -77,19 +77,21 @@ class GenomeDifference(object):
         assert type(method) == str, "Invalid method "+str(method)+" of type "+str(type(method))
         assert method in ['diff', 'full'], "Invalid method: "+method
         if method == "full":
-            self.nucleotides = self.__nucleotides_full
-            self.codons = self.__codons_full
-            self.amino_acids = self.__amino_acids_full
-            self.indels = self.__indels_full
-            self.het_calls = self.__het_calls_full
+            self.nucleotides = self._nucleotides_full
+            self.codons = self._codons_full
+            self.amino_acids = self._amino_acids_full
+            self.indels = self._indels_full
+            if hasattr(self, "_het_calls_full"):
+                self.het_calls = self._het_calls_full
         if method == "diff":
             #Convert the full arrays into diff arrays
-            self.nucleotides = self.__full_to_diff(self.__nucleotides_full)
-            self.codons = self.__full_to_diff(self.__codons_full)
-            self.amino_acids = self.__full_to_diff(self.__amino_acids_full)
-            self.indels = self.__full_to_diff(self.__indels_full)
-            self.het_calls = self.__full_to_diff(self.__het_calls_full)
-        self.__view_method = method
+            self.nucleotides = self.__full_to_diff(self._nucleotides_full)
+            self.codons = self.__full_to_diff(self._codons_full)
+            self.amino_acids = self.__full_to_diff(self._amino_acids_full)
+            self.indels = self.__full_to_diff(self._indels_full)
+            if hasattr(self, "_het_calls_full"):
+                self.het_calls = self.__full_to_diff(self._het_calls_full)
+        self._view_method = method
     
     def __check_none(self, arr, check):
         '''Recursive function to determine if a given array is all None values.
@@ -125,6 +127,8 @@ class GenomeDifference(object):
         '''      
         if type(arr1) != type(arr2):
             return True
+        if type(arr1) not in [list, tuple, type(numpy.array([]))]:
+            return check or (arr1 != arr2)
         for (e1, e2) in zip(arr1, arr2):
             if type(e1) in [list, tuple, type(numpy.array([]))]:
                 check = check or self.__check_any(e1, e2, check)
@@ -140,7 +144,10 @@ class GenomeDifference(object):
         Returns:
             numpy.array: Array of values from genome1
         '''        
-        array = numpy.array([item1 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
+        if len(array) > 0:
+            array = numpy.array([item1 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
+        else:
+            return numpy.array([])
         #Check for all None values
         if self.__check_none(array, True):
             return None
@@ -179,34 +186,15 @@ class GenomeDifference(object):
         Returns:
             numpy.array: Numpy array of tuples of (codon1, codon2)
         '''        
-        if len(self.__nucleotides_full) == 0:
+        if len(self._nucleotides_full) == 0:
             #No changes in nucleotides so no difference in codons
             return numpy.array([])
-        codons1 = self.__convert_nucleotides_codons(self.genome1.nucleotide_sequence)
-        codons2 = self.__convert_nucleotides_codons(self.genome2.nucleotide_sequence)
+        codons1 = convert_nucleotides_codons(self.genome1.nucleotide_sequence)
+        codons2 = convert_nucleotides_codons(self.genome2.nucleotide_sequence)
         mask = codons1 != codons2
         codons1 = codons1[mask]
         codons2 = codons2[mask]
         return numpy.array(list(zip(codons1, codons2)))
-    
-    def __convert_nucleotides_codons(self, nucleotides):
-        '''Helper function to convert an array of nucleotides into an array of codons
-
-        Args:
-            nucleotides (numpy.array): Array of nucleotides
-
-        Returns:
-            numpy.array: Array of codons
-        '''        
-        codons = []
-        c = ""
-        for index in range(1, len(nucleotides)+1):
-            c += nucleotides[index-1]
-            if index % 3 == 0:
-                #There have been 3 bases seen so add the codon
-                codons.append(c)
-                c = ""
-        return numpy.array(codons)
     
     def __amino_acids(self):
         '''Calculate the difference in amino acid sequences
@@ -216,12 +204,12 @@ class GenomeDifference(object):
         codon_to_amino_acid = setup_codon_aa_dict()
         
         #Get the difference in codons (if any)
-        if len(self.__codons_full) == 0:
+        if len(self._codons_full) == 0:
             #No different codons so no different amino acids
             return numpy.array([])
         
         aa_diff = []
-        for (codon1, codon2) in self.__codons_full:
+        for (codon1, codon2) in self._codons_full:
             aa1 = codon_to_amino_acid[codon1]
             aa2 = codon_to_amino_acid[codon2]
             if aa1 != aa2:
@@ -392,11 +380,284 @@ class GenomeDifference(object):
         if self.__view_method == "diff":
             return sorted(list(set(self.genome1_mutations).difference(set(self.genome2_mutations))))
 
+    def gene_differences(self):
+        '''Get the GeneDifference objects for each gene in the genomes.
+        Must be explicitly called by the user
+
+        Returns:
+            numpy.array: Array of GeneDifference objects
+        '''        
+        #Build the genome with the VCF applied
+        #Checking for the same genes
+        if self.genome1.genes.keys() != self.genome2.genes.keys():
+            #Get only the genes which are the same but give a warning
+            genes = set(self.genome1.genes.keys()).intersection(set(self.genome2.genes.keys()))
+            self.__raise_mutations_warning(self.genome1, self.genome2)
+        else:
+            genes = self.genome1.genes.keys()
+        return numpy.array([GeneDifference(self.genome1.genes[gene], self.genome2.genes[gene]) for gene in genes])
+
+
+class VCFDifference(object):
+    '''Object used to find the difference a VCF file makes to a given Genome.
+    This includes differences within codons/amino acids, coverages and mutations
+    '''
+    def __init__(self, vcf, genome):
+        self.genome = genome
+        self.vcf = vcf
+
+        self.indices = self.__indices()
+        self.snp = len(self.indices)
+
+        self.coverages = self.__coverages()
+        self.het_calls = self.__het_calls()
+
+        self.codons = self.__codons()
+        self.amino_acids = self.__amino_acid_mutations()
+
+    
+    def __indices(self):
+        '''Find the SNP positions caused by this VCF
+
+        Returns:
+            numpy.array: Array of SNP genome indices
+        '''        
+        indices = []
+        for record in self.vcf.records:
+            #Check that the record's call is different from the nucleotide in the genome
+            call = record.alts
+            if len(call) > 1:
+                #Het call
+                call = 'z'
+            elif len(call[0]) != 1:
+                #Indel call so not a SNP
+                continue
+            elif call[0] is None:
+                call = 'x'
+            else:
+                call = call[0]
+
+            if self.genome.nucleotide_sequence[record.pos - 1] != call:
+                indices.append(self.genome.nucleotide_index[record.pos - 1])
+        return numpy.array(indices)
+    
+    def __coverages(self):
+        '''Finds the coverages of each call at each position
+
+        Returns:
+            dict: Dictionary mapping the genome_index->[(cov, call)]
+        '''        
+        coverages = {}
+        for record in self.vcf.records:
+            alts = ('*', ) + record.alts
+            coverages[record.pos] = list(zip(record.values["COV"], alts))
+        return coverages
+    
+    def __het_calls(self):
+        '''Find the possible values for het calls defined in the VCF
+
+        Returns:
+            dict: Dictionary mapping genome_index->[call1, call2..]
+        '''        
+        het_calls = {}
+        for record in self.vcf.records:
+            if len(record.alts) > 1:
+                #There is a het call
+                het_calls[record.pos] = record.alts
+        return het_calls
+    
+    def __codons(self):
+        '''Find the difference in codons in the genome caused by the VCF file
+
+        Returns:
+            dict: Dictionary mapping genome_index->(genome_codon, vcf_codon)
+        '''
+        self.__nucleotides = self.genome.nucleotide_sequence.tolist()
+        for index in self.vcf.changes.keys():
+            call, _ = self.vcf.changes[index]
+            if type(call) == tuple:
+                # self.__nucleotides[index] = call[0].tolist()
+                pass
+            else:
+                self.__nucleotides[index] = call
+        nucleotides = self.__nucleotides
+
+        codons = {}
+        c = ""
+        c_g = ""
+        for index in range(1, len(nucleotides)+1):
+            c += nucleotides[index-1]
+            c_g += self.genome.nucleotide_sequence[index-1]
+            if index % 3 == 0:
+                #There have been 3 bases seen so add the codon
+                if c != c_g:
+                    codons[index - 1] = (c_g, c)
+                c = ""
+                c_g = ""
+        return codons
+    
+    def __amino_acid_mutations(self):
+        '''Find the genome-wide amino acid mutations caused by the VCF
+
+        Returns:
+            list: List of strings showing mutations in the form '`original_aa``index``new_aa`'
+        '''        
+        codon_aa = setup_codon_aa_dict()
+        mutations = []
+        for index in self.codons.keys():
+            original, new = self.codons[index]
+            original_aa = codon_aa[original]
+            new_aa = codon_aa[new]
+            if original_aa != new_aa:
+                #Check that this is a non-synonymous mutation
+                mutations.append(original_aa+str(index-1)+new_aa)
+        return mutations
+    
+    def gene_differences(self):
+        '''Get the GeneDifference objects for each gene in the genome comparing existing genes with genes after VCF.
+        Must be explicitly called by the user as applying a VCF is computationally expensive
+
+        Returns:
+            numpy.array: Array of GeneDifference objects
+        '''        
+        #Build the genome with the VCF applied
+        genome_ = self.genome.apply_variant_file(self.vcf)
+        return numpy.array([
+            GeneDifference(
+                self.genome.genes[gene], genome_.genes[gene]
+            )
+            for gene in self.genome.genes.keys()
+        ])
+
+            
+
+class GeneDifference(GenomeDifference):
+    '''Object to store the differences within genes. The same view system is inherited from the GenomeDifference class.
+    Set to `full` for arrays of tuple values where applicable.
+    Set to `diff` for arrays of values from gene1 where the values vary. Default.
+    '''    
+    def __init__(self, gene1, gene2):
+        '''Constructor. Takes in two gene objects and calculates the difference in a few areas such as nucleotides, codons, and amino acids.
+
+        Args:
+            gene1 (gumpy.Gene): Gene object 1
+            gene2 (gumpy.Gene): Gene object 2
+        '''        
+        if gene1.total_number_nucleotides != gene2.total_number_nucleotides:
+            #The lengths of the genes are different so comparing them is meaningless
+            warnings.warn("The two genes ("+gene1.name+" and "+gene2.name+") are different lengths, so comparision failed...", UserWarning)
+            return None
+        if gene1.name != gene2.name:
+            warnings.warn("The two genes given have different names ("+gene1.name+", "+gene2.name+") but the same length, continuing...", UserWarning)
+        self.gene1 = gene1
+        self.gene2 = gene2
+
+        self._nucleotides_full = self.__nucleotides()
+        self.mutations = self.__mutations()
+
+        self.indel_indices = self.__indel_indices()
+        self._indels_full = self.__indels()
+        self._codons_full = self.__codons()
+        self._amino_acids_full = self.__amino_acids()
+
+        self.update_view("diff")
+    
+    def __nucleotides(self):
+        '''Find the differences in nucleotides
+
+        Returns:
+            numpy.array: Array of tuples (gene1_nucleotide, gene2_nucleotide)
+        '''        
+        return numpy.array(
+            [(n1, n2) 
+                for (n1, n2) 
+                in zip(self.gene1.nucleotide_sequence, self.gene2.nucleotide_sequence)
+                if n1 != n2
+            ])
+    def __mutations(self):
+        '''Generate the list of mutations between the two genes
+
+        Returns:
+            numpy.array: Array of mutations in GARC
+        '''        
+        mutations = []
+        gene_mutation = self.gene2.list_mutations_wrt(self.gene1)
+        if gene_mutation is not None:
+            for mutation in gene_mutation:
+                mutations.append(self.gene1.name+"@"+mutation)
+        return numpy.array(mutations)
+    def __indel_indices(self):
+        '''Find the positions at which the indels differ between the two genes
+
+        Returns:
+            numpy.array: Array of gene indices where the two genes have different indels
+        '''        
+        mask = self.gene1.indel_length != self.gene2.indel_length
+        return self.gene1.nucleotide_number[mask]
+    def __indels(self):
+        '''Find the lengths of the indels at each position where the two genes' indels differ
+
+        Returns:
+            numpy.array: Array of lengths of indels in the form [(gene1_indel, gene2_indel)]
+        '''
+        mask = self.gene1.indel_length != self.gene2.indel_length
+        return numpy.array([
+            (i1, i2)
+            for (i1, i2) in zip(self.gene1.indel_length[mask], self.gene2.indel_length[mask])
+        ])
+    def __codons(self):
+        '''Find the codon positions which are different within the genes (within codon regions)
+
+        Returns:
+            numpy.array: Array of codons which differ of the form [(gene1_codon, gene2_codon)]
+        '''        
+        codons1 = convert_nucleotides_codons(self.gene1.nucleotide_sequence[self.gene1.is_cds])
+        codons2 = convert_nucleotides_codons(self.gene2.nucleotide_sequence[self.gene2.is_cds])
+        mask = codons1 != codons2
+        codons1 = codons1[mask]
+        codons2 = codons2[mask]
+        return numpy.array(list(zip(codons1, codons2)))
+
+    
+    def __amino_acids(self):
+        '''Calculate the difference in amino acid sequences (within codon regions)
+        Returns:
+            numpy.array: Array of tuples showing (amino_acid_1, amino_acid_2)
+        '''
+        codon_to_amino_acid = setup_codon_aa_dict()
+        
+        aa_diff = []
+        for (codon1, codon2) in self._codons_full:
+            aa1 = codon_to_amino_acid[codon1]
+            aa2 = codon_to_amino_acid[codon2]
+            if aa1 != aa2:
+                aa_diff.append((aa1, aa2))
+        return numpy.array(aa_diff)
+    
+
 
 
 '''
 Helper functions not specific to a class
 '''
+def convert_nucleotides_codons(nucleotides):
+    '''Helper function to convert an array of nucleotides into an array of codons
+
+    Args:
+        nucleotides (numpy.array): Array of nucleotides
+
+    Returns:
+        numpy.array: Array of codons
+    '''        
+    codons = []
+    c = ""
+    for index in range(1, len(nucleotides)+1):
+        c += nucleotides[index-1]
+        if index % 3 == 0:
+            #There have been 3 bases seen so add the codon
+            codons.append(c)
+            c = ""
+    return numpy.array(codons)
 
 def setup_codon_aa_dict():
     '''Setup a conversion dictionary to convert codons to amino acids

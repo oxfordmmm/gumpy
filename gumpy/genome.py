@@ -901,7 +901,9 @@ class Genome(object):
                 genome.changes[change] = (genome.original[change], vcf.changes[change][0])
             else:
                 #It was an indel, so add the indel call to the indels dict
-                genome.indels[change] = vcf.changes[change][0]
+                genome.indels[change] = vcf.changes[change][0][0]
+                genome.is_indel[change] = True
+                genome.indel_length[change] = len(vcf.changes[change][0][0])
 
         #Rebuild the genes with this new information
         print("Rebuilding the Gene objects with the updated genome...")

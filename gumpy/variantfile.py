@@ -1,4 +1,6 @@
 import pysam, numpy
+import pandas as pd
+from gumpy import VCFDifference
 
 
 class VCFRecord(object):
@@ -198,6 +200,53 @@ class VariantFile(object):
             #     call = 'x'
             alts = ('*', ) + alts
             self.changes[key] = (call, list(zip(n_reads, alts)))
-            # print(i, list(zip(n_reads, alts)))
-            # i += 1
-            # print(call, alts)
+
+    def to_df(self):
+        '''Convert the VCFRecord to a pandas DataFrame. 
+        Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations 
+        (but pandas does not currently have a robust method for metadata storage...)
+
+        Returns:
+            pandas.DataFrame: DataFrame containing all of the information from the VCF file
+        '''        
+        meta_data = {
+            "VCF_VERSION": self.VCF_VERSION,
+            "contig_lengths": self.contig_lengths,
+            "formats": self.formats
+        }
+
+        chroms = []
+        pos = []
+        refs = []
+        alts = []
+        qual = []
+        infos = []
+        values = {}
+        for record in self.records:
+            chroms.append(record.chrom)
+            pos.append(record.pos)
+            refs.append(record.ref)
+            alts.append(record.alts)
+            qual.append(record.qual)
+            infos.append(record.info)
+            for key in record.values:
+                if values.get(key) is None:
+                    values[key] = [record.values[key]]
+                else:
+                    values[key].append(record.values[key])
+        df = pd.DataFrame({
+            "CHROM": chroms, "POS": pos,
+            "REF": refs, "ALTS": alts,
+            "QUAL": qual, "INFO": infos,
+            **values
+            })
+        df.attrs = meta_data
+        return df
+    
+    def difference(self, genome):
+        '''Takes in a Genome object, returning an object detailing the full differences caused by this VCF including amino acid differences
+
+        Args:
+            genome (gumpy.Genome): A reference Genome object
+        '''        
+        return VCFDifference(self, genome)

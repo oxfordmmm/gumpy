@@ -14,7 +14,7 @@ Classes:
 
 __version__="0.1"
 
-from .difference import GenomeDifference
+from .difference import GenomeDifference, VCFDifference, GeneDifference
 from .gene import Gene
 from .genotype import Genotype
 from .variantfile import VariantFile
