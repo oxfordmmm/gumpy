@@ -137,6 +137,7 @@ def test_apply_vcf():
     assert numpy.all(g2.nucleotide_sequence ==  numpy.array(
                     list('agaaaaaaaaccccctccccgggggggzggttttttttttaaaaaaaaaaccccccccccggggggggggtttttttzttaaaaaaaaaxccccccccc')
     ))
+    assert numpy.all(g2 - g1 == numpy.array([2, 16, 28, 78, 90]))
     assert g2.variant_file == vcf
     assert g2.original == {
         1: 'a',
@@ -216,7 +217,7 @@ def test_genome_difference():
     g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf"))
     assert g1 != g2
 
-    diff = g2 - g1
+    diff = g2.difference(g1)
     #Default view
     assert diff.snp == 5
     assert numpy.all(diff.indices == numpy.array([2, 16, 28, 78, 90]))
@@ -274,10 +275,10 @@ def test_genome_difference():
     g2._Genome__recreate_genes()#Recreate the genes
 
     with pytest.warns(UserWarning):
-        diffd = g2 - g1
+        diffd = g2.difference(g1)
     
     #Testing cases when genomes are equal
-    diff = g1 - g1
+    diff = g1.difference(g1)
     assert diff is None
 
     #Testing cases when 2 different genomes are given. Neither are reference
@@ -286,8 +287,8 @@ def test_genome_difference():
     g3.nucleotide_sequence[91] = 'g'
     g3._Genome__recreate_genes()#Recreate the genes
 
-    diff = g3 - g4
-    diff2 = g4 - g3
+    diff = g3.difference(g4)
+    diff2 = g4.difference(g3)
     assert diff.find_mutations(g1) == ["C@A2G"]
     assert diff2.find_mutations(g1) == []
     diff.update_view("full")

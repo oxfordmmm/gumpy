@@ -128,7 +128,7 @@ class GenomeDifference(Difference):
             `find_mutations(reference: gumpy.Genome) -> numpy.array`: Used to find the mutations within the genes of the geomes when neither are reference genomes. Exact format depends on which view is selected.
     '''
     def __init__(self, genome1, genome2):
-        '''Constructor for the GenomeDifference object. Called implictly when `genome1 - genome2` is performed.
+        '''Constructor for the GenomeDifference object. Called implictly when `genome1.difference(genome2)` is performed.
         Args:
             genome1 (gumpy.Genome): A Genome object to compare against
             genome2 (gumpy.Genome): The other Genome object

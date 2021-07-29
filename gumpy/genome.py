@@ -174,16 +174,10 @@ class Genome(object):
         Args:
             other (gumpy.Genome) : The other genome used in the subtraction
         Returns:
-            GenomeDifference: GenomeDifference object to store the differences
+            numpy.array: Array of genome indices where the two genomes differ
         """
-        #Initial checks
-        if self == other:
-            #If they are the same genome, return None as there is no difference
-            return None
-
-        assert len(self) == len(other), "Genomes should be the same length!"
-
-        return GenomeDifference(self, other)
+        mask = self.nucleotide_sequence != other.nucleotide_sequence
+        return self.nucleotide_index[mask]
     
     def __eq__(self, other):
         '''
@@ -226,6 +220,17 @@ class Genome(object):
             int : Length of the genome
         '''
         return self.length
+    
+    def difference(self, other):
+        '''Generate a GenomeDifference object for a in-depth difference of the two Genomes
+
+        Args:
+            other (gumpy.Genome): The other Genome object to compare to
+        '''
+        assert self.length == other.length, "The two genomes must be the same length!"
+        if self == other:
+            return None
+        return GenomeDifference(self, other)        
 
     def contains_gene(self,gene_name):
         '''
