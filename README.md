@@ -70,7 +70,7 @@ resultant_genome = reference_genome.apply_variant_file(vcf)
 ### Compare genomes
 Two genomes of the same length can be easily compared, including equality and changes between the two.
 ```
-from gumpy import Genome
+from gumpy import Genome, GenomeDifference
 
 g1 = Genome("filename1.gbk", is_reference=True) #A reference genome
 g2 = g1.apply_variant_file(VariantFile("filename2.vcf")) #A genome which has been altered by a VCF
@@ -84,6 +84,25 @@ print(diff.codons) #Array of codons in g2 which are different in g1
 print(diff.indels) #Array of indels in g2 where there are indels in either g1 or g2
 print(diff.het_calls) #Array of calls with coverages for every het call in both g1 and g2
 print(diff.mutations) #Array of mutations within the genes in g2 compared to the reference of g1
+```
+### Compare VCF file
+There is functionality to find the impact which a given VCF file has on a given genome.
+This includes changes in codons, amino acids as well as genes
+```
+from gumpy import VariantFile, VCFDifference, GeneDifference, Genome
+vcf = VariantFile("filename.vcf")
+genome = Genome("filename.gbk", is_reference=True)
+
+diff = vcf.difference(genome) #Returns a VCFDifference object
+diff.coverage #List of the coverages of all calls
+diff.codons #List of the codons within the genome which are changed by the VCF
+diff.amino_acids #List of the amino acids within the genome which are changed by the VCF
+
+genes_diff = diff.gene_differences() #Array of GeneDifference objects
+[g_diff.codons for g_diff in genes_diff] #List of the codon changes made within each gene (if the changes are within codons)
+[g_diff.amino_acids for g_diff in genes_diff] #List of the amino acid changes within each gene (if coding for amino acids)
+[g_diff.mutations for g_diff in genes_diff] #List of mutations within each gene in GARC
+[g_diff.indels for g_diff in genes_diff] #List of the indel lengths where the indels differ between the VCF and the genome
 ```
 
 ### Compare genes within genomes

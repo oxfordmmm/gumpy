@@ -139,7 +139,6 @@ class VariantFile(object):
             for sample in record.samples.keys():
                 self.records.append(VCFRecord(record, sample))
         
-        # print(self.records)
 
         self.__find_changes()
     

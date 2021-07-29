@@ -1,75 +1,21 @@
-import numpy, warnings, copy
+import numpy, warnings
+from abc import ABC #Python library for abstract classes
 
 '''
 Classes for difference objects
 '''
 
-class GenomeDifference(object):
-    '''GenomeDifference object is used to return the difference between two genomes.
-        The difference can be viewed in one of two ways:
-            `diff`: Arrays of the values from genome1 where there are different values in genome2, 
-                    or values which exist in genome1 but not genome2 depending on which is more appropriate (closer to classical subtraction).
-                    This is the default view.
-            `full`: Arrays of tuples consisting of (genome1_val, genome2_val) - more information but less like classical subtraction 
-                    and more difficult to wrangle meaningful information from.
-        This option can be set by using the `update_view()` method
-
-        Instance variables:
-            `snp` (int): SNP distance between the two genomes
-            `indices` (numpy.array): Array of genome indices where the two genomes differ in nucleotides
-            `nucleotides` (numpy.array): Array of differences in nucleotides. Exact format depends on which view is selected.
-            `codons` (numpy.array): Array of differences in codons. Exact format depends on which view is selected.
-            `amino_acids` (numpy.array): Array of differences in amino acids. Exact format depends on which view is selected.
-            `indel_indices` (numpy.array): Array of indices where the two genomes have indels
-            `indels` (numpy.array): Array of differences in inels. Exact format depends on which view is selected.
-            `het_indices` (numpy.array): Array of indices where there are het calls in either genome
-            `het_calls` (numpy.array): Array of het_calls at `het_indices`. Exact format depends on which view is selected.
-            `mutations` (numpy.array): Array of mutations within genes of a mutant genome given one of the genomes is a reference genome.
-            `genome1_mutations` (numpy.array): Array of mutations within genes of genome1 compared to a reference. Only set once `find_mutations()` has been called
-            `genome2_mutations` (numpy.array): Array of mutations within genes of genome2 compared to a reference. Only set once `find_mutations()` has been called
-        Methods:
-            `update_view(method: str) -> None`: Used to change the viewing method for instance variables. `method` values are either `diff` or `full`
-            `find_mutations(reference: gumpy.Genome) -> numpy.array`: Used to find the mutations within the genes of the geomes when neither are reference genomes. Exact format depends on which view is selected.
-    '''
-    def __init__(self, genome1, genome2):
-        '''Constructor for the GenomeDifference object. Called implictly when `genome1 - genome2` is performed.
-        Args:
-            genome1 (gumpy.Genome): A Genome object to compare against
-            genome2 (gumpy.Genome): The other Genome object
-        '''
-        self.genome1 = genome1
-        self.genome2 = genome2
-        self._view_method = "diff"
-
-        #Calculate SNPs
-        self.snp = self.__snp_distance()
-        '''
-        Where applicable, the `full` diference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
-        '''
-        #Calculate differences
-        self.indices = self.__indices()
-        self._nucleotides_full = self.__nucleotides()
-
-        self._codons_full = self.__codons()
-        self._amino_acids_full = self.__amino_acids()
-
-        #These are only valid when a VCF has been applied to at least 1 of the genomes
-        self.indel_indices = self.__indel_indices()
-        self._indels_full = self.__indels()
-
-        self.het_indices = self.__het_indices()
-        self._het_calls_full = self.__het_calls()
-
-        #Find the mutations if one of the genomes is a reference genome
-        #This does not require any re-formatting to meet the `diff` view
-        self.mutations = self.__mutations()
-
-        self.update_view(self._view_method)
-    
+class Difference(ABC):
+    '''Abstract class used to provide the ability to switch between views. Inherited by GenomeDifference and GeneDifference.
+    This should not be instantiated.
+    '''    
+    def __init__(self):
+        #If this class is instantiated, crash
+        assert False, "This class should not be instantiated!"
     def update_view(self, method):
         '''Update the viewing method. Can either be `diff` or `full`:
-        `diff`: Where applicable, variables return arrays of values from genome1 where they are not equal to genome 2
-        `full`: Where applicable, variables return arrays of tuples showing (genome1_val, genome2_val) where values are not equal between genomes.
+        `diff`: Where applicable, variables return arrays of values from object1 where they are not equal to object 2
+        `full`: Where applicable, variables return arrays of tuples showing (object1_val, object2_val) where values are not equal between objects.
 
         Args:
             method (str): Name of the viewing method. Must be within `['diff', 'full']`
@@ -142,7 +88,7 @@ class GenomeDifference(object):
         Args:
             array (numpy.array): Array of tuples of values
         Returns:
-            numpy.array: Array of values from genome1
+            numpy.array: Array of values from object1
         '''        
         if len(array) > 0:
             array = numpy.array([item1 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
@@ -153,6 +99,68 @@ class GenomeDifference(object):
             return None
         else:
             return array
+
+class GenomeDifference(Difference):
+    '''GenomeDifference object is used to return the difference between two genomes.
+        The difference can be viewed in one of two ways:
+            `diff`: Arrays of the values from genome1 where there are different values in genome2, 
+                    or values which exist in genome1 but not genome2 depending on which is more appropriate (closer to classical subtraction).
+                    This is the default view.
+            `full`: Arrays of tuples consisting of (genome1_val, genome2_val) - more information but less like classical subtraction 
+                    and more difficult to wrangle meaningful information from.
+        This option can be set by using the `update_view()` method
+
+        Instance variables:
+            `snp` (int): SNP distance between the two genomes
+            `indices` (numpy.array): Array of genome indices where the two genomes differ in nucleotides
+            `nucleotides` (numpy.array): Array of differences in nucleotides. Exact format depends on which view is selected.
+            `codons` (numpy.array): Array of differences in codons. Exact format depends on which view is selected.
+            `amino_acids` (numpy.array): Array of differences in amino acids. Exact format depends on which view is selected.
+            `indel_indices` (numpy.array): Array of indices where the two genomes have indels
+            `indels` (numpy.array): Array of differences in inels. Exact format depends on which view is selected.
+            `het_indices` (numpy.array): Array of indices where there are het calls in either genome
+            `het_calls` (numpy.array): Array of het_calls at `het_indices`. Exact format depends on which view is selected.
+            `mutations` (numpy.array): Array of mutations within genes of a mutant genome given one of the genomes is a reference genome.
+            `genome1_mutations` (numpy.array): Array of mutations within genes of genome1 compared to a reference. Only set once `find_mutations()` has been called
+            `genome2_mutations` (numpy.array): Array of mutations within genes of genome2 compared to a reference. Only set once `find_mutations()` has been called
+        Methods:
+            `update_view(method: str) -> None`: Used to change the viewing method for instance variables. `method` values are either `diff` or `full`
+            `find_mutations(reference: gumpy.Genome) -> numpy.array`: Used to find the mutations within the genes of the geomes when neither are reference genomes. Exact format depends on which view is selected.
+    '''
+    def __init__(self, genome1, genome2):
+        '''Constructor for the GenomeDifference object. Called implictly when `genome1 - genome2` is performed.
+        Args:
+            genome1 (gumpy.Genome): A Genome object to compare against
+            genome2 (gumpy.Genome): The other Genome object
+        '''
+        self.genome1 = genome1
+        self.genome2 = genome2
+        self._view_method = "diff"
+
+        #Calculate SNPs
+        self.snp = self.__snp_distance()
+        '''
+        Where applicable, the `full` diference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
+        '''
+        #Calculate differences
+        self.indices = self.__indices()
+        self._nucleotides_full = self.__nucleotides()
+
+        self._codons_full = self.__codons()
+        self._amino_acids_full = self.__amino_acids()
+
+        #These are only valid when a VCF has been applied to at least 1 of the genomes
+        self.indel_indices = self.__indel_indices()
+        self._indels_full = self.__indels()
+
+        self.het_indices = self.__het_indices()
+        self._het_calls_full = self.__het_calls()
+
+        #Find the mutations if one of the genomes is a reference genome
+        #This does not require any re-formatting to meet the `diff` view
+        self.mutations = self.__mutations()
+
+        self.update_view(self._view_method)
 
     def __snp_distance(self):
         '''Calculates the SNP distance between the two genomes
@@ -170,7 +178,6 @@ class GenomeDifference(object):
             numpy.array: Numpy array for the difference in nucleotide sequence
         '''        
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
-        mask += self.genome1.indel_length!=0
         return self.genome1.nucleotide_index[mask]
     
     def __nucleotides(self):
@@ -244,11 +251,11 @@ class GenomeDifference(object):
         if self.genome1.indels is None and self.genome2.indels is None:
             return numpy.array([])
         elif self.genome1.indels is None:
-            return numpy.array([(None, indel[0]) for indel in self.genome2.indels.values()], dtype=object)
+            return numpy.array([(None, indel) for indel in self.genome2.indels.values()], dtype=object)
         elif self.genome2.indels is None:
-            return numpy.array([(indel[0], None) for indel in self.genome1.indels.values()], dtype=object)
+            return numpy.array([(indel, None) for indel in self.genome1.indels.values()], dtype=object)
         else:
-            return numpy.array([(self.genome1.indels.get(index)[0], self.genome2.indels.get(index)[0]) for index in self.indel_indices])
+            return numpy.array([(self.genome1.indels.get(index), self.genome2.indels.get(index)) for index in self.indel_indices])
     
     def __het_indices(self):
         '''Find the array indices at which there are het calls
@@ -305,12 +312,6 @@ class GenomeDifference(object):
         Returns:
             numpy.array: Array of mutations in GARC
         '''        
-        '''
-        TODO: 
-        Would it be beneficial to include the mutations within regions which are not classed as genes?
-        Is there a form for this within GARC, or would this have to be expanded for this purpose?
-        Would this give nucleotide mutations or amino acid mutations?
-        '''
         if reference is None and mutant is None:
             #Use XOR to determine if there is 1 reference
             if self.genome1.is_reference ^ self.genome2.is_reference:
@@ -369,7 +370,7 @@ class GenomeDifference(object):
         assert reference.is_reference == True, "Genome passed is not a reference genome!"
         self.genome1_mutations = self.__mutations(reference=reference, mutant=self.genome1)
         self.genome2_mutations = self.__mutations(reference=reference, mutant=self.genome2)
-        if self.__view_method == "full":
+        if self._view_method == "full":
             return numpy.array([
                 (m1, m2) for (m1, m2) in 
                     list(zip(
@@ -377,7 +378,7 @@ class GenomeDifference(object):
                             sorted(self.genome1_mutations), sorted(self.genome2_mutations))
                         ))
                 if m1 != m2])
-        if self.__view_method == "diff":
+        if self._view_method == "diff":
             return sorted(list(set(self.genome1_mutations).difference(set(self.genome2_mutations))))
 
     def gene_differences(self):
@@ -400,7 +401,8 @@ class GenomeDifference(object):
 
 class VCFDifference(object):
     '''Object used to find the difference a VCF file makes to a given Genome.
-    This includes differences within codons/amino acids, coverages and mutations
+    This includes differences within codons/amino acids, coverages and mutations.
+    Reports the values of indel calls which differ in length from any indels within the genome
     '''
     def __init__(self, vcf, genome):
         self.genome = genome
@@ -411,6 +413,7 @@ class VCFDifference(object):
 
         self.coverages = self.__coverages()
         self.het_calls = self.__het_calls()
+        self.indels = self.__indels()
 
         self.codons = self.__codons()
         self.amino_acids = self.__amino_acid_mutations()
@@ -426,6 +429,9 @@ class VCFDifference(object):
         for record in self.vcf.records:
             #Check that the record's call is different from the nucleotide in the genome
             call = record.alts
+            if call is None:
+                #Checking for null values
+                call = 'x'
             if len(call) > 1:
                 #Het call
                 call = 'z'
@@ -449,8 +455,12 @@ class VCFDifference(object):
         '''        
         coverages = {}
         for record in self.vcf.records:
-            alts = ('*', ) + record.alts
-            coverages[record.pos] = list(zip(record.values["COV"], alts))
+            if record.values["COV"] == (0, 0) or record.values["COV"] is None:
+                continue
+            if record.alts is None:
+                #Checking for null values
+                record.alts = ('x', )
+            coverages[record.pos] = list(zip(record.values["COV"][1::], record.alts))
         return coverages
     
     def __het_calls(self):
@@ -463,20 +473,45 @@ class VCFDifference(object):
         for record in self.vcf.records:
             if len(record.alts) > 1:
                 #There is a het call
+                if record.alts is None:
+                    record.alts = ('x', )
                 het_calls[record.pos] = record.alts
         return het_calls
     
+    def __indels(self):
+        '''Find the difference in the indels and the positons which it varies at.
+
+        Returns:
+            dict: Dictionary mapping array_index->array(indel)
+        '''        
+        indels = {}
+        for index in self.vcf.changes.keys():
+            call = self.vcf.changes[index][0]
+            if type(call) == tuple:
+                #Indel call so check for differences
+                if self.genome.is_indel[index] == True and self.genome.indel_length[index] == len(call[0]):
+                    #Check genome.indels to see if they are the same indel
+                    if self.genome.indels is not None and numpy.any(self.genome.indels[index] != call[0]):
+                        #There is a same length, but different value indel
+                        indels[index] = call[0]
+                    else:
+                        #No differences in indels so ignore it
+                        continue
+                else:
+                    indels[index] = call[0]
+        return indels
+
     def __codons(self):
         '''Find the difference in codons in the genome caused by the VCF file
 
         Returns:
-            dict: Dictionary mapping genome_index->(genome_codon, vcf_codon)
+            dict: Dictionary mapping codon_index->(genome_codon, vcf_codon)
         '''
         self.__nucleotides = self.genome.nucleotide_sequence.tolist()
         for index in self.vcf.changes.keys():
             call, _ = self.vcf.changes[index]
             if type(call) == tuple:
-                # self.__nucleotides[index] = call[0].tolist()
+                #Indel so ignore for this
                 pass
             else:
                 self.__nucleotides[index] = call
@@ -491,7 +526,7 @@ class VCFDifference(object):
             if index % 3 == 0:
                 #There have been 3 bases seen so add the codon
                 if c != c_g:
-                    codons[index - 1] = (c_g, c)
+                    codons[index//3 - 1] = (c_g, c)
                 c = ""
                 c_g = ""
         return codons
@@ -510,7 +545,7 @@ class VCFDifference(object):
             new_aa = codon_aa[new]
             if original_aa != new_aa:
                 #Check that this is a non-synonymous mutation
-                mutations.append(original_aa+str(index-1)+new_aa)
+                mutations.append(original_aa+str(index)+new_aa)
         return mutations
     
     def gene_differences(self):
@@ -529,10 +564,9 @@ class VCFDifference(object):
             for gene in self.genome.genes.keys()
         ])
 
-            
 
-class GeneDifference(GenomeDifference):
-    '''Object to store the differences within genes. The same view system is inherited from the GenomeDifference class.
+class GeneDifference(Difference):
+    '''Object to store the differences within genes. The same view system is inherited from the Difference class.
     Set to `full` for arrays of tuple values where applicable.
     Set to `diff` for arrays of values from gene1 where the values vary. Default.
     '''    
@@ -551,6 +585,7 @@ class GeneDifference(GenomeDifference):
             warnings.warn("The two genes given have different names ("+gene1.name+", "+gene2.name+") but the same length, continuing...", UserWarning)
         self.gene1 = gene1
         self.gene2 = gene2
+        self._view_method = "diff"
 
         self._nucleotides_full = self.__nucleotides()
         self.mutations = self.__mutations()
@@ -560,7 +595,7 @@ class GeneDifference(GenomeDifference):
         self._codons_full = self.__codons()
         self._amino_acids_full = self.__amino_acids()
 
-        self.update_view("diff")
+        self.update_view("diff") #Use inherited method to set the view
     
     def __nucleotides(self):
         '''Find the differences in nucleotides
@@ -585,7 +620,7 @@ class GeneDifference(GenomeDifference):
         if gene_mutation is not None:
             for mutation in gene_mutation:
                 mutations.append(self.gene1.name+"@"+mutation)
-        return numpy.array(mutations)
+        return numpy.array(sorted(mutations))
     def __indel_indices(self):
         '''Find the positions at which the indels differ between the two genes
 
@@ -671,30 +706,3 @@ def setup_codon_aa_dict():
     aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXXZZZZXZOOOOOXOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXXZZZZXZOOOOOXOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXXZZZZXZOOOOOXOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXXZZZZXZOOOOOXOOXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXXZZZZXZOOOOOXOOOOOOXOOOOOOXOOOOOOXOOOOOOXOOXXXXXXXOOOOXOOOOOOXOO'
     all_codons = [a+b+c for a in bases for b in bases for c in bases]
     return dict(zip(all_codons, aminoacids))
-
-
-'''
-TODO:
-Other potentially helpful additions:
-VCF file differences:
-    With Genomes, a comparison of VariantFile objects applied may be helpful but this is ambiguous.
-        Is this for the difference in:
-            Metadata fields/values?
-            Record fields?
-            Record values at specific positions where the genomes differ?
-            Records in general?
-            Coverage for calls?
-    For this reason a VCFDifference object may be helpful, but handling this when 1 of the genomes does not have a VCF is then ambiguous
-
-Gene differences:
-    Currently differences in Gene objects are handled by returning a list of gene positions where the two Genes differ.
-    However, it would be relatively trivial to have further information extracted upon Gene.__sub__()'s call.
-        This would include:
-            Gene positions different
-            Nucleotide differences
-            Codon differences
-            Amino acid differences
-            Mutation in the GARC
-        This would likely all be stored in a GeneDifference object
-        But as to whether this would actually be helpful is why I haven't yet implemented this...
-'''

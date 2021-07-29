@@ -1,4 +1,4 @@
-import pytest, gumpy, copy, numpy, os
+import pytest, gumpy, copy, numpy, os, pandas
 
 #As BioPython thinks that the locus line of the TEST-RNA.gbk is malformed, it gives a warning
 #So ignore it to stop failing tests...
@@ -110,8 +110,6 @@ def test_gene_functions():
     g2.name = "C"
     assert g1 != g2
 
-    #TODO: Subtraction, changes are likely to be made to __sub__ so makes more sense to test after these changes
-    
     #valid_variant() requires fixing/removing
 
     #__repr__
@@ -178,7 +176,7 @@ def test_apply_vcf():
 
 def check_eq(arr1, arr2, check):
     '''Recursive helper function to determine if 2 arrays are equal. 
-    Checks all sub-arrays (if exist). Will work with list, tuple and numpy.array
+    Checks all sub-arrays (if exist). Will work with list, tuple, dict and numpy.array
 
     Args:
         arr1 (array-like): Array 1
@@ -190,11 +188,26 @@ def check_eq(arr1, arr2, check):
     '''    
     if type(arr1) != type(arr2) or check == False:
         return False
-    for (e1, e2) in zip(arr1, arr2):
-        if type(e1) in [list, tuple, type(numpy.array([]))]:
-            check = check and check_eq(e1, e2, check)
+    if type(arr1) == dict:
+        if arr1.keys() != arr2.keys():
+            return False
         else:
-            check = check and (e1 == e2)
+            for key in arr1.keys():
+                e1 = arr1[key]
+                e2 = arr2[key]
+                if type(e1) in [list, tuple, dict, type(numpy.array([]))]:
+                    check = check and check_eq(e1, e2, check)
+                else:
+                    check = check and (e1 == e2)
+    else:
+        if len(arr1) != len(arr2):
+            return False
+        else:
+            for (e1, e2) in zip(arr1, arr2):
+                if type(e1) in [list, tuple, dict, type(numpy.array([]))]:
+                    check = check and check_eq(e1, e2, check)
+                else:
+                    check = check and (e1 == e2)
     return check
 
 
@@ -285,3 +298,123 @@ def test_genome_difference():
     assert numpy.all(diff2.find_mutations(g1) == numpy.array([
         [None, "C@A2G"]
     ]))
+
+def test_vcf_difference():
+    #Testing the VariantFile objects' difference()
+    g1 = gumpy.Genome("config/TEST-DNA.gbk")
+    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+
+    #Get the difference
+    diff = vcf.difference(g1)
+    assert isinstance(diff, gumpy.VCFDifference)
+    assert numpy.all(diff.indices == numpy.array([2, 16, 28, 78, 90]))
+    assert diff.snp == 5
+    assert numpy.all(diff.coverages == {
+        2: [(68, 'G')],
+        16:[(68, 'T')],
+        28: [(99, 'T'), (100, 'C')],
+        72: [(68, 'GCC')],
+        78: [(48, 'GTT'), (20, 'G')],
+        90: [(68, 'x')]
+    })
+    assert numpy.all(diff.het_calls == {
+        28: ('T', 'C'),
+        78: ('GTT', 'G'),
+    })
+    assert check_eq(diff.indels, {
+        71: numpy.array(['g', 'c', 'c'])
+    }, True)
+    assert numpy.all(diff.codons == {
+        0: ('aaa', 'aga'), 
+        5: ('ccc', 'tcc'), 
+        9: ('ggg', 'zgg'), 
+        25: ('ttt', 'ttz'), 
+        29: ('aaa', 'aax')
+    })
+    assert numpy.all(diff.amino_acids == numpy.array([
+        "K0R", "P5S", "G9Z", "F25Z", 'K29X'
+    ]))
+
+    #Checking gene difference objects
+    g_diff = diff.gene_differences()
+    assert numpy.all([isinstance(g, gumpy.GeneDifference) for g in g_diff])
+    assert check_eq([g.nucleotides for g in g_diff], [
+        numpy.array(["a", "c", "g"]),
+        numpy.array(["g"]),
+        numpy.array([])
+    ], True)
+    assert check_eq([g.mutations for g in g_diff], [
+        numpy.array(sorted(["A@a-2g", "A@P5S", "A@G9Z"])),
+        numpy.array(sorted(["B@G1Z"])),
+        numpy.array([])
+    ], True)
+    assert check_eq([g.indel_indices for g in g_diff], [
+        numpy.array([]), numpy.array([]), numpy.array([])
+    ], True)
+    assert check_eq([g.indels for g in g_diff], [numpy.array([]), numpy.array([]), numpy.array([])], True)
+    assert check_eq([g.codons for g in g_diff], [
+        numpy.array(["ccc", "ggg"]),
+        numpy.array(["ggg"]),
+        numpy.array([])
+    ], True)
+    assert check_eq([g.amino_acids for g in g_diff], [
+        numpy.array(["P", "G"]),
+        numpy.array(['G']),
+        numpy.array([])
+    ], True)
+
+
+
+    #Testing an edge case with 2 different indels at the same position
+    g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA-2.vcf"))
+    diff = vcf.difference(g2)
+    assert check_eq(diff.indels, {71: numpy.array(["g", "c", 'c'])}, True)
+
+def test_vcf_to_df():
+    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+
+    df = vcf.to_df()
+    assert df.attrs == {
+        "VCF_VERSION": (4, 2),
+        "contig_lengths": {"TEST_DNA": 99},
+        "formats": {
+            "COV": {
+                "id": 1,
+                "description": "Number of reads on ref and alt alleles",
+                "type": "Integer"
+            },
+            "GT": {
+                "id": 2,
+                "description": "Genotype",
+                "type": "String"
+            },
+            "DP": {
+                "id": 3,
+                "description": "total kmer depth from gramtools",
+                "type": "Integer"
+            },
+            "GT_CONF": {
+                "id": 4,
+                "description": "Genotype confidence. Difference in log likelihood of most likely and next most likely genotype",
+                "type": "Float"
+            }
+        }
+    }
+    #Building the reference dataframe
+    data = {
+        "CHROM": ["TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA"],
+        "POS": [2, 16, 28, 72, 78, 90],
+        "REF": ["A", "C", "G", "T", "T", "A"],
+        "ALTS": [("G", ), ("T", ), ("T", "C"), ("GCC", ), ("GTT", "G"), None],
+        "QUAL": [None, None, None, None, None, None],
+        "INFO": [{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}],
+        "GT": [(1, 1), (1, 1), (1, 2), (1, 1), (1, 1), (None, None)],
+        "DP": [68, 68, 200, 68, 68, 68],
+        "COV": [(0, 68), (0, 68), (1, 99, 100), (0, 68), (0, 48, 20), (0, 68)],
+        "GT_CONF": [613.77, 613.77, 613.77, 63.77, 63.77, 63.77]
+    }
+    #Already tested the metadata so test equality against just data
+    data = pandas.DataFrame(data)
+    data.attrs = {}
+    df.attrs = {}
+    assert df.equals(data)
