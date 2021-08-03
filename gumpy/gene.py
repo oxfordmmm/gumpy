@@ -1,23 +1,48 @@
-
-import numpy, pandas
+import numpy
 
 # FIXME: problems with rrs, mfpB
-
 class Gene(object):
-
     """Gene object that uses underlying numpy arrays"""
-
-    def __init__(self,  name=None,\
-                        nucleotide_sequence=None,\
-                        index=None,\
-                        nucleotide_number=None,\
-                        is_cds=None,\
-                        is_promoter=None,\
-                        is_indel=None,\
-                        indel_length=None,\
-                        reverse_complement=False,\
-                        codes_protein=True,\
-                        feature_type=None ):
+    def __init__(self, *args, **kwargs):
+        '''Constructor for the Gene object.
+        Args:
+            name (str, optional): Name of the gene. Defaults to None
+            nucleotide_sequence (numpy.array, optional): Numpy array of the nucleotide sequence. Defaults to None
+            index (numpy.array, optional): Numpy array of the gene indices. Defaults to None
+            nucleotide_number (numpy.array, optional): Numpy array of the gene numbering. Defaults to None
+            is_cds (numpy.array, optional): Numpy array to act as a mask for whether given elements are codons. Defaults to None
+            is_promoter (numpy.array, optional): Numpy array to act as a mask for whether given elements are promoters. Defaults to None
+            is_indel (numpy.array, optional): Numpy array to act as a mask for whether given elements are indels. Defaults to None
+            indel_length (numpy.array, optional): Numpy array denoting the lengths of the indels whenever is_indel==True. Defaults to None
+            reverse_complement (boolean, optional): Boolean showing whether this gene is reverse complement. Defaults to False
+            codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
+            feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
+        '''
+        #Set the kwargs
+        #UPDATE THIS AS REQUIRED
+        allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter', 
+                        'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type', 
+                        'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number', 
+                        'codons', 'amino_acid_sequence']
+        #If reloading a Gene, just set the attributes and return
+        if "reloading" in kwargs.keys():
+            for key in kwargs.keys():
+                if key in allowed_kwargs:
+                    setattr(self, key, kwargs[key])
+            return
+        
+        #Set default values based on kwargs
+        name = kwargs.get("name")
+        nucleotide_sequence = kwargs.get("nucleotide_sequence")
+        index = kwargs.get("index")
+        nucleotide_number = kwargs.get("nucleotide_number")
+        is_cds = kwargs.get("is_cds")
+        is_promoter = kwargs.get("is_promoter")
+        is_indel = kwargs.get("is_indel")
+        indel_length = kwargs.get("indel_length")
+        reverse_complement = kwargs.get("reverse_complement", False)
+        codes_protein = kwargs.get("codes_protein", True)
+        feature_type = kwargs.get("feature_type")
 
         assert name is not None, "must provide a gene name!"
         self.name=name
@@ -81,7 +106,7 @@ class Gene(object):
         check = check and self.name == other.name
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
         check = check and numpy.all(self.index == other.index)
-        check = check and self.list_eq(self.nucleotide_number, other.nucleotide_number)
+        check = check and self.__list_eq(self.nucleotide_number, other.nucleotide_number)
         check = check and numpy.all(self.is_cds == other.is_cds)
         check = check and numpy.all(self.is_promoter == other.is_promoter)
         check = check and numpy.all(self.is_indel == other.is_indel)
@@ -89,6 +114,28 @@ class Gene(object):
         check = check and numpy.all(self.reverse_complement == other.reverse_complement)
         check = check and numpy.all(self.codes_protein == other.codes_protein)
         check = check and numpy.all(self.feature_type == other.feature_type)
+        if self.codes_protein:
+            check = check and numpy.all(self.amino_acid_sequence == other.amino_acid_sequence)
+            check = check and numpy.all(self.codons == other.codons)
+        # if not check:
+        #     print(self.name)
+        #     print("name", self.name == other.name)
+        #     print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
+        #     print(self.nucleotide_sequence, self.nucleotide_sequence.shape)
+        #     print(other.nucleotide_sequence, other.nucleotide_sequence.shape)
+        #     print("index", numpy.all(self.index == other.index))
+        #     print("NN", numpy.all(self.nucleotide_number == other.nucleotide_number))
+        #     print("is_cds", numpy.all(self.is_cds == other.is_cds))
+        #     print("is_promoter", numpy.all(self.is_promoter == other.is_promoter))
+        #     print("is_indel", numpy.all(self.is_indel == other.is_indel))
+        #     print("indel_len", numpy.all(self.indel_length == other.indel_length))
+        #     print("rev_comp", numpy.all(self.reverse_complement == other.reverse_complement))
+        #     print("codes_protein", numpy.all(self.codes_protein == other.codes_protein))
+        #     print("feature_type", numpy.all(self.feature_type == other.feature_type))
+        #     if self.codes_protein:
+        #         print("AAS", numpy.all(self.amino_acid_sequence == other.amino_acid_sequence))
+        #         print("codons", numpy.all(self.codons == other.codons))
+        #     print()
         return check
 
     @staticmethod
@@ -145,39 +192,23 @@ class Gene(object):
             output+=", codes for protein\n"
         else:
             output+="\n"
-        promoter_sequence=self.nucleotide_sequence[self.is_promoter]
-        if promoter_sequence.size!=0:
-            output+="".join(i for i in promoter_sequence[:string_length])
-            output+="..."
-            output+="".join(i for i in promoter_sequence[-string_length:])
-            output+="\n"
-            promoter_numbering=self.nucleotide_number[self.is_promoter]
-            output+="".join(str(i)+" " for i in promoter_numbering[:string_length])
-            output+="..."
-            output+="".join(str(i)+" " for i in promoter_numbering[-string_length:])
-            output+="\n"
+        if self.nucleotide_sequence[self.is_promoter].size!=0:
+            #Updated to use numpy.printoptions to control the formatting
+            #Does return as `['a' 'c' 't' 'g']`` rather than `actg` but fixes formatting issues from old code
+            #   such as repeating elements if len(promoter) <= string_length
+            with numpy.printoptions(threshold=string_length*2):
+                output += str(self.nucleotide_sequence[self.is_promoter]) + "\n"
+                output += str(self.nucleotide_number[self.is_promoter]) + "\n"
         else:
             output+="promoter likely in adjacent gene(s)\n"
         if self.codes_protein:
-            output+="".join(i for i in self.amino_acid_sequence[:string_length])
-            output+="..."
-            output+="".join(i for i in self.amino_acid_sequence[-string_length:])
-            output+="\n"
-            output+="".join(str(i)+" " for i in self.amino_acid_number[:string_length])
-            output+="..."
-            output+="".join(str(i)+" " for i in self.amino_acid_number[-string_length:])
-            output+="\n"
+            with numpy.printoptions(threshold=string_length*2):
+                output += str(self.amino_acid_sequence) + "\n"
+                output += str(self.amino_acid_number)
         else:
-            gene_sequence=self.nucleotide_sequence[self.is_cds]
-            output+="".join(i for i in gene_sequence[:string_length])
-            output+="..."
-            output+="".join(i for i in gene_sequence[-string_length:])
-            output+="\n"
-            gene_numbering=self.nucleotide_number[self.is_cds]
-            output+="".join(str(i)+" " for i in gene_numbering[:string_length])
-            output+="..."
-            output+="".join(str(i)+" " for i in gene_numbering[-string_length:])
-            output+="\n"
+            with numpy.printoptions(threshold=string_length*2):
+                output += str(self.nucleotide_sequence[self.is_cds]) + "\n"
+                output += str(self.nucleotide_number[self.is_cds])
 
         if output.strip()=="":
             output=None
@@ -185,6 +216,14 @@ class Gene(object):
         return(output)
 
     def list_mutations_wrt(self,other):
+        '''Generate a list of mutations between this Gene object and a provided other.
+        The mutations are given in the GARC
+
+        Args:
+            other (gumpy.Gene): Other Gene object.
+        Returns:
+            list: List of strings showing the mutations between the two Genes.
+        '''
 
         assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
         assert self.name==other.name, "both genes must be identical!"
@@ -221,14 +260,19 @@ class Gene(object):
         pos=list(self.nucleotide_number[mask])
         length=list(self.indel_length[mask])
         for (p,l) in zip(pos,length):
-            mutations.append(str(int(p))+"_indel")
+            if not l:
+                mutations.append(str(int(p))+"_indel_"+str(l))
+            elif l > 0:
+                mutations.append(str(p)+"_ins_"+str(l))
+            else:
+                mutations.append(str(p)+"_del_"+str(l))
 
         if not mutations:
             mutations=None
 
         return(mutations)
     
-    def list_eq(self, l1, l2):
+    def __list_eq(self, l1, l2):
         '''
         Function used to test equality of 2 lists easily (used in self.__eq__)
         Args:
@@ -452,7 +496,15 @@ class Gene(object):
     def __sub__(self,other):
 
         """
-        Overload the subtraction operator so it returns a tuple of the differences between the two genes
+        Overload the subtraction operator so it returns a tuple of the differences between the two genes.
+        Differences are given in the form of an array of gene indices where the two Genes differ.
+        
+        Args:
+            other (gumpy.Gene): Other gene object
+        Raises:
+            AssertationErrors: Raises errors if the Genes are not the same gene (same length, name and codes_protein are required)
+        Returns:
+            numpy.array: Numpy array of gene indices where the Genes are different.
         """
 
         assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
@@ -475,6 +527,20 @@ class Gene(object):
 
 
     def valid_variant(self, variant):
+        '''Determines if a given variant is valid
+
+        Args:
+            variant (str): String of a mutation in GARC
+
+        Raises:
+            TypeError: TypeError is raised if the variant is malformed
+            AssertationError: AssertationError is raised if the vairant is not valid
+
+        Returns:
+            bool: Returns True when the variant is valid. Never returns False.
+        '''
+        #TODO: Fix or remove this?? self.positions does not exist... Is it referring to self.index?
+        #Surely it would make more sense to actually return False at some point instead of raising an AssertaionError??
 
         assert variant is not None, "variant must be specified! e.g. FIXME"
 

@@ -1,0 +1,421 @@
+import pytest, gumpy, copy, numpy, os, pandas
+
+#As BioPython thinks that the locus line of the TEST-RNA.gbk is malformed, it gives a warning
+#So ignore it to stop failing tests...
+pytestmark = pytest.mark.filterwarnings("ignore")
+
+def test_genome_functions():
+    '''Test all of the public functions for Genome
+    '''
+    #Testing equality
+    g1 = gumpy.Genome("config/TEST-DNA.gbk")
+    g2 = gumpy.Genome("config/TEST-DNA.gbk")
+    assert g1 == g2
+    g2.nucleotide_sequence[5] = "t"
+    assert g1 != g2
+
+    #Ensure that adding verbose arg to constructor doesn't change object's value
+    #It should add values to the timings dict, but this is unimportant to the values so is not checked in the __eq__
+    g2 = gumpy.Genome("config/TEST-DNA.gbk", verbose=True)
+    assert g1 == g2
+
+    #Testing saving and loading a genome
+    #Ensure that the saves directory exists
+    if not os.path.exists('tests/saves'):
+        os.makedirs('tests/saves')
+    #Uncompressed
+    g1.save("tests/saves/TEST-DNA.json")
+    assert gumpy.Genome.load("tests/saves/TEST-DNA.json") == g1
+    #Compressed
+    g1.save("tests/saves/TEST-DNA.json.gz", compression_level=1)
+    assert gumpy.Genome.load("tests/saves/TEST-DNA.json.gz") == g1
+
+    #Saving the sequence
+    g1.save_sequence("tests/saves/TEST-DNA-SEQ")
+    #Reloading to check this is saved correctly
+    with numpy.load("tests/saves/TEST-DNA-SEQ.npz") as seq:
+        s = []
+        for i in seq["sequence"]:
+            s.append(i)
+    assert numpy.all(g1.nucleotide_sequence == s)
+
+    #FASTA save
+    g1.save_fasta("tests/saves/TEST-DNA.fasta")
+    #Reload FASTA
+    with open("tests/saves/TEST-DNA.fasta") as f:
+        data = [line.replace("\n", "") for line in f]
+        header = data[0]
+        data = ''.join(data[1::]).lower()
+    assert header == ">TEST_DNA|TEST_DNA.1|TEST_DNA, complete genome"
+    assert data == "aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc"
+
+    #Len
+    assert g1.length == len(g1)
+
+    #contains_gene()
+    assert g1.contains_gene("A") == True
+    assert g1.contains_gene("Not_A_Gene") == False
+    try:
+        g1.contains_gene(None)
+        assert False
+    except AssertionError as e:
+        assert str(e) == "Gene name must be string. Gene name provided was of type: <class 'NoneType'>"
+    try:
+        g1.contains_gene(g1)
+        assert False
+    except AssertionError as e:
+        assert str(e) == "Gene name must be string. Gene name provided was of type: <class 'gumpy.genome.Genome'>"
+
+    #at_index()
+    try:
+        g1.at_index([])
+        assert False
+    except AssertionError as e:
+        assert str(e) == "index must be an integer!"
+    try:
+        g1.at_index(-1)
+        assert False
+    except AssertionError as e:
+        assert str(e) == "index must be a positive integer!"
+    try:
+        g1.at_index(1000)
+        assert False
+    except AssertionError as e:
+        assert str(e) == "index must be less than the length of the genome!"
+    
+    assert g1.at_index(5) == ["A"]
+    assert g1.at_index(28) == ["A", "B"]
+    assert g1.at_index(65) == None
+
+    #__repr__
+    #As __repr__ returns a multiline string, convert it to a list of single line strings for ease of comparison
+    r = [line for line in g1.__repr__().split("\n") if line != ""]
+    assert r == [
+        "TEST_DNA",
+        "TEST_DNA.1",
+        "TEST_DNA, complete genome",
+        "99 bases",
+        "aaaaaa...cccccc",
+        "all genes/loci have been included"
+    ]
+
+def test_gene_functions():
+    genome = gumpy.Genome("config/TEST-DNA.gbk")
+
+    g1 = copy.deepcopy(genome.genes["A"])
+    g2 = copy.deepcopy(genome.genes["A"])
+
+    #Equality
+    assert g1 == g2
+    g2.name = "C"
+    assert g1 != g2
+
+    #valid_variant() requires fixing/removing
+
+    #__repr__
+    #As __repr__ returns a multiline string, convert it to a list of single line strings for ease of comparison
+    r = [line for line in g1.__repr__().split("\n") if line != ""]
+    assert r == [
+        "A gene",
+        "30 nucleotides, codes for protein",
+        "['a' 'a' 'a']",
+        "[-3 -2 -1]",
+        "['K' 'K' 'T' 'P' 'P' 'P' 'G' 'G' 'G']",
+        "[1 2 3 4 5 6 7 8 9]"
+    ]
+
+    g2.name = "A"
+    g2.nucleotide_sequence[2] = "g"
+    assert g1.list_mutations_wrt(g2) == ["g-1a"]
+
+def test_apply_vcf():
+    #Will fail if the test_instanciate.py fails for test_instanciate_vcf()
+    g1 = gumpy.Genome("config/TEST-DNA.gbk")
+    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    g2 = g1.apply_variant_file(vcf)
+    assert g1 != g2
+    assert numpy.all(g2.nucleotide_sequence ==  numpy.array(
+                    list('agaaaaaaaaccccctccccgggggggzggttttttttttaaaaaaaaaaccccccccccggggggggggtttttttzttaaaaaaaaaxccccccccc')
+    ))
+    assert numpy.all(g2 - g1 == numpy.array([2, 16, 28, 78, 90]))
+    assert g2.variant_file == vcf
+    assert g2.original == {
+        1: 'a',
+        15: 'c',
+        27: 'g',
+        71: 't',
+        77: 't',
+        89: 'a'
+    }
+    assert g2.indels.keys() == {71:None}.keys()
+    assert numpy.all(g2.indels[71] == numpy.array(['g', 'c', 'c']))
+    calls = {
+        1: [(0, '*'), (68, 'g')],
+        15: [(0, '*'), (68, 't')],
+        27: [(1, '*'), (99, 't'), (100, 'c')],
+        71: [(0, '*'), (68, numpy.array(['g', 'c', 'c']))],
+        77: [(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 'g')],
+        89: [(0, '*'), (68, 'x')]
+    }
+    assert g2.calls.keys() == calls.keys()
+    for key in g2.calls.keys():
+        for ((n_reads1, call1), (n_reads2, call2)) in zip(g2.calls[key], calls[key]):
+            assert n_reads1 == n_reads2
+            assert numpy.all(call1 == call2)
+    
+    #Check for gene level changes
+    gene_changes = []
+    nucleotide_changes = []
+    index_changes = []
+    for key in g2.genes.keys():
+        gene_changes.append(g2.genes[key]!=g1.genes[key])
+        nucleotide_changes.append(numpy.any(g2.genes[key].nucleotide_sequence != g1.genes[key].nucleotide_sequence))
+        index_changes.append(numpy.all(g1.genes[key].index == g2.genes[key].index))
+    assert numpy.any(gene_changes)
+    assert numpy.any(nucleotide_changes)
+    assert numpy.all(index_changes)
+
+def check_eq(arr1, arr2, check):
+    '''Recursive helper function to determine if 2 arrays are equal. 
+    Checks all sub-arrays (if exist). Will work with list, tuple, dict and numpy.array
+
+    Args:
+        arr1 (array-like): Array 1
+        arr2 (array-like): Array 2
+        check (bool): Boolean accumulator
+
+    Returns:
+        bool: True when the two arrays are equal
+    '''    
+    if type(arr1) != type(arr2) or check == False:
+        return False
+    if type(arr1) == dict:
+        if arr1.keys() != arr2.keys():
+            return False
+        else:
+            for key in arr1.keys():
+                e1 = arr1[key]
+                e2 = arr2[key]
+                if type(e1) in [list, tuple, dict, type(numpy.array([]))]:
+                    check = check and check_eq(e1, e2, check)
+                else:
+                    check = check and (e1 == e2)
+    else:
+        if len(arr1) != len(arr2):
+            return False
+        else:
+            for (e1, e2) in zip(arr1, arr2):
+                if type(e1) in [list, tuple, dict, type(numpy.array([]))]:
+                    check = check and check_eq(e1, e2, check)
+                else:
+                    check = check and (e1 == e2)
+    return check
+
+
+def test_genome_difference():
+    g1 = gumpy.Genome("config/TEST-DNA.gbk", is_reference=True)
+    g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf"))
+    assert g1 != g2
+
+    diff = g2.difference(g1)
+    #Default view
+    assert diff.snp == 5
+    assert numpy.all(diff.indices == numpy.array([2, 16, 28, 78, 90]))
+    assert numpy.all(diff.nucleotides == numpy.array(["g", "t", 'z', 'z', 'x']))
+    assert numpy.all(diff.codons == numpy.array(['aga', 'tcc', 'zgg', 'ttz', 'aax']))
+    assert numpy.all(diff.amino_acids == numpy.array(['R', 'S', 'Z', 'Z', 'X']))
+    assert numpy.all(diff.indel_indices == numpy.array([71]))
+    assert numpy.all(diff.indels == numpy.array([['g', 'c', 'c']]))
+    assert numpy.all(diff.het_indices == numpy.array([27, 77]))
+
+    het_calls = numpy.array([
+        [(1, '*'), (99, 't'), (100, 'c')],
+        [(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 'g')]
+    ], dtype=object)
+    assert check_eq(diff.het_calls, het_calls, True)
+
+    assert numpy.all(diff.mutations == numpy.array(sorted([
+        'A@g-2a', 'A@S5P', 'A@Z9G', 'B@Z1G'
+    ])))
+
+    #Change the view and test all outputs
+    diff.update_view("full")
+    assert numpy.all(diff.nucleotides == numpy.array([
+        ("g", "a"), ("t", "c"), ("z", "g"),
+        ("z", "t"), ("x", "a")
+    ]))
+    assert numpy.all(diff.codons == numpy.array([(
+        ('aga', 'aaa'), ('tcc', 'ccc'), ('zgg', 'ggg'), 
+        ('ttz', 'ttt'), ('aax', 'aaa')
+    )]))
+    assert numpy.all(diff.amino_acids == numpy.array([
+        ('R', 'K'), ('S', 'P'), ('Z', 'G'), 
+        ('Z', 'F'), ('X', 'K')
+    ]))
+    assert check_eq(diff.indels, numpy.array([
+        (numpy.array(['g', 'c', 'c']), None)
+    ], dtype=object), True)
+
+    het_calls = numpy.array([
+        [[(1, '*'), (99, 't'), (100, 'c')], None],
+        [[(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 'g')], None]
+    ], dtype=object)
+    assert check_eq(diff.het_calls, het_calls, True)
+
+
+
+    #Testing the warning about inconsistent genes
+    #So make a genome with a different name for the same gene
+    g3 = copy.deepcopy(g2)
+    g2.genes["D"] = g2.genes["C"]
+    del g2.genes["C"]
+    g2.genes_lookup["D"] = g2.genes_lookup["C"]
+    del g2.genes_lookup["C"]
+    g2.stacked_gene_name[g2.stacked_gene_name=="C"] = "D"
+    g2._Genome__recreate_genes()#Recreate the genes
+
+    with pytest.warns(UserWarning):
+        diffd = g2.difference(g1)
+    
+    #Testing cases when genomes are equal
+    diff = g1.difference(g1)
+    assert diff is None
+
+    #Testing cases when 2 different genomes are given. Neither are reference
+    #This is basically just for testing mutations
+    g4 = copy.deepcopy(g3)
+    g3.nucleotide_sequence[91] = 'g'
+    g3._Genome__recreate_genes()#Recreate the genes
+
+    diff = g3.difference(g4)
+    diff2 = g4.difference(g3)
+    assert diff.find_mutations(g1) == ["C@A2G"]
+    assert diff2.find_mutations(g1) == []
+    diff.update_view("full")
+    diff2.update_view("full")
+    assert numpy.all(diff.find_mutations(g1) == numpy.array([
+            ['C@A2G', None]
+        ]))
+    assert numpy.all(diff2.find_mutations(g1) == numpy.array([
+        [None, "C@A2G"]
+    ]))
+
+def test_vcf_difference():
+    #Testing the VariantFile objects' difference()
+    g1 = gumpy.Genome("config/TEST-DNA.gbk")
+    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+
+    #Get the difference
+    diff = vcf.difference(g1)
+    assert isinstance(diff, gumpy.VCFDifference)
+    assert numpy.all(diff.indices == numpy.array([2, 16, 28, 78, 90]))
+    assert diff.snp == 5
+    assert numpy.all(diff.coverages == {
+        2: [(68, 'G')],
+        16:[(68, 'T')],
+        28: [(99, 'T'), (100, 'C')],
+        72: [(68, 'GCC')],
+        78: [(48, 'GTT'), (20, 'G')],
+        90: [(68, 'x')]
+    })
+    assert numpy.all(diff.het_calls == {
+        28: ('T', 'C'),
+        78: ('GTT', 'G'),
+    })
+    assert check_eq(diff.indels, {
+        71: numpy.array(['g', 'c', 'c'])
+    }, True)
+    assert numpy.all(diff.codons == {
+        0: ('aaa', 'aga'), 
+        5: ('ccc', 'tcc'), 
+        9: ('ggg', 'zgg'), 
+        25: ('ttt', 'ttz'), 
+        29: ('aaa', 'aax')
+    })
+    assert numpy.all(diff.amino_acids == numpy.array([
+        "K0R", "P5S", "G9Z", "F25Z", 'K29X'
+    ]))
+
+    #Checking gene difference objects
+    g_diff = diff.gene_differences()
+    assert numpy.all([isinstance(g, gumpy.GeneDifference) for g in g_diff])
+    assert check_eq([g.nucleotides for g in g_diff], [
+        numpy.array(["a", "c", "g"]),
+        numpy.array(["g"]),
+        numpy.array([])
+    ], True)
+    assert check_eq([g.mutations for g in g_diff], [
+        numpy.array(sorted(["A@a-2g", "A@P5S", "A@G9Z"])),
+        numpy.array(sorted(["B@G1Z"])),
+        numpy.array([])
+    ], True)
+    assert check_eq([g.indel_indices for g in g_diff], [
+        numpy.array([]), numpy.array([]), numpy.array([])
+    ], True)
+    assert check_eq([g.indels for g in g_diff], [numpy.array([]), numpy.array([]), numpy.array([])], True)
+    assert check_eq([g.codons for g in g_diff], [
+        numpy.array(["ccc", "ggg"]),
+        numpy.array(["ggg"]),
+        numpy.array([])
+    ], True)
+    assert check_eq([g.amino_acids for g in g_diff], [
+        numpy.array(["P", "G"]),
+        numpy.array(['G']),
+        numpy.array([])
+    ], True)
+
+
+
+    #Testing an edge case with 2 different indels at the same position
+    g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA-2.vcf"))
+    diff = vcf.difference(g2)
+    assert check_eq(diff.indels, {71: numpy.array(["g", "c", 'c'])}, True)
+
+def test_vcf_to_df():
+    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+
+    df = vcf.to_df()
+    assert df.attrs == {
+        "VCF_VERSION": (4, 2),
+        "contig_lengths": {"TEST_DNA": 99},
+        "formats": {
+            "COV": {
+                "id": 1,
+                "description": "Number of reads on ref and alt alleles",
+                "type": "Integer"
+            },
+            "GT": {
+                "id": 2,
+                "description": "Genotype",
+                "type": "String"
+            },
+            "DP": {
+                "id": 3,
+                "description": "total kmer depth from gramtools",
+                "type": "Integer"
+            },
+            "GT_CONF": {
+                "id": 4,
+                "description": "Genotype confidence. Difference in log likelihood of most likely and next most likely genotype",
+                "type": "Float"
+            }
+        }
+    }
+    #Building the reference dataframe
+    data = {
+        "CHROM": ["TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA"],
+        "POS": [2, 16, 28, 72, 78, 90],
+        "REF": ["A", "C", "G", "T", "T", "A"],
+        "ALTS": [("G", ), ("T", ), ("T", "C"), ("GCC", ), ("GTT", "G"), None],
+        "QUAL": [None, None, None, None, None, None],
+        "INFO": [{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}],
+        "GT": [(1, 1), (1, 1), (1, 2), (1, 1), (1, 1), (None, None)],
+        "DP": [68, 68, 200, 68, 68, 68],
+        "COV": [(0, 68), (0, 68), (1, 99, 100), (0, 68), (0, 48, 20), (0, 68)],
+        "GT_CONF": [613.77, 613.77, 613.77, 63.77, 63.77, 63.77]
+    }
+    #Already tested the metadata so test equality against just data
+    data = pandas.DataFrame(data)
+    data.attrs = {}
+    df.attrs = {}
+    assert df.equals(data)

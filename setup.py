@@ -18,7 +18,7 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent"],
-    python_requires='>=3.5',
+    python_requires='>=3.8',
     license="University of Oxford, see LICENSE.md",
     scripts=['bin/gumpy-save-genome.py'],\
     zip_safe=False
