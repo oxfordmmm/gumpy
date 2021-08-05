@@ -478,8 +478,9 @@ class Genome(object):
         # VARIANTS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
         # VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','IS_SNP','IS_INDEL','INDEL_LENGTH','ELEMENT_TYPE','MUTATION_TYPE',"HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
         VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','INDEL_LENGTH',"COVERAGE"]
-        for field in self.genome_sequence_metadata:
-            VARIANTS_columns.append(field)
+        # print(self.genome_sequence_metadata)
+        # for field in self.genome_sequence_metadata:
+        #     VARIANTS_columns.append(field)
         for cols in VARIANTS_columns:
             VARIANTS_dict[cols]=[]
 
@@ -505,8 +506,8 @@ class Genome(object):
         # VARIANTS_dict["HET_ALT_1"]=self.het_alt[mask][:,1]
         # VARIANTS_dict["HET_REF"]=self.het_ref[mask]
 
-        for field in self.genome_sequence_metadata:
-            VARIANTS_dict[field]=self.genome_sequence_metadata[field][mask]
+        # for field in self.genome_sequence_metadata:
+        #     VARIANTS_dict[field]=self.genome_sequence_metadata[field][mask]
 
         mask=self.is_indel
         VARIANTS_dict['REF']=numpy.append(VARIANTS_dict['REF'],self.indel_ref[mask])
@@ -531,8 +532,8 @@ class Genome(object):
         # VARIANTS_dict["HET_ALT_1"]=numpy.append(VARIANTS_dict["HET_ALT_1"],self.het_alt[mask][:,1])
         # VARIANTS_dict["HET_REF"]=numpy.append(VARIANTS_dict["HET_REF"],self.het_ref[mask])
 
-        for field in self.genome_sequence_metadata:
-            VARIANTS_dict[field]=numpy.append(VARIANTS_dict[field],self.genome_sequence_metadata[field][mask])
+        # for field in self.genome_sequence_metadata:
+        #     VARIANTS_dict[field]=numpy.append(VARIANTS_dict[field],self.genome_sequence_metadata[field][mask])
 
         if len(VARIANTS_dict['POSITION'])>0:
 
@@ -560,8 +561,8 @@ class Genome(object):
 
 
             # add on any other metadata gleaned from the VCF file
-            for field in self.genome_sequence_metadata:
-                VARIANTS_columns.append(field)
+            # for field in self.genome_sequence_metadata:
+            #     VARIANTS_columns.append(field)
 
             VARIANTS_table=VARIANTS_table.astype({  'VARIANT':'str',\
                                                     'REF':'str',\
@@ -861,10 +862,10 @@ class Genome(object):
                 if alt_bases=="":
                     continue
 
-                # apply any specified total coverage threshold
-                if total_coverage_threshold is not None:
-                    if numpy.sum(sample_info['COV'])<total_coverage_threshold:
-                        continue
+                # apply any specified total coverage threshold FIXME
+                # if total_coverage_threshold is not None:
+                #     if numpy.sum(sample_info['COV'])<total_coverage_threshold:
+                #         continue
 
                 # apply any specific metadata thresholds, e.g. GT_CONF_PERCENTILE<5
                 below_threshold=False
@@ -892,7 +893,10 @@ class Genome(object):
                                     continue
 
                                 # find out the coverage
-                                coverage=sample_info['COV'][genotype.call1]
+                                # try:
+                                #     coverage=sample_info['COV'][genotype.call1]
+                                # except:
+                                coverage=0
 
                                 # record any additional metadata
                                 self._set_sequence_metadata(index,sample_info)
@@ -937,7 +941,8 @@ class Genome(object):
         assert indel_length!=0, "REF: "+ref_bases+" and ALT: "+alt_bases+" same length?"
 
         # find out the coverage
-        coverage=sample_info['COV'][genotype.call1]
+        # coverage=sample_info['COV'][genotype.call1]
+        coverage=0
 
         # record any additional metadata
         self._set_sequence_metadata(index,sample_info)
@@ -988,7 +993,7 @@ class Genome(object):
                     self._set_sequence_metadata(idx, sample_info)
 
                     # remember the coverage in the diploid representation for this het
-                    self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
+                    # self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
 
                     # only record a SNP if there is a change
                     if (before != after):
@@ -1019,7 +1024,7 @@ class Genome(object):
                 self._set_sequence_metadata(index, sample_info)
 
                 # remember the het indel
-                self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
+                # self.het_coverage[(mask, strand)] = sample_info['COV'][genotype.call()[strand]]
                 self.het_indel_length[(mask, strand)] = indel_length
                 self.het_variations[(mask, strand)] = "i"
                 self.het_ref[mask] = ref_bases
@@ -1045,7 +1050,8 @@ class Genome(object):
             mask=self.genome_index==idx
 
             # define the total coverage as the sum of the two HET calls
-            coverage=numpy.sum(self.het_coverage[mask])
+            # coverage=numpy.sum(self.het_coverage[mask])
+            coverage=0
 
             # make the mutation, identifying this as a HET call (or a filter fail )
             if self.is_filter_fail[mask]:
