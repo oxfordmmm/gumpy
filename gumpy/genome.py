@@ -29,25 +29,25 @@ class Genome(object):
             verbose (bool, optional) : Boolean as whether to give verbose statements. Defaults to False
             multithreaded (bool, optional) : Boolean as whether to multithread the building of Gene objects. Only Makes a change on Linux. Defaults to False
             is_reference (bool, optional) : Boolean showing whether this genome is a reference genome, i.e. mutations can be derrived from it. Defaults to False
-        '''        
+        '''
         if len(args) != 1:
             if "reloading" not in kwargs.keys():
                 #A genbank file has not been given so warn user
                 print("No genbank file was given, setting up minimal detail for this Genome")
             #Setup the kwargs
             #UPDATE THIS AS REQUIRED
-            allowed_kwargs = ['verbose', 'gene_subset', 'max_gene_name_length', 'nucleotide_sequence', 'name', 'id', 
-                            'description', 'length', 'nucleotide_index', 'stacked_gene_name', 'stacked_is_cds', 'stacked_is_promoter', 
-                            'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations', 
+            allowed_kwargs = ['verbose', 'gene_subset', 'max_gene_name_length', 'nucleotide_sequence', 'name', 'id',
+                            'description', 'length', 'nucleotide_index', 'stacked_gene_name', 'stacked_is_cds', 'stacked_is_promoter',
+                            'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations',
                             'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes',
                             'multithreaded', 'indels', 'changes', 'original', 'calls', 'variant_file', 'is_reference']
             for key in kwargs.keys():
                 '''
                 Use of a whitelist of kwargs allowed to stop overriding of functions from loading malicious file
-                If a malicious user overwrites any of these variable names with a function, the function **should** never be called as none 
+                If a malicious user overwrites any of these variable names with a function, the function **should** never be called as none
                   of these are called within this code. I'm sure there will be a way to break this though, such as custom objects within a dict which should
-                  have objects - and then overwriting functions to allow arbitrary execution. 
-                  A possible way to circumvent this kind of behaviour would be to cryptographically sign and verify each object loaded 
+                  have objects - and then overwriting functions to allow arbitrary execution.
+                  A possible way to circumvent this kind of behaviour would be to cryptographically sign and verify each object loaded
                   when saving/loading respectively. However, this may make the saves less portable than would be desired.
                 However, all of this depends on the use case. If it is not possible for a user to upload/download the saved files, this should not be a risk.
                     This would mean that this kind of caching would only be used internally
@@ -66,7 +66,6 @@ class Genome(object):
             self.is_reference = kwargs.get("is_reference", False)
             #Set the args value to the genbank file
             genbank_file = args[0]
-            
 
         assert isinstance(default_promoter_length,int) and default_promoter_length>=0, "the promoter length must be a positive integer!"
 
@@ -103,7 +102,7 @@ class Genome(object):
             timings['create genes'].append(time.time()-start_time)
             for i in timings:
                 print("%20s %6.3f s" % (i, numpy.sum(timings[i])))
-        
+
         self.__convert_references()
 
         #Set default attributes for items populated when a VCF is applied
@@ -112,10 +111,10 @@ class Genome(object):
         self.original = None
         self.calls = None
         self.variant_file = None
-    
+
     def __convert_references(self):
         '''Convert BIOPython Reference objects to normal dictionaries. They do not
-            appear to have any greater application than storing structured data, so 
+            appear to have any greater application than storing structured data, so
             removing the object wrappers appears to be a clean way to combat the object's
             issues with serialization.
         '''
@@ -137,7 +136,7 @@ class Genome(object):
                 else:
                     new_ref[key] = vars(reference)[key]
             self.annotations["references"][i] = new_ref
-                        
+
     def __repr__(self):
 
         '''
@@ -178,7 +177,7 @@ class Genome(object):
         """
         mask = self.nucleotide_sequence != other.nucleotide_sequence
         return self.nucleotide_index[mask]
-    
+
     def __eq__(self, other):
         '''
         Overloading the equality operator so two Genome objects can be compared directly
@@ -212,7 +211,7 @@ class Genome(object):
         # print()
 
         return check
-    
+
     def __len__(self):
         '''
         Adding len functionality - len(genome) will now return length of the genome
@@ -220,7 +219,7 @@ class Genome(object):
             int : Length of the genome
         '''
         return self.length
-    
+
     def difference(self, other):
         '''Generate a GenomeDifference object for a in-depth difference of the two Genomes
 
@@ -230,7 +229,7 @@ class Genome(object):
         assert self.length == other.length, "The two genomes must be the same length!"
         if self == other:
             return None
-        return GenomeDifference(self, other)        
+        return GenomeDifference(self, other)
 
     def contains_gene(self,gene_name):
         '''
@@ -273,21 +272,21 @@ class Genome(object):
             return(None)
         else:
             return(putative_genes)
-    
+
     def save(self, filename, compression_level=None):
         '''Experimental way to save the entire object (and Gene objects) based on
             json and base64 encoding rather than relying on pickles
             Based on numpy serialisation detailed here by daniel451:
                 https://stackoverflow.com/questions/30698004/how-can-i-serialize-a-numpy-array-while-preserving-matrix-dimensions
             This is definitely space inefficient (~1.7GB for a TB genome) but faster than re-instanciation. Using compression, this can be reduced to <100MB
-            If this causes issues (possibly due to transferring saved files between machines), it may be possible to 
+            If this causes issues (possibly due to transferring saved files between machines), it may be possible to
                 change numpy serialization to convert to/from lists, although it is likely that this will be significantly more
                 computationally expensive
 
         Args:
             filename (str): Path to the file to save in
             compression_level (int, optional): Level of compression to use (1-9), when None is given, no compression is used. Defaults to None.
-        '''        
+        '''
         output = self.__save(self, None)
         #Write the output to a json file
         if compression_level is not None and compression_level in range(1,10):
@@ -305,7 +304,7 @@ class Genome(object):
 
         Returns:
             dict/list/tuple: Either aggregated output or a single output depending on if aggregation was required
-        '''        
+        '''
         # print(obj)
         if type(obj) in [bool, int, str, float, complex, bytes, bytearray] or obj is None:
             #Fundamental data types which need no conversions
@@ -337,8 +336,7 @@ class Genome(object):
         else:
             #Other types are not allowed.
             assert False, "Object of weird type: "+str(obj)+str(type(obj))
-        
-        
+
         if name is not None:
             #This attribute has a name so add it to the output and return it
             if type(output) == dict:
@@ -349,7 +347,7 @@ class Genome(object):
         else:
             #Unnamed, so just return it
             return (str(type(obj)), to_return)
-    
+
 
     @staticmethod
     def load(filename):
@@ -357,7 +355,7 @@ class Genome(object):
 
         Args:
             filename (str): Path to the saved file
-        '''        
+        '''
         def _load(type_, obj, output, name=None):
             '''Helper function to recursively load an object
 
@@ -571,6 +569,9 @@ class Genome(object):
             if gene_name is None or (gene_subset is not None and gene_name not in gene_subset):
                 continue
 
+            if gene_name in self.genes_lookup.keys:
+                print(gene_name)
+
             # sigh, you can't assume that a gene_name is unique in a GenBank file
             gene_name+="_2" if gene_name in self.genes_lookup.keys() else ''
 
@@ -588,7 +589,7 @@ class Genome(object):
                                         'codes_protein':codes_protein,\
                                         'start':gene_start,\
                                         'end':gene_end }
-    
+
     def __handle_rev_comp(self, rev_comp, start, end, i):
         '''
         Private function to handle the rev-comp changes required
@@ -647,7 +648,7 @@ class Genome(object):
         i += 1
         self.__handle_rev_comp(rev_comp, start, end, i)
         return genes_mask, genes, i
-    
+
     def __find_overlaps(self):
         '''
         Private function to find the sections of the genome in which there are overlapping genes
@@ -671,11 +672,11 @@ class Genome(object):
                 end += self.length
             else:
                 mask=(self.nucleotide_index>=start) & (self.nucleotide_index<end)
-            
+
             #Fit the gene into the stacked arrays
             genes_mask, genes, row = self.__fit_gene(mask, genes, genes_mask, start, end, gene_name, rev_comp)
             self.gene_rows[gene_name] = row
-        
+
         #Singular array to determine if there are genes in places within the genome
         self.genes_mask = numpy.any(genes_mask, axis=0)
 
@@ -684,7 +685,7 @@ class Genome(object):
 
     def __setup_arrays(self):
         '''
-        Private function to initalise all of the required arrays, fitting the gene names into the 
+        Private function to initalise all of the required arrays, fitting the gene names into the
             correct places within stacked arrays
         '''
         self.__find_overlaps()
@@ -713,7 +714,7 @@ class Genome(object):
         #  (ii) we need to ensure that only unassigned bases can be labelled as promoters and each should only 'belong' to a single feature
         # the latter is especially difficult when you have two genes next to one another, one reverse complement, since their promoters can
         # 'fight' for space. It is this problem that means we have to grow each promoter out one base at a time
-        
+
         #Populate a dictionary to store the starts/ends of genes as they grow with promoters
         start_end = {gene_name : {
                                 "start": self.genes_lookup[gene_name]["start"],
@@ -777,7 +778,7 @@ class Genome(object):
         assert len(string)>1, "string is too short!"
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
-    
+
     def _build_gene(self, gene, conn=None):
         '''
         Private function to build the gumpy.Gene object
@@ -850,7 +851,7 @@ class Genome(object):
             #Get the communication pipes required
             pipes = [multiprocessing.Pipe() for i in range(limit)]
             #Get some threads
-            threads = [(multiprocessing.Process(target=self._build_gene, args=(gene, child)), gene, parent) 
+            threads = [(multiprocessing.Process(target=self._build_gene, args=(gene, child)), gene, parent)
                         for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], pipes)]
             #Start some threads
             for i in range(limit):
@@ -869,7 +870,7 @@ class Genome(object):
                     self.genes[threads[i][1]] = recieved
                     #Close the threads and connections
                     threads[i][0].close()
-    
+
     def apply_variant_file(self, vcf):
         '''Function to apply a variant file to the genome  - producing a replica genome with the specified changes
 
@@ -886,8 +887,8 @@ class Genome(object):
 
         '''
         Using numpy's fancy array indexing may provide neat code, and provides some speed
-            in some cases, the constant time access of a standard dictionary results in 
-            faster code when the mask only contains a few True values. 
+            in some cases, the constant time access of a standard dictionary results in
+            faster code when the mask only contains a few True values.
         For TB length arrays with a ~0.1% True mask, applying a mask takes ~10^-3s
             Applying a dictionary to the same array takes ~10^-4s
             ~0.1% True mask is a reasonable amount for this task as a VCF file is ~4000 entries
