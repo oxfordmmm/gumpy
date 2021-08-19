@@ -17,13 +17,14 @@ class Gene(object):
             reverse_complement (boolean, optional): Boolean showing whether this gene is reverse complement. Defaults to False
             codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
+            ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
         '''
         #Set the kwargs
         #UPDATE THIS AS REQUIRED
         allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter', 
                         'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type', 
                         'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number', 
-                        'codons', 'amino_acid_sequence']
+                        'codons', 'amino_acid_sequence', 'ribosomal_shifts']
         #If reloading a Gene, just set the attributes and return
         if "reloading" in kwargs.keys():
             for key in kwargs.keys():
@@ -43,6 +44,7 @@ class Gene(object):
         reverse_complement = kwargs.get("reverse_complement", False)
         codes_protein = kwargs.get("codes_protein", True)
         feature_type = kwargs.get("feature_type")
+        ribosomal_shifts = kwargs.get("ribosomal_shifts", [])
 
         assert name is not None, "must provide a gene name!"
         self.name=name
@@ -63,25 +65,29 @@ class Gene(object):
         nucleotide_sequence=numpy.char.lower(nucleotide_sequence)
         assert numpy.count_nonzero(numpy.isin(nucleotide_sequence,['a','t','c','g','x','z','o']))==len(nucleotide_sequence), name+": sequence can only contain a,t,c,g,z,x"
 
+        self.nucleotide_sequence=nucleotide_sequence
+        self.index=index
+        self.nucleotide_number=nucleotide_number
+        self.is_cds=is_cds
+        self.is_promoter=is_promoter
+        self.is_indel=is_indel
+        self.indel_length=indel_length
+
+        #Make appropriate changes to the arrays to encorporate the frame shift
+        for shift in ribosomal_shifts:
+            self.__duplicate(shift)
         if self.reverse_complement:
-            self.nucleotide_sequence=self._complement(nucleotide_sequence[::-1])
-            self.index=index[::-1]
-            self.nucleotide_number=nucleotide_number[::-1]
-            self.is_cds=is_cds[::-1]
-            self.is_promoter=is_promoter[::-1]
-            self.is_indel=is_indel[::-1]
-            self.indel_length=indel_length[::-1]
+            self.nucleotide_sequence=self._complement(self.nucleotide_sequence[::-1])
+            self.index=self.index[::-1]
+            self.nucleotide_number=self.nucleotide_number[::-1]
+            self.is_cds=self.is_cds[::-1]
+            self.is_promoter=self.is_promoter[::-1]
+            self.is_indel=self.is_indel[::-1]
+            self.indel_length=self.indel_length[::-1]
             if self.codes_protein:
                 self.triplet_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
 
         else:
-            self.nucleotide_sequence=nucleotide_sequence
-            self.index=index
-            self.nucleotide_number=nucleotide_number
-            self.is_cds=is_cds
-            self.is_promoter=is_promoter
-            self.is_indel=is_indel
-            self.indel_length=indel_length
             if self.codes_protein:
                 self.triplet_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
 
@@ -90,6 +96,48 @@ class Gene(object):
         if self.codes_protein:
             self._setup_conversion_dicts()
             self._translate_sequence()
+    
+    def __duplicate(self, index):
+        '''Duplicate all indcides of important arrays to add the ribosomal shift
+
+        Args:
+            index (int): Gene index to duplicate in all arrays
+        '''
+        #Convert to gene array index
+        index = int(numpy.where(self.nucleotide_number == index)[0])
+        #TODO: This needs modifying to be correct...
+        print(index)
+        print(self.nucleotide_number.tolist())
+
+        #Update the nucelotide_numebers so they include the duplicate
+        #Check for promoters before the codons
+        first_half = [self.nucleotide_number[i] for i in range(index+1)]
+        second_half = [self.nucleotide_number[i] + 1 if self.nucleotide_number[i] > 0 else self.nucleotide_number[i] for i in range(index-1, len(self.nucleotide_number))]
+        # first_half = [self.nucleotide_number[i] for i in range(len([i for i in self.is_promoter if i])-1 , index)]
+        # second_half = [self.nucleotide_number[i]+1 if self.nucleotide_number[i] > 0 else self.nucleotide_number[i] for i in range(index, len(self.nucleotide_number))]
+        self.nucleotide_number = numpy.array(first_half + [index] + second_half)
+        #Update all 
+        self.nucleotide_sequence = self.__duplicate_index(index, self.nucleotide_sequence)
+        self.index = self.__duplicate_index(index, self.index)
+        self.is_cds = self.__duplicate_index(index, self.is_cds)
+        self.is_promoter = self.__duplicate_index(index, self.is_promoter)
+        self.is_indel = self.__duplicate_index(index, self.is_indel)
+        self.indel_length = self.__duplicate_index(index, self.indel_length)
+
+        
+
+    def __duplicate_index(self, index, array):
+        '''Duplicates an element at a given index and returns the new array
+
+        Args:
+            index (int): Index of the array to duplicate
+            array (numpy.array): Array of items
+        Returns:
+            numpy.array: Array with duplicated item
+        '''
+        first_half = [array[i] for i in range(index)]
+        second_half = [array[i] for i in range(index, len(array))]
+        return numpy.array(first_half + [array[index]] + second_half)
 
     def __eq__(self, other):
         '''
