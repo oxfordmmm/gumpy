@@ -26,7 +26,14 @@ def test_ribosomal_slippage():
     #Checking for correct handling of -1 PRF
     a = g.genes["A"]
     assert numpy.all(a.nucleotide_sequence == list("aaaaaaaaaacccccccccccggggggggggttccc"))
-    assert numpy.all(a.nucleotide_number == numpy.array([-3, -2, -1]+list(range(1,32))+[-6, -5, -4] ))
-
-
+    assert numpy.all(a.nucleotide_number == numpy.array([-3, -2, -1]+list(range(1,31))+[-6, -5, -4]))
+    assert numpy.all(a.index == numpy.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,97,98,99]))
+    assert numpy.all(a.is_cds == numpy.array([False, False, False]+[True for i in range(1,31)]+[False, False, False]))
+    assert numpy.all(a.is_promoter == numpy.array([True, True, True]+[False for i in range(1,31)]+[True, True, True]))
+    assert numpy.all(a.is_indel == numpy.array([False for i in range(36)]))
+    assert numpy.all(a.indel_length == numpy.array([0 for i in range(36)]))
+    seq = list("aaaaaaacccccccccccggggggggggtt")
+    assert numpy.all(a.codons == numpy.array([''.join(seq[i*3:i*3+3]) for i in range(10)]))
+    assert numpy.all(a.amino_acid_sequence == numpy.array(list("KKTPPPGGGV")))
+    assert numpy.all(a.triplet_number == numpy.array([i//3 for i in range(3,33)]))
 

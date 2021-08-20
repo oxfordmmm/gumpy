@@ -104,18 +104,13 @@ class Gene(object):
             index (int): Gene index to duplicate in all arrays
         '''
         #Convert to gene array index
-        index = int(numpy.where(self.nucleotide_number == index)[0])
-        #TODO: This needs modifying to be correct...
-        print(index)
-        print(self.nucleotide_number.tolist())
+        index = int(numpy.where(self.nucleotide_number == index)[0])+1
 
         #Update the nucelotide_numebers so they include the duplicate
         #Check for promoters before the codons
-        first_half = [self.nucleotide_number[i] for i in range(index+1)]
-        second_half = [self.nucleotide_number[i] + 1 if self.nucleotide_number[i] > 0 else self.nucleotide_number[i] for i in range(index-1, len(self.nucleotide_number))]
-        # first_half = [self.nucleotide_number[i] for i in range(len([i for i in self.is_promoter if i])-1 , index)]
-        # second_half = [self.nucleotide_number[i]+1 if self.nucleotide_number[i] > 0 else self.nucleotide_number[i] for i in range(index, len(self.nucleotide_number))]
-        self.nucleotide_number = numpy.array(first_half + [index] + second_half)
+        first_half = [self.nucleotide_number[i] for i in range(index)]
+        second_half = [self.nucleotide_number[i] + 1 if self.nucleotide_number[i] > 0 else self.nucleotide_number[i] for i in range(index, len(self.nucleotide_number))]
+        self.nucleotide_number = numpy.array(first_half + [self.nucleotide_number[index]] + second_half)
         #Update all 
         self.nucleotide_sequence = self.__duplicate_index(index, self.nucleotide_sequence)
         self.index = self.__duplicate_index(index, self.index)
