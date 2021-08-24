@@ -370,7 +370,7 @@ class Genome(object):
                 #Convert numpy arrays to 3 item lists
                 d_type = numpy.dtype(obj[0])
                 d_array = numpy.frombuffer(base64.decodebytes(bytes(obj[1], 'utf-8')), d_type)
-                to_return = d_array.reshape(obj[2])
+                to_return = d_array.reshape(obj[2]).copy()
             elif type_ == str(type(list())):
                 #Convert items in a list
                 to_return = [_load(t, o, []) for (t, o) in obj]
@@ -562,7 +562,6 @@ class Genome(object):
             if record.type=='rRNA':
                 type="RNA"
                 codes_protein=False
-
             # determine if this is a reverse complement gene (only relevant to dsDNA genomes)
             rev_comp=True if record.strand==-1 else False
 
@@ -583,12 +582,22 @@ class Genome(object):
             gene_start=int(record.location.start)+1
             gene_end=int(record.location.end)+1
 
+            #Check for ribosomal shift
+            #This happens when a start position < end position
+            positions = [(loc.start.position, loc.end.position) for loc in record.location.parts]
+            shifts = []
+            #Check for -1 PFS
+            if len(positions) > 1 and positions[0][1] > positions[1][0]:
+                shifts.append(positions[1][0] - gene_start + 1)
+                x = positions[1][0]
+
             # record feature metadata in a dict
             self.genes_lookup[gene_name]={  'reverse_complement':rev_comp,\
                                         'type':type,\
                                         'codes_protein':codes_protein,\
                                         'start':gene_start,\
-                                        'end':gene_end }
+                                        'end':gene_end,
+                                        'ribosomal_shifts': shifts }
 
     def __handle_rev_comp(self, rev_comp, start, end, i):
         '''
@@ -790,11 +799,6 @@ class Genome(object):
         Returns:
             gumpy.Gene : The instanciated gene object. Returns None in cases where a Connection object is passed.
         '''
-        # FIXME: this gene has ribosomal slippage in it...
-        if gene=='ORF1ab':
-            if conn:
-                conn.send(None)
-            return None
 
         #The mask for all stacked arrays (N-dim)
         stacked_mask=self.stacked_gene_name==gene
@@ -802,7 +806,6 @@ class Genome(object):
         mask=numpy.any(stacked_mask,axis=0)
 
         assert numpy.count_nonzero(mask)>0, "gene ("+gene+") not found in genome!"
-
         g = Gene(  name=gene,\
                                 nucleotide_sequence=self.nucleotide_sequence[mask],\
                                 index=self.nucleotide_index[mask],\
@@ -813,7 +816,8 @@ class Genome(object):
                                 indel_length=self.indel_length[mask],
                                 codes_protein=self.genes_lookup[gene]['codes_protein'],\
                                 reverse_complement=self.genes_lookup[gene]['reverse_complement'],\
-                                feature_type=self.genes_lookup[gene]['type'])
+                                feature_type=self.genes_lookup[gene]['type'],
+                                ribosomal_shifts=self.genes_lookup[gene]['ribosomal_shifts'])
         if conn:
             conn.send(g)
         else:
