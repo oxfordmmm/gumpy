@@ -258,6 +258,7 @@ def test_instanciate_genes_rna():
     assert numpy.all(gene.amino_acid_sequence == numpy.array(list("KKTPPPGGG")))
 
 def test_instanciate_genome_dna():
+
     genome = gumpy.Genome("config/TEST-DNA.gbk")
 
     #Testing generic attributes such as name and length
@@ -453,12 +454,12 @@ def test_instanciate_vcf():
 
     #Due to the dict structure here, several asserts are required
     changes = {
-        1: ('g', [(0, '*'), (68, 'g')]),
-        15: ('t', [(0, '*'), (68, 't')]),
-        27: ('z', [(1, '*'), (99, 't'), (100, 'c')]),
-        71: (numpy.array(['g', 'c', 'c']), [(0, '*'), (68, numpy.array(['g', 'c', 'c']))]),
-        77: ('z', [(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 'g')]),
-        89: ('x', [(0, '*'), (68, 'x')])
+        1: ('g', [(0, '-'), (68, 'g')]),
+        15: ('t', [(0, '-'), (68, 't')]),
+        27: ('z', [(1, '-'), (99, 't'), (100, 'c')]),
+        71: (numpy.array(['g', 'c', 'c']), [(0, '-'), (68, numpy.array(['g', 'c', 'c']))]),
+        77: ('z', [(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')]),
+        89: ('x', [(0, '-'), (68, 'x')])
     }
     assert vcf.changes.keys() == changes.keys()
     for key in changes.keys():

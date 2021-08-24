@@ -82,7 +82,7 @@ def test_genome_functions():
         assert False
     except AssertionError as e:
         assert str(e) == "index must be less than the length of the genome!"
-    
+
     assert g1.at_index(5) == ["A"]
     assert g1.at_index(28) == ["A", "B"]
     assert g1.at_index(65) == None
@@ -150,19 +150,19 @@ def test_apply_vcf():
     assert g2.indels.keys() == {71:None}.keys()
     assert numpy.all(g2.indels[71] == numpy.array(['g', 'c', 'c']))
     calls = {
-        1: [(0, '*'), (68, 'g')],
-        15: [(0, '*'), (68, 't')],
-        27: [(1, '*'), (99, 't'), (100, 'c')],
-        71: [(0, '*'), (68, numpy.array(['g', 'c', 'c']))],
-        77: [(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 'g')],
-        89: [(0, '*'), (68, 'x')]
+        1: [(0, '-'), (68, 'g')],
+        15: [(0, '-'), (68, 't')],
+        27: [(1, '-'), (99, 't'), (100, 'c')],
+        71: [(0, '-'), (68, numpy.array(['g', 'c', 'c']))],
+        77: [(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')],
+        89: [(0, '-'), (68, 'x')]
     }
     assert g2.calls.keys() == calls.keys()
     for key in g2.calls.keys():
         for ((n_reads1, call1), (n_reads2, call2)) in zip(g2.calls[key], calls[key]):
             assert n_reads1 == n_reads2
             assert numpy.all(call1 == call2)
-    
+
     #Check for gene level changes
     gene_changes = []
     nucleotide_changes = []
@@ -176,7 +176,7 @@ def test_apply_vcf():
     assert numpy.all(index_changes)
 
 def check_eq(arr1, arr2, check):
-    '''Recursive helper function to determine if 2 arrays are equal. 
+    '''Recursive helper function to determine if 2 arrays are equal.
     Checks all sub-arrays (if exist). Will work with list, tuple, dict and numpy.array
 
     Args:
@@ -186,7 +186,7 @@ def check_eq(arr1, arr2, check):
 
     Returns:
         bool: True when the two arrays are equal
-    '''    
+    '''
     if type(arr1) != type(arr2) or check == False:
         return False
     if type(arr1) == dict:
@@ -229,8 +229,8 @@ def test_genome_difference():
     assert numpy.all(diff.het_indices == numpy.array([27, 77]))
 
     het_calls = numpy.array([
-        [(1, '*'), (99, 't'), (100, 'c')],
-        [(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 'g')]
+        [(1, '-'), (99, 't'), (100, 'c')],
+        [(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')]
     ], dtype=object)
     assert check_eq(diff.het_calls, het_calls, True)
 
@@ -245,11 +245,11 @@ def test_genome_difference():
         ("z", "t"), ("x", "a")
     ]))
     assert numpy.all(diff.codons == numpy.array([(
-        ('aga', 'aaa'), ('tcc', 'ccc'), ('zgg', 'ggg'), 
+        ('aga', 'aaa'), ('tcc', 'ccc'), ('zgg', 'ggg'),
         ('ttz', 'ttt'), ('aax', 'aaa')
     )]))
     assert numpy.all(diff.amino_acids == numpy.array([
-        ('R', 'K'), ('S', 'P'), ('Z', 'G'), 
+        ('R', 'K'), ('S', 'P'), ('Z', 'G'),
         ('Z', 'F'), ('X', 'K')
     ]))
     assert check_eq(diff.indels, numpy.array([
@@ -257,8 +257,8 @@ def test_genome_difference():
     ], dtype=object), True)
 
     het_calls = numpy.array([
-        [[(1, '*'), (99, 't'), (100, 'c')], None],
-        [[(0, '*'), (48, numpy.array(['g', 't', 't'])), (20, 'g')], None]
+        [[(1, '-'), (99, 't'), (100, 'c')], None],
+        [[(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')], None]
     ], dtype=object)
     assert check_eq(diff.het_calls, het_calls, True)
 
@@ -276,7 +276,7 @@ def test_genome_difference():
 
     with pytest.warns(UserWarning):
         diffd = g2.difference(g1)
-    
+
     #Testing cases when genomes are equal
     diff = g1.difference(g1)
     assert diff is None
@@ -326,10 +326,10 @@ def test_vcf_difference():
         71: numpy.array(['g', 'c', 'c'])
     }, True)
     assert numpy.all(diff.codons == {
-        0: ('aaa', 'aga'), 
-        5: ('ccc', 'tcc'), 
-        9: ('ggg', 'zgg'), 
-        25: ('ttt', 'ttz'), 
+        0: ('aaa', 'aga'),
+        5: ('ccc', 'tcc'),
+        9: ('ggg', 'zgg'),
+        25: ('ttt', 'ttz'),
         29: ('aaa', 'aax')
     })
     assert numpy.all(diff.amino_acids == numpy.array([

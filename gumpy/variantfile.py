@@ -49,7 +49,7 @@ class VCFRecord(object):
             self.filter = "."
         else:
             self.filter = record.filter.items()[0][0]
-        
+
         #Get the info field
         self.info = {}
         for (key, value) in record.info.items():
@@ -62,7 +62,7 @@ class VCFRecord(object):
                 #Due to how pysam reads floats, there are some erroneously long dps, so round
                 item = round(item, 2)
             self.values[key] = item
-    
+
     def __repr__(self):
         '''Pretty print the record
         '''
@@ -113,7 +113,7 @@ class VariantFile(object):
 
         #Get some basic metadata
         self.VCF_VERSION = vcf.version
-        
+
         #Get the contig lengths from the header
         self.contig_lengths = {}
         for name in list(vcf.header.contigs):
@@ -138,10 +138,10 @@ class VariantFile(object):
         for record in list(vcf):
             for sample in record.samples.keys():
                 self.records.append(VCFRecord(record, sample))
-        
+
 
         self.__find_changes()
-    
+
     def __find_changes(self):
         '''Function to find changes within the genome based on the variant file
         '''
@@ -186,7 +186,7 @@ class VariantFile(object):
                     call = 'z'
                 else:
                     assert False, "Weird call: "+str(alts)
-                
+
 
             #Get the number of reads for each call (and wildcard)
             n_reads = record.values.get("COV")
@@ -197,17 +197,17 @@ class VariantFile(object):
             # if max(n_reads) == 0:
             #     #Wildtype is the most common (TODO)
             #     call = 'x'
-            alts = ('*', ) + alts
+            alts = ('-', ) + alts
             self.changes[key] = (call, list(zip(n_reads, alts)))
 
     def to_df(self):
-        '''Convert the VCFRecord to a pandas DataFrame. 
-        Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations 
+        '''Convert the VCFRecord to a pandas DataFrame.
+        Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations
         (but pandas does not currently have a robust method for metadata storage...)
 
         Returns:
             pandas.DataFrame: DataFrame containing all of the information from the VCF file
-        '''        
+        '''
         meta_data = {
             "VCF_VERSION": self.VCF_VERSION,
             "contig_lengths": self.contig_lengths,
@@ -241,11 +241,11 @@ class VariantFile(object):
             })
         df.attrs = meta_data
         return df
-    
+
     def difference(self, genome):
         '''Takes in a Genome object, returning an object detailing the full differences caused by this VCF including amino acid differences
 
         Args:
             genome (gumpy.Genome): A reference Genome object
-        '''        
+        '''
         return VCFDifference(self, genome)

@@ -569,7 +569,7 @@ class Genome(object):
             if gene_name is None or (gene_subset is not None and gene_name not in gene_subset):
                 continue
 
-            if gene_name in self.genes_lookup.keys:
+            if gene_name in self.genes_lookup.keys():
                 print(gene_name)
 
             # sigh, you can't assume that a gene_name is unique in a GenBank file
