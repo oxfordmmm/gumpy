@@ -450,7 +450,7 @@ def test_instanciate_vcf():
             "id": 4
         }
     }
-    assert len(vcf.records) == 6
+    assert len(vcf.records) == 7
 
     #Due to the dict structure here, several asserts are required
     changes = {
