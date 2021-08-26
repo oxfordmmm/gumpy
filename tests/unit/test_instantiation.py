@@ -5,34 +5,35 @@ import numpy, gumpy, pytest, math
 #So ignore it to stop failing tests...
 pytestmark = pytest.mark.filterwarnings("ignore")
 
+tb_reference = gumpy.Genome('config/NC_000962.3.gbk',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
+
+
 def test_instanciate_genome_tb():
 
-    reference = gumpy.Genome('config/NC_000962.3.gbk',gene_subset=['katG','rpoB','pncA','Rv2042c'])
+    # reference = gumpy.Genome('config/NC_000962.3.gbk',gene_subset=['katG','rpoB','pncA','Rv2042c'])
 
-    assert len(reference)==4411532
-    assert reference.name=='NC_000962'
-    assert reference.id=='NC_000962.3'
+    assert len(tb_reference)==4411532
+    assert tb_reference.name=='NC_000962'
+    assert tb_reference.id=='NC_000962.3'
 
     # check to see if the stacking can cope with two genes overlapping
-    mask=reference.stacked_nucleotide_index==2288681
-    assert set(reference.stacked_gene_name[mask]) == {'pncA','Rv2042c'}, 'stacking failing at 2288681 in H37rV v3'
+    mask=tb_reference.stacked_nucleotide_index==2288681
+    assert set(tb_reference.stacked_gene_name[mask]) == {'pncA','Rv2042c'}, 'stacking failing at 2288681 in H37rV v3'
 
     # ..and the at_index function
-    set(reference.at_index(2288681)) == {'pncA','Rv2042c'}, 'not correctly detecting that pncA and Rv2042c both include 2288681 in NC_000962.3'
+    set(tb_reference.at_index(2288681)) == {'pncA','Rv2042c'}, 'not correctly detecting that pncA and Rv2042c both include 2288681 in NC_000962.3'
 
-    assert reference.contains_gene('katG')
-    assert reference.contains_gene('rpoB')
-    assert reference.contains_gene('pncA')
-    assert reference.contains_gene('Rv2042c')
-    assert ~reference.contains_gene('rpoC')
+    assert tb_reference.contains_gene('katG')
+    assert tb_reference.contains_gene('rpoB')
+    assert tb_reference.contains_gene('pncA')
+    assert tb_reference.contains_gene('Rv2042c')
+    assert ~tb_reference.contains_gene('rpoC')
 
     # check the first and last dozen bases of the whole sequence
-    assert ''.join(i for i in reference.nucleotide_sequence[:12]) == 'ttgaccgatgac'
-    assert ''.join(i for i in reference.nucleotide_sequence[-12:]) == 'ggagatacgtcg'
+    assert ''.join(i for i in tb_reference.nucleotide_sequence[:12]) == 'ttgaccgatgac'
+    assert ''.join(i for i in tb_reference.nucleotide_sequence[-12:]) == 'ggagatacgtcg'
 
 def test_instanciate_genes_tb():
-
-    reference = gumpy.Genome('config/NC_000962.3.gbk',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
 
     truth_gene_sequence={}
     truth_gene_sequence['katG']='VPEQHPPITETTTGAASNGCPVVGHMKYPVEGGGNQDWWPNRLNLKVLHQNPAVADPMGAAFDYAAEVATIDVDALTRDIEEVMTTSQPWWPADYGHYGPLFIRMAWHAAGTYRIHDGRGGAGGGMQRFAPLNSWPDNASLDKARRLLWPVKKKYGKKLSWADLIVFAGNCALESMGFKTFGFGFGRVDQWEPDEVYWGKEATWLGDERYSGKRDLENPLAAVQMGLIYVNPEGPNGNPDPMAAAVDIRETFRRMAMNDVETAALIVGGHTFGKTHGAGPADLVGPEPEAAPLEQMGLGWKSSYGTGTGKDAITSGIEVVWTNTPTKWDNSFLEILYGYEWELTKSPAGAWQYTAKDGAGAGTIPDPFGGPGRSPTMLATDLSLRVDPIYERITRRWLEHPEELADEFAKAWYKLIHRDMGPVARYLGPLVPKQTLLWQDPVPAVSHDLVGEAEIASLKSQIRASGLTVSQLVSTAWAAASSFRGSDKRGGANGGRIRLQPQVGWEVNDPDGDLRKVIRTLEEIQESFNSAAPGNIKVSFADLVVLGGCAAIEKAAKAAGHNITVPFTPGRTDASQEQTDVESFAVLEPKADGFRNYLGKGNPLPAEYMLLDKANLLTLSAPEMTVLVGGLRVLGANYKRLPLGVFTEASESLTNDFFVNLLDMGITWEPSPADDGTYQGKDGSGKVKWTGSRVDLVFGSNSELRALVEVYGADDAQPKFVQDFVAAWDKVMNLDRFDVR!'
@@ -43,28 +44,28 @@ def test_instanciate_genes_tb():
 
     for gene_name in ['katG','rpoB','pncA','Rv2042c','rrs']:
 
-        assert reference.genes[gene_name].name==gene_name
+        assert tb_reference.genes[gene_name].name==gene_name
 
         if gene_name=='rrs':
-            assert ~reference.genes[gene_name].codes_protein, gene_name
-            assert reference.genes[gene_name].feature_type=='RNA', gene_name
+            assert ~tb_reference.genes[gene_name].codes_protein, gene_name
+            assert tb_reference.genes[gene_name].feature_type=='RNA', gene_name
         elif gene_name=='Rv2042c':
-            assert reference.genes[gene_name].codes_protein, gene_name
-            assert reference.genes[gene_name].feature_type=='LOCUS', gene_name
+            assert tb_reference.genes[gene_name].codes_protein, gene_name
+            assert tb_reference.genes[gene_name].feature_type=='LOCUS', gene_name
         else:
-            assert reference.genes[gene_name].codes_protein, gene_name
-            assert reference.genes[gene_name].feature_type=='GENE', gene_name
+            assert tb_reference.genes[gene_name].codes_protein, gene_name
+            assert tb_reference.genes[gene_name].feature_type=='GENE', gene_name
 
         if gene_name in ['katG','pncA','Rv2042c']:
-            assert reference.genes[gene_name].reverse_complement, gene_name
+            assert tb_reference.genes[gene_name].reverse_complement, gene_name
         else:
-            assert ~reference.genes[gene_name].reverse_complement, gene_name
+            assert ~tb_reference.genes[gene_name].reverse_complement, gene_name
 
         if gene_name=='rrs':
-            nuc_sequence=reference.genes[gene_name].nucleotide_sequence[reference.genes[gene_name].nucleotide_number>0]
+            nuc_sequence=tb_reference.genes[gene_name].nucleotide_sequence[tb_reference.genes[gene_name].nucleotide_number>0]
             assert ''.join(i for i in nuc_sequence) == truth_gene_sequence[gene_name], gene_name+' nucleotide sequence incorrect!'
         else:
-            assert ''.join(i for i in reference.genes[gene_name].amino_acid_sequence) == truth_gene_sequence[gene_name], gene_name+' amino acid sequence incorrect!'
+            assert ''.join(i for i in tb_reference.genes[gene_name].amino_acid_sequence) == truth_gene_sequence[gene_name], gene_name+' amino acid sequence incorrect!'
 
 def test_instanciate_genome_covid():
 
@@ -424,7 +425,9 @@ def test_instanciate_genes_dna():
     assert numpy.all(gene.amino_acid_sequence == numpy.array(list("GG")))
 
 def test_instanciate_vcf():
-    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf",
+                            ignore_filter=True,formats_min_thresholds={'GT_CONF':0})
+
     #Testing some populated items for the object
     assert vcf.VCF_VERSION == (4, 2)
     assert vcf.contig_lengths == {"TEST_DNA": 99}
@@ -450,24 +453,46 @@ def test_instanciate_vcf():
             "id": 4
         }
     }
-    assert len(vcf.records) == 7
+    assert len(vcf.records) == 12
 
     #Due to the dict structure here, several asserts are required
-    changes = {
-        1: ('g', [(0, '-'), (68, 'g')]),
-        15: ('t', [(0, '-'), (68, 't')]),
-        27: ('z', [(1, '-'), (99, 't'), (100, 'c')]),
-        71: (numpy.array(['g', 'c', 'c']), [(0, '-'), (68, numpy.array(['g', 'c', 'c']))]),
-        77: ('z', [(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')]),
-        89: ('x', [(0, '-'), (68, 'x')])
-    }
-    assert vcf.changes.keys() == changes.keys()
-    for key in changes.keys():
-        assert numpy.all(vcf.changes[key][0] == changes[key][0])
-        for ((n_reads1, call1), (n_reads2, call2)) in zip(vcf.changes[key][1], changes[key][1]):
-            assert n_reads1 == n_reads2
-            assert numpy.all(call1 == call2)
+    variants = {
+        2: {'type': 'null','call': 'x','ref': 'a','pos': 0,'original_vcf_row':{'GT': (None, None),'DP': 2,'COV': (1, 1),'GT_CONF': 2.05, 'REF': 'a', 'ALTS': ('g',)}},
 
+        4: {'type': 'null','call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 2, 2),'GT_CONF': 3.77,'REF': 'a','ALTS': ('g', 't')}},
+
+        6: {'type': 'null','call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1, 1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
+
+        7: {'type': 'null','call': 'x','ref': 'a','pos': 1,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1, 1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
+
+        8: {'type': 'null','call': 'x','ref': 'a','pos': 2,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1, 1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
+
+        12: {'type': 'snp','call': 't','ref': 'c','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 50,'COV': (0, 50),'GT_CONF': 200.58,'REF': 'c','ALTS': ('t',)}},
+
+        14: {'type': 'snp','call': 'g','ref': 'c','pos': 0,'original_vcf_row': {'GT': (2, 2),'DP': 45,'COV': (0, 2, 43),'GT_CONF': 155.58,'REF': 'c','ALTS': ('t', 'g')}},
+
+        16: {'type': 'snp','call': 't','ref': 'c','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 70,'COV': (0, 68, 8),'GT_CONF': 300.25,'REF': 'ccc','ALTS': ('tgc', 'gtg')}},
+
+        17: {'type': 'snp','call': 'g','ref': 'c','pos': 1,'original_vcf_row': {'GT': (1, 1),'DP': 70,'COV': (0, 68, 8),'GT_CONF': 300.25,'REF': 'ccc','ALTS': ('tgc', 'gtg')}},
+
+        22: {'type': 'het','call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'GT': (1, 2),'DP': 202,'COV': (1, 99, 100, 2),'GT_CONF': 613.77,'REF': 'g','ALTS': ('t', 'c', 'a')}},
+
+        24: {'type': 'het','call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'GT': (0, 2),'DP': 202,'COV': (99, 1, 100, 2),'GT_CONF': 613.77,'REF': 'g','ALTS': ('t', 'c', 'a')}},
+
+        26: {'type': 'het','call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'GT': (1, 2),'DP': 100,'COV': (0, 48, 50, 2),'GT_CONF': 475.54,'REF': 'gg','ALTS': ('aa', 'ct', 'at')}},
+
+        27: {'type': 'het','call': 'z','ref': 'g','pos': 1,'original_vcf_row': {'GT': (1, 2),'DP': 100,'COV': (0, 48, 50, 2),'GT_CONF': 475.54,'REF': 'gg','ALTS': ('aa', 'ct', 'at')}},
+
+        28: {'type': 'het','call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'GT': (1, 3),'DP': 100,'COV': (0, 48, 2, 50),'GT_CONF': 315.11,'REF': 'gg','ALTS': ('aa', 't', 'a')}},
+
+        29: {'type': 'het','call': 'z','ref': 'g','pos': 1,'original_vcf_row': {'GT': (1, 3),'DP': 100,'COV': (0, 48, 2, 50),'GT_CONF': 315.11,'REF': 'gg','ALTS': ('aa', 't', 'a')}},
+
+        33: {'type': 'indel','call': ('ins',2),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 't','ALTS': ('ttt',)}},
+
+        36: {'type': 'indel','call': ('del',-1),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 'tt','ALTS': ('t',)}}}
+
+    # could use assertDictEqual from unittest framework, but not using at present
+    assert vcf.variants == variants
     #Testing record objects
 
     #Features common to all record objects:
@@ -475,66 +500,71 @@ def test_instanciate_vcf():
         assert record.chrom == "TEST_DNA"
     #Pos
     assert vcf.records[0].pos == 2
-    assert vcf.records[1].pos == 16
-    assert vcf.records[2].pos == 28
-    assert vcf.records[3].pos == 72
-    assert vcf.records[4].pos == 78
-    assert vcf.records[5].pos == 90
-
+    assert vcf.records[1].pos == 4
+    assert vcf.records[2].pos == 6
+    assert vcf.records[3].pos == 12
+    assert vcf.records[4].pos == 14
+    assert vcf.records[5].pos == 16
+    assert vcf.records[6].pos == 22
+    assert vcf.records[7].pos == 24
+    assert vcf.records[8].pos == 26
+    assert vcf.records[9].pos == 28
+    assert vcf.records[10].pos == 33
+    assert vcf.records[11].pos == 36
     #Ref
-    assert vcf.records[0].ref == "A"
-    assert vcf.records[1].ref == "C"
-    assert vcf.records[2].ref == "G"
-    assert vcf.records[3].ref == "T"
-    assert vcf.records[4].ref == "T"
-    assert vcf.records[5].ref == "A"
+    assert vcf.records[0].ref == "a"
+    assert vcf.records[1].ref == "a"
+    assert vcf.records[2].ref == "aaa"
+    assert vcf.records[3].ref == "c"
+    assert vcf.records[4].ref == "c"
+    assert vcf.records[5].ref == "ccc"
+    assert vcf.records[6].ref == "g"
+    assert vcf.records[7].ref == "g"
+    assert vcf.records[8].ref == "gg"
+    assert vcf.records[9].ref == "gg"
+    assert vcf.records[10].ref == "t"
+    assert vcf.records[11].ref == "tt"
 
     #Alt
-    assert numpy.all(vcf.records[0].alts == ("G", ))
-    assert numpy.all(vcf.records[1].alts == ("T", ))
-    assert numpy.all(vcf.records[2].alts == ("T", "C"))
-    assert numpy.all(vcf.records[3].alts == ("GCC", ))
-    assert numpy.all(vcf.records[4].alts == ("GTT", "G"))
-    assert numpy.all(vcf.records[5].alts == None)
+    assert numpy.all(vcf.records[0].alts == ("g", ))
+    assert numpy.all(vcf.records[1].alts == ("g",'t'))
+    assert numpy.all(vcf.records[2].alts == ("ggt", "gta",'ata'))
+    assert numpy.all(vcf.records[3].alts == ("t", ))
+    assert numpy.all(vcf.records[4].alts == ("t", "g"))
+    assert numpy.all(vcf.records[5].alts == ('tgc','gtg'))
+    assert numpy.all(vcf.records[6].alts == ('t','c','a'))
+    assert numpy.all(vcf.records[7].alts == ('t','c','a'))
+    assert numpy.all(vcf.records[8].alts == ('aa','ct','at'))
+    assert numpy.all(vcf.records[9].alts == ('aa','t','a'))
+    assert numpy.all(vcf.records[10].alts == ('ttt',))
+    assert numpy.all(vcf.records[11].alts == ('t',))
 
-    #Qual
-    assert vcf.records[0].qual == None
-    assert vcf.records[1].qual == None
-    assert vcf.records[2].qual == None
-    assert vcf.records[3].qual == None
-    assert vcf.records[4].qual == None
-    assert vcf.records[5].qual == None
+    for i in range(12):
+        assert vcf.records[i].qual == None
+        assert vcf.records[i].info == {'KMER': 15}
 
-    #Filter
-    assert vcf.records[0].filter == "PASS"
-    assert vcf.records[1].filter == "."
-    assert vcf.records[2].filter == "PASS"
-    assert vcf.records[3].filter == "PASS"
-    assert vcf.records[4].filter == "."
-    assert vcf.records[5].filter == "."
+    for i in range(12):
+        if i == 1:
+            assert vcf.records[i].filter == 'MIN_GT'
+        else:
+            assert vcf.records[i].filter == 'PASS'
 
-    #Other fields
-    assert vcf.records[0].info == {'KMER': 15}
-    assert vcf.records[1].info == {'KMER': 15}
-    assert vcf.records[2].info == {'KMER': 15}
-    assert vcf.records[3].info == {'KMER': 15}
-    assert vcf.records[4].info == {'KMER': 15}
-    assert vcf.records[5].info == {'KMER': 15}
-
-    print(vcf.records[0].values.keys())
     #GT
     gt = [record.values["GT"] for record in vcf.records]
     #None is given as a GT value for null values for alts
-    assert numpy.all(gt == [(1, 1), (1, 1), (1, 2), (1, 1), (1, 1), (None, None)])
+    assert numpy.all(gt == [(None, None),(None, None),(None, None),(1, 1),(2, 2),(1, 1),(1, 2),(0, 2),(1, 2),(1, 3),(1, 1),(1, 1)])
+
     #DP
     dp = [record.values["DP"] for record in vcf.records]
-    assert numpy.all(dp == [68, 68, 200, 68, 68, 68])
+    assert numpy.all(dp == [2, 4, 4, 50, 45, 70, 202, 202, 100, 100, 200, 200])
     #COV
     cov = [record.values["COV"] for record in vcf.records]
-    assert numpy.all(cov == [(0, 68), (0, 68), (1, 99, 100), (0, 68), (0, 48, 20), (0, 68)])
+    assert numpy.all(cov == [(1, 1), (1, 2, 2), (1, 1, 1, 1), (0, 50), (0, 2, 43), (0, 68, 8), (1, 99, 100, 2), (99, 1, 100, 2), (0, 48, 50, 2), (0, 48, 2, 50), (1, 199), (1, 199)])
+
     #GT_CONF
     gt_conf = [record.values["GT_CONF"] for record in vcf.records]
-    assert numpy.all(gt_conf == [613.77, 613.77, 613.77, 63.77, 63.77, 63.77])
+    assert numpy.all(gt_conf == [2.05, 3.77, 2.76, 200.58, 155.58, 300.25, 613.77, 613.77, 475.54, 315.11, 145.21,
+ 145.21])
 
     #Quick test for VCFRecord.__repr__()
-    assert vcf.records[0].__repr__() == "TEST_DNA\t2\tA\t('G',)\tNone\tPASS\tGT:DP:COV:GT_CONF\t(1, 1):68:(0, 68):613.77\n"
+    assert vcf.records[0].__repr__() == "TEST_DNA\t2\ta\t('g',)\tNone\tPASS\tGT:DP:COV:GT_CONF\t(None, None):2:(1, 1):2.05\n"

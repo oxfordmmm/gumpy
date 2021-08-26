@@ -22,18 +22,21 @@ class Difference(ABC):
         '''
         assert type(method) == str, "Invalid method "+str(method)+" of type "+str(type(method))
         assert method in ['diff', 'full'], "Invalid method: "+method
+
         if method == "full":
             self.nucleotides = self._nucleotides_full
-            self.codons = self._codons_full
-            self.amino_acids = self._amino_acids_full
+            if hasattr(self,'_codes_protein') and self._codes_protein:
+                self.codons = self._codons_full
+                self.amino_acids = self._amino_acids_full
             self.indels = self._indels_full
             if hasattr(self, "_het_calls_full"):
                 self.het_calls = self._het_calls_full
         if method == "diff":
             #Convert the full arrays into diff arrays
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)
-            self.codons = self.__full_to_diff(self._codons_full)
-            self.amino_acids = self.__full_to_diff(self._amino_acids_full)
+            if hasattr(self,'_codes_protein') and self._codes_protein:
+                self.codons = self.__full_to_diff(self._codons_full)
+                self.amino_acids = self.__full_to_diff(self._amino_acids_full)
             self.indels = self.__full_to_diff(self._indels_full)
             if hasattr(self, "_het_calls_full"):
                 self.het_calls = self.__full_to_diff(self._het_calls_full)
@@ -136,6 +139,7 @@ class GenomeDifference(Difference):
         self.genome1 = genome1
         self.genome2 = genome2
         self._view_method = "diff"
+        self._codes_protein=False
 
         #Calculate SNPs
         self.snp = self.__snp_distance()
@@ -146,8 +150,8 @@ class GenomeDifference(Difference):
         self.indices = self.__indices()
         self._nucleotides_full = self.__nucleotides()
 
-        self._codons_full = self.__codons()
-        self._amino_acids_full = self.__amino_acids()
+        # self._codons_full = self.__codons()
+        # self._amino_acids_full = self.__amino_acids()
 
         #These are only valid when a VCF has been applied to at least 1 of the genomes
         self.indel_indices = self.__indel_indices()
@@ -187,41 +191,6 @@ class GenomeDifference(Difference):
         '''
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
         return numpy.array(list(zip(self.genome1.nucleotide_sequence[mask], self.genome2.nucleotide_sequence[mask])))
-
-    def __codons(self):
-        '''Convert the nucleotide arrays to arrays of codons. Returns codons which are different
-        Returns:
-            numpy.array: Numpy array of tuples of (codon1, codon2)
-        '''
-        if len(self._nucleotides_full) == 0:
-            #No changes in nucleotides so no difference in codons
-            return numpy.array([])
-        codons1 = convert_nucleotides_codons(self.genome1.nucleotide_sequence)
-        codons2 = convert_nucleotides_codons(self.genome2.nucleotide_sequence)
-        mask = codons1 != codons2
-        codons1 = codons1[mask]
-        codons2 = codons2[mask]
-        return numpy.array(list(zip(codons1, codons2)))
-
-    def __amino_acids(self):
-        '''Calculate the difference in amino acid sequences
-        Returns:
-            numpy.array: Array of tuples showing (amino_acid_1, amino_acid_2)
-        '''
-        codon_to_amino_acid = setup_codon_aa_dict()
-
-        #Get the difference in codons (if any)
-        if len(self._codons_full) == 0:
-            #No different codons so no different amino acids
-            return numpy.array([])
-
-        aa_diff = []
-        for (codon1, codon2) in self._codons_full:
-            aa1 = codon_to_amino_acid[codon1]
-            aa2 = codon_to_amino_acid[codon2]
-            if aa1 != aa2:
-                aa_diff.append((aa1, aa2))
-        return numpy.array(aa_diff)
 
     def __indel_indices(self):
         '''Finds the positions at which there are indels in either genome. Use genome.indels.get(item) for safe retrieval of indels
@@ -342,7 +311,7 @@ class GenomeDifference(Difference):
         return numpy.array(sorted(mutations))
 
     def __pad_mutations(self, arr1, arr2):
-        '''Pad lists of mutations to be the same length so zip() doesn't loose results
+        '''Pad lists of mutations to be the same length so zip() doesn't lose results
 
         Args:
             arr1 (numpy.array): Array1
@@ -412,12 +381,10 @@ class VCFDifference(object):
         self.snps = self.__snps()
         self.snp = len(self.indices)
 
-        self.coverages = self.__coverages()
-        self.het_calls = self.__het_calls()
+        # self.coverages = self.__coverages()
+        # self.het_calls = self.__het_calls()
         self.indels = self.__indels()
 
-        self.codons = self.__codons()
-        self.amino_acids = self.__amino_acid_mutations()
         self.genes= genome.stacked_gene_name[numpy.isin(genome.stacked_nucleotide_index,(self.indices))]
 
     def __indices(self):
@@ -426,26 +393,12 @@ class VCFDifference(object):
         Returns:
             numpy.array: Array of SNP genome indices
         '''
-        indices = []
-        for record in self.vcf.records:
-            #Check that the record's call is different from the nucleotide in the genome
-            call = record.alts
-            if call is None:
-                #Checking for null values
-                call = 'x'
-            if len(call) > 1:
-                #Het call
-                call = 'z'
-            elif len(call[0]) != 1:
-                #Indel call so not a SNP
-                continue
-            elif call[0] is None:
-                call = 'x'
-            else:
-                call = call[0].lower()
-
-            if self.genome.nucleotide_sequence[record.pos - 1] != call:
-                indices.append(self.genome.nucleotide_index[record.pos - 1])
+        indices=[]
+        for idx in self.vcf.variants:
+            if 'indel' not in self.vcf.variants[idx]:
+                call=self.vcf.variants[idx]['call']
+                if self.genome.nucleotide_sequence[idx-1] != call:
+                    indices.append(self.genome.nucleotide_index[idx- 1])
         return numpy.array(indices)
 
     def __snps(self):
@@ -456,59 +409,43 @@ class VCFDifference(object):
         '''
         snps = []
 
-        for record in self.vcf.records:
-            #Check that the record's call is different from the nucleotide in the genome
-            call = record.alts
-            if call is None:
-                #Checking for null values
-                call = 'x'
-            if len(call) > 1:
-                #Het call
-                call = 'z'
-            elif len(call[0]) != 1:
-                # print(record.ref,call)
-                #Indel call so not a SNP
-                continue
-            elif call[0] is None:
-                call = 'x'
-            else:
-                call = call[0].lower()
-
-            ref=self.genome.nucleotide_sequence[record.pos - 1]
-            if ref != call:
-                snps.append(str(self.genome.nucleotide_index[record.pos - 1])+ref+">"+call)
+        for idx in self.vcf.variants:
+            if 'indel' not in self.vcf.variants[idx] and self.vcf.variants[idx] in ['a','t','c','g']:
+                call=self.vcf.variants[idx]['call']
+                if self.genome.nucleotide_sequence[idx-1] != call:
+                    snps.append(self.genome.nucleotide_sequence[idx- 1])
         return numpy.array(snps)
 
-    def __coverages(self):
-        '''Finds the coverages of each call at each position
-
-        Returns:
-            dict: Dictionary mapping the genome_index->[(cov, call)]
-        '''
-        coverages = {}
-        for record in self.vcf.records:
-            if record.values["COV"] == (0, 0) or record.values["COV"] is None:
-                continue
-            if record.alts is None:
-                #Checking for null values
-                record.alts = ('x', )
-            coverages[record.pos] = list(zip(record.values["COV"][1::], record.alts))
-        return coverages
-
-    def __het_calls(self):
-        '''Find the possible values for het calls defined in the VCF
-
-        Returns:
-            dict: Dictionary mapping genome_index->[call1, call2..]
-        '''
-        het_calls = {}
-        for record in self.vcf.records:
-            if len(record.alts) > 1:
-                #There is a het call
-                if record.alts is None:
-                    record.alts = ('x', )
-                het_calls[record.pos] = record.alts
-        return het_calls
+    # def __coverages(self):
+    #     '''Finds the coverages of each call at each position
+    #
+    #     Returns:
+    #         dict: Dictionary mapping the genome_index->[(cov, call)]
+    #     '''
+    #     coverages = {}
+    #     for record in self.vcf.records:
+    #         if record.values["COV"] == (0, 0) or record.values["COV"] is None:
+    #             continue
+    #         if record.alts is None:
+    #             #Checking for null values
+    #             record.alts = ('x', )
+    #         coverages[record.pos] = list(zip(record.values["COV"][1::], record.alts))
+    #     return coverages
+    #
+    # def __het_calls(self):
+    #     '''Find the possible values for het calls defined in the VCF
+    #
+    #     Returns:
+    #         dict: Dictionary mapping genome_index->[call1, call2..]
+    #     '''
+    #     het_calls = {}
+    #     for record in self.vcf.records:
+    #         if len(record.alts) > 1:
+    #             #There is a het call
+    #             if record.alts is None:
+    #                 record.alts = ('x', )
+    #             het_calls[record.pos] = record.alts
+    #     return het_calls
 
     def __indels(self):
         '''Find the difference in the indels and the positons which it varies at.
@@ -517,68 +454,23 @@ class VCFDifference(object):
             dict: Dictionary mapping array_index->array(indel)
         '''
         indels = {}
-        for index in self.vcf.changes.keys():
-            call = self.vcf.changes[index][0]
-            if type(call) == tuple:
+        for index in self.vcf.variants.keys():
+            if self.vcf.variants[index]['type']=='indel':
+                call=self.vcf.variants[index]['call']
                 #Indel call so check for differences
-                if self.genome.is_indel[index] == True and self.genome.indel_length[index] == len(call[0]):
+                if self.genome.is_indel[index-1] == True and self.genome.indel_length[index-1] == call[1]:
                     #Check genome.indels to see if they are the same indel
-                    if self.genome.indels is not None and numpy.any(self.genome.indels[index] != call[0]):
+
+                    if self.genome.indels is not None and numpy.any(self.genome.indels[index-1] != call[0]+"_"+str(call[1])):
                         #There is a same length, but different value indel
-                        indels[index] = call[0]
+                        indels[index] = call[0]+"_"+str(call[1])
                     else:
                         #No differences in indels so ignore it
                         continue
                 else:
-                    indels[index] = call[0]
+                    indels[index] = call[0]+"_"+str(call[1])
         return indels
 
-    def __codons(self):
-        '''Find the difference in codons in the genome caused by the VCF file
-
-        Returns:
-            dict: Dictionary mapping codon_index->(genome_codon, vcf_codon)
-        '''
-        self.__nucleotides = self.genome.nucleotide_sequence.tolist()
-        for index in self.vcf.changes.keys():
-            call, _ = self.vcf.changes[index]
-            if type(call) == tuple:
-                #Indel so ignore for this
-                pass
-            else:
-                self.__nucleotides[index] = call
-        nucleotides = self.__nucleotides
-
-        codons = {}
-        c = ""
-        c_g = ""
-        for index in range(1, len(nucleotides)+1):
-            c += nucleotides[index-1]
-            c_g += self.genome.nucleotide_sequence[index-1]
-            if index % 3 == 0:
-                #There have been 3 bases seen so add the codon
-                if c != c_g:
-                    codons[index//3 - 1] = (c_g, c)
-                c = ""
-                c_g = ""
-        return codons
-
-    def __amino_acid_mutations(self):
-        '''Find the genome-wide amino acid mutations caused by the VCF
-
-        Returns:
-            list: List of strings showing mutations in the form '`original_aa``index``new_aa`'
-        '''
-        codon_aa = setup_codon_aa_dict()
-        mutations = []
-        for index in self.codons.keys():
-            original, new = self.codons[index]
-            original_aa = codon_aa[original]
-            new_aa = codon_aa[new]
-            if original_aa != new_aa:
-                #Check that this is a non-synonymous mutation
-                mutations.append(original_aa+str(index)+new_aa)
-        return mutations
 
     def gene_differences(self):
         '''Get the GeneDifference objects for each gene in the genome comparing existing genes with genes after VCF.
@@ -617,6 +509,7 @@ class GeneDifference(Difference):
             warnings.warn("The two genes given have different names ("+gene1.name+", "+gene2.name+") but the same length, continuing...", UserWarning)
         self.gene1 = gene1
         self.gene2 = gene2
+        self._codes_protein=gene1.codes_protein
         self._view_method = "diff"
 
         self._nucleotides_full = self.__nucleotides()

@@ -1,4 +1,4 @@
-import pysam, numpy
+import pysam, numpy, copy
 import pandas as pd
 from gumpy import VCFDifference
 
@@ -15,6 +15,13 @@ class VCFRecord(object):
         `filter` (str): Whether this record has pass the filter.
         `info` (dict): Dictionary of key->value for the info fields.
         `values` (dict): Dictionary of key->value for the values. Usually this is the FORMAT field names with their corresponding values.
+        `is_filter_pass` (bool): does the filter column contain PASS?
+        `call1` (int): the index of the first call
+        `call2` (int): the index of the second call
+        `is_reference` (bool): is the call for the reference?
+        `is_null` (bool): is the call a null call?
+        `is_heterozygous` (bool): is it a is_heterozygous call i.e. call1!=call2?
+        `is_alt` (bool): or, is the call for a single specified alt
     '''
     def __init__(self, *args, **kwargs):
         '''Constructor, pulls the data out of the pysam object
@@ -36,19 +43,30 @@ class VCFRecord(object):
         else:
             record = args[0]
             sample = args[1]
+
+        assert len(record.samples.keys())==1, 'only supporting single samples per row at present!'
+
+        assert 'GT' in record.samples[sample].keys(), 'require GT in FORMAT column to parse genotype'
+
         #Save some of the easier to get to attributes
         self.chrom = record.chrom
+        self.contig = record.contig
         self.pos = record.pos
-        self.ref = record.ref
-        self.alts = record.alts
+        self.ref = record.ref.lower()
+        if isinstance(record.alts,tuple):
+            self.alts = tuple([i.lower() for i in record.alts])
+        else:
+            self.alts=record.alts
         self.qual = record.qual
 
         #Get the filter attribute value
         assert len(record.filter.items()) >= 0, "A record has more than 1 filter set!"
         if len(record.filter.items()) == 0:
-            self.filter = "."
+            self.filter = None
+            self.is_filter_pass=False
         else:
             self.filter = record.filter.items()[0][0]
+            self.is_filter_pass=True if record.filter.items()[0][0] == 'PASS' else False
 
         #Get the info field
         self.info = {}
@@ -58,9 +76,19 @@ class VCFRecord(object):
         #Get the values
         self.values = {}
         for (key, item) in record.samples[sample].items():
-            if key == "GT_CONF":
-                #Due to how pysam reads floats, there are some erroneously long dps, so round
-                item = round(item, 2)
+            # incorporate the logic from the old Genotype class here
+            if key == 'GT':
+                call1,call2=item
+                self.call1 = call1 if call1 is not None else -1
+                self.call2 = self.call1 if call2 is None else call2
+                self.is_reference = True if call1==0 and (call1 == call2 or call2 == -1) else False
+                self.is_heterozygous = True if call1!=call2 else False
+                self.is_null = True if set([self.call1, self.call2]) == {-1} else False
+                self.is_alt = True if not self.is_reference and not self.is_heterozygous and not self.is_null else False
+
+            #Due to how pysam reads floats, there are some erroneously long dps, so round
+            elif isinstance(item,float):
+                item = round(item, 3)
             self.values[key] = item
 
     def __repr__(self):
@@ -70,8 +98,14 @@ class VCFRecord(object):
         s += str(self.pos) + "\t"
         s += self.ref + "\t"
         s += str(self.alts) + "\t"
-        s += str(self.qual) + "\t"
-        s += self.filter + "\t"
+        if self.qual == 'None':
+            s+='.\t'
+        else:
+            s+=str(self.qual)+'\t'
+        if self.filter == None:
+            s+='.\t'
+        else:
+            s+=self.filter+'\t'
         for val in self.values.keys():
             s += str(val)+":"
         s = s[:-1] + "\t"
@@ -101,13 +135,18 @@ class VariantFile(object):
         if len(args) != 1:
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
-            allowed_kwargs = ['VCF_VERSION', 'contig_lengths', 'formats', 'records', 'changes']
+            allowed_kwargs = ['VCF_VERSION', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'formats_min_thresholds', 'bypass_reference_calls']
             for key in kwargs.keys():
                 if key in allowed_kwargs:
                     setattr(self, key, kwargs[key])
             return
         else:
             filename = args[0]
+
+        self.ignore_filter=kwargs.get('ignore_filter',False)
+        self.bypass_reference_calls=kwargs.get('bypass_reference_calls',False)
+        self.formats_min_thresholds=kwargs.get('formats_min_thresholds',None)
+
         #Use pysam to parse the VCF
         vcf = pysam.VariantFile(filename)
 
@@ -118,7 +157,6 @@ class VariantFile(object):
         self.contig_lengths = {}
         for name in list(vcf.header.contigs):
             self.contig_lengths[name] = vcf.header.contigs[name].length
-        # print(self.contig_lengths)
 
         #Get the formats
         self.formats = {}
@@ -131,7 +169,9 @@ class VariantFile(object):
                 "id": id,
                 "type": f_type
             }
-        # print(self.formats)
+
+        if isinstance(self.formats_min_thresholds,dict):
+            assert set(self.formats_min_thresholds.keys()).issubset(set(self.formats.keys())), "field to threshold on not found in the FORMAT column of the vcf!"
 
         #Get the records
         self.records = []
@@ -139,66 +179,88 @@ class VariantFile(object):
             for sample in record.samples.keys():
                 self.records.append(VCFRecord(record, sample))
 
+        self.__find_variants()
 
-        self.__find_changes()
-
-    def __find_changes(self):
+    def __find_variants(self):
         '''Function to find changes within the genome based on the variant file
         '''
         #Use a dict to store the changes with keys as indicies
         #{index: (base, {calls: base}) ...} where a base of * represents wildtype
         #Where index is 0 indexed for array access
-        self.changes = {}
+        self.variants = {}
         # i = 0
         for record in self.records:
-            #VCF files are 1 indexed so alter index to be 0 indexed
-            key = record.pos - 1
+
+            # VCF files are 1 indexed but keep for now
+            index = copy.deepcopy(record.pos)
             ref = record.ref
             alts = record.alts
-            #Check for singular null call
-            if alts is None:
-                alts = ('x', )
-            alts = [call if call is not None else 'x' for call in alts]
-            alts = tuple([call.lower() if len(call) == 1 else numpy.array(list(call.lower())) for call in alts])
-            if len(alts) == 1:
-                if len(alts[0]) > 1:
-                    #Indel so use x
-                    call = alts
-                else:
-                    #Single call so set it as such
-                    call = alts[0]
+
+            # if we've asked, bypass (for speed) if this is a ref call
+            if self.bypass_reference_calls and record.is_reference:
+                continue
+
+            # bypass filter fails , unless we have asked to ignore filter calls
+            if not self.ignore_filter and not record.is_filter_pass:
+                continue
+
+            # only proceed if a dictionary has been passed (otherwise defaults to None)
+            proceed=True
+            if isinstance(self.formats_min_thresholds,dict):
+                # ok to just do since we've already check in the constructor that these fields exist in the VCF
+                for i in self.formats_min_thresholds:
+                    proceed=False if record.values[i]<self.formats_min_thresholds[i] else True
+            if not proceed:
+                continue
+
+            if record.is_heterozygous:
+                variant='z'*len(record.ref)
+                variant_type='het'
+            elif record.is_alt:
+                variant=record.alts[record.call1-1]
+                variant_type='snp'
+            elif record.is_null:
+                variant='x'*len(record.ref)
+                variant_type='null'
+            elif record.is_reference:
+                variant=record.ref
+                variant_type='ref'
+
+            if len(record.ref)==len(variant):
+
+                for counter,(before,after) in enumerate(zip(record.ref,variant)):
+
+                    # only make a change if the ALT is different to the REF
+                    if before!=after:
+                        metadata={}
+                        metadata['type']=variant_type
+                        metadata['call']=after
+                        metadata['ref']=before
+                        metadata['pos']=counter
+                        vcf_info={}
+                        vcf_info=copy.deepcopy(record.values)
+                        vcf_info['REF']=record.ref
+                        vcf_info['ALTS']=record.alts
+                        metadata['original_vcf_row']=vcf_info
+                        self.variants[index+counter]=metadata
+
             else:
-                '''
-                4 Different types of het calls found:
-                    1. SNP het call e.g A->(G, T)
-                    2. indel het call e.g A->(ACT, AGT)
-                    3. indel-indel het call e.g ACG->(CGT, ATG)
-                    4. Mixed SNP and indel het call e.g A->(A, T, ACT, GTC)
-                How to determine insertion/deletion from an indel??
-                '''
-                if numpy.any([len(call) > 1 for call in alts]):
-                    #There is at least one indel call so record that
-                    # call = ("@@", ) +alts
-                    call = 'z'
-                elif len(set(alts)) == len(alts) or len(set(alts)) > 1:
-                    #Check to make sure the multi-calling has different calls
-                    #Het call so use z
-                    call = 'z'
+                indel_length=len(variant)-len(record.ref)
+                metadata={}
+                metadata['type']='indel'
+                if indel_length>0:
+                    metadata['call']=('ins',indel_length)
                 else:
-                    assert False, "Weird call: "+str(alts)
+                    metadata['call']=('del',indel_length)
+                metadata['ref']=record.ref[0]
+                metadata['pos']=0
+                vcf_info={}
+                vcf_info=copy.deepcopy(record.values)
+                vcf_info['REF']=record.ref
+                vcf_info['ALTS']=record.alts
+                metadata['original_vcf_row']=vcf_info
+                self.variants[index]=metadata
 
-
-            #Get the number of reads for each call (and wildcard)
-            n_reads = record.values.get("COV")
-            #Ensure that there is a number of reads set
-            assert n_reads is not None, "There is no number of reads on at least one line of the file (COV)"
-
-            #Get the most frequent call
-            # if max(n_reads) == 0:
-            #     #Wildtype is the most common (TODO)
-            #     call = 'x'
-            alts = ('-', ) + alts
-            self.changes[key] = (call, list(zip(n_reads, alts)))
 
     def to_df(self):
         '''Convert the VCFRecord to a pandas DataFrame.

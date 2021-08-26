@@ -107,7 +107,7 @@ class Genome(object):
 
         #Set default attributes for items populated when a VCF is applied
         self.indels = None
-        self.changes = None
+        self.variants = None
         self.original = None
         self.calls = None
         self.variant_file = None
@@ -884,7 +884,7 @@ class Genome(object):
         Returns:
             gumpy.Genome: The resulting Genome object
         '''
-        assert max(vcf.changes.keys()) <= self.length, "The VCF file details changes outside of this genome!"
+        assert max(vcf.variants.keys()) <= self.length, "The VCF file details changes outside of this genome!"
         #Replicate this Genome object
         print("Copying the genome...")
         genome = copy.deepcopy(self)
@@ -898,29 +898,39 @@ class Genome(object):
             ~0.1% True mask is a reasonable amount for this task as a VCF file is ~4000 entries
         '''
         genome.indels = dict()
-        genome.changes = dict()
+        genome.variants = dict()
         genome.original = dict()
         #Change the nucleotide indicies
         print("Updating the genome...")
-        for change in tqdm(vcf.changes.keys()):
-            genome.original[change] = genome.nucleotide_sequence[change]
-            if type(vcf.changes[change][0]) == str:
-                #Only set values if the change is to a single nucleotide
-                genome.nucleotide_sequence[change] = vcf.changes[change][0]
-                #Record the changes in the format (old_base, new_base)
-                genome.changes[change] = (genome.original[change], vcf.changes[change][0])
-            else:
+        for idx in tqdm(vcf.variants.keys()):
+
+            array_idx=idx-1
+
+            genome.original[array_idx] = genome.nucleotide_sequence[array_idx]
+
+            if vcf.variants[idx]['type'] in ['snp','null','het']:
+
+                #Only set values if the idx is to a single nucleotide
+                genome.nucleotide_sequence[array_idx] = vcf.variants[idx]['call']
+
+                #Record the idxs in the format (old_base, new_base)
+                genome.variants[array_idx] = (genome.original[array_idx], vcf.variants[idx]['call'])
+
+            elif vcf.variants[idx]['type'] in ['indel']:
                 #It was an indel, so add the indel call to the indels dict
-                genome.indels[change] = vcf.changes[change][0][0]
-                genome.is_indel[change] = True
-                genome.indel_length[change] = len(vcf.changes[change][0][0])
+                genome.indels[array_idx] = vcf.variants[idx]['call'][0]+"_"+str(vcf.variants[idx]['call'][1])
+                genome.is_indel[array_idx] = True
+                genome.indel_length[array_idx] = abs(vcf.variants[idx]['call'][1])
+
+            else:
+                raise Error('variant type not recognised!', vcf.variants[i])
 
         #Rebuild the genes with this new information
         print("Rebuilding the Gene objects with the updated genome...")
         genome.__recreate_genes(show_progress_bar=True)
 
         #Save all of the calls in the format {arr_index: (n_reads, call)}
-        genome.calls = {index: vcf.changes[index][1] for index in vcf.changes.keys()}
+        # genome.calls = {index: vcf.variants[index][1] for index in vcf.variants.keys()}
         genome.variant_file = vcf
         #The genome has been altered so not a reference genome
         genome.is_reference = False
