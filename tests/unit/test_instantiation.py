@@ -78,10 +78,10 @@ def test_instanciate_genome_covid():
     assert reference.id=='NC_045512.2'
 
     # check to see if the stacking can cope with two genes overlapping
-    set(reference.at_index(27756)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
-    set(reference.at_index(27757)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
-    set(reference.at_index(27758)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
-    set(reference.at_index(27759)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
+    assert set(reference.at_index(27756)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
+    assert set(reference.at_index(27757)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
+    assert set(reference.at_index(27758)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
+    assert set(reference.at_index(27759)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
 
     #
     assert reference.contains_gene('ORF1ab')
@@ -566,7 +566,7 @@ def test_instanciate_vcf():
     #GT_CONF
     gt_conf = [record.values["GT_CONF"] for record in vcf.records]
     assert numpy.all(gt_conf == [2.05, 3.77, 2.76, 200.58, 155.58, 300.25, 613.77, 613.77, 475.54, 315.11, 145.21,
- 145.21])
+                                145.21])
 
     #Quick test for VCFRecord.__repr__()
     assert vcf.records[0].__repr__() == "TEST_DNA\t2\ta\t('g',)\tNone\tPASS\tGT:DP:COV:GT_CONF\t(None, None):2:(1, 1):2.05\n"

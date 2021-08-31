@@ -362,6 +362,7 @@ class Genome(object):
             Args:
                 type_ (str): String of the type which the object should be
                 obj (object): Any input object
+                output (list/dict): Either a list or a dictionary used as an accumulator 
             '''
             if type_ in [str(type(t)) for t in [bool(), int(), str(), float(), complex(), bytes(), bytearray(), None]]:
                 #Fundamental data types which need no conversions
@@ -923,7 +924,7 @@ class Genome(object):
                 genome.indel_length[array_idx] = abs(vcf.variants[idx]['call'][1])
 
             else:
-                raise Error('variant type not recognised!', vcf.variants[i])
+                raise Exception('variant type not recognised!', vcf.variants[idx])
 
         #Rebuild the genes with this new information
         print("Rebuilding the Gene objects with the updated genome...")
