@@ -27,7 +27,9 @@ def test_instanciate_genome_tb():
     assert tb_reference.contains_gene('rpoB')
     assert tb_reference.contains_gene('pncA')
     assert tb_reference.contains_gene('Rv2042c')
-    assert ~tb_reference.contains_gene('rpoC')
+    #The ~ operator uses bitwise NOT rather than logical NOT, ~True == -2, ~False == -1 which always pass assertations
+    #The ~ operator only works this way for numpy arrays: ~[True, False] == [False, True] for numpy arrays
+    assert not tb_reference.contains_gene('rpoC')
 
     # check the first and last dozen bases of the whole sequence
     assert ''.join(i for i in tb_reference.nucleotide_sequence[:12]) == 'ttgaccgatgac'
@@ -47,7 +49,7 @@ def test_instanciate_genes_tb():
         assert tb_reference.genes[gene_name].name==gene_name
 
         if gene_name=='rrs':
-            assert ~tb_reference.genes[gene_name].codes_protein, gene_name
+            assert not tb_reference.genes[gene_name].codes_protein, gene_name
             assert tb_reference.genes[gene_name].feature_type=='RNA', gene_name
         elif gene_name=='Rv2042c':
             assert tb_reference.genes[gene_name].codes_protein, gene_name
@@ -59,7 +61,7 @@ def test_instanciate_genes_tb():
         if gene_name in ['katG','pncA','Rv2042c']:
             assert tb_reference.genes[gene_name].reverse_complement, gene_name
         else:
-            assert ~tb_reference.genes[gene_name].reverse_complement, gene_name
+            assert not tb_reference.genes[gene_name].reverse_complement, gene_name
 
         if gene_name=='rrs':
             nuc_sequence=tb_reference.genes[gene_name].nucleotide_sequence[tb_reference.genes[gene_name].nucleotide_number>0]
@@ -85,7 +87,7 @@ def test_instanciate_genome_covid():
     assert reference.contains_gene('ORF1ab')
     assert reference.contains_gene('S')
     assert reference.contains_gene('ORF7a')
-    assert ~reference.contains_gene('Rv2042c')
+    assert not reference.contains_gene('Rv2042c')
 
     # # check the first and last dozen bases of the whole sequence
     assert ''.join(i for i in reference.nucleotide_sequence[:12]) == 'attaaaggttta'
@@ -96,7 +98,7 @@ def test_instanciate_genes_covid():
 
     reference = gumpy.Genome('config/NC_045512.2.gbk')
 
-    assert ~reference.genes['S'].reverse_complement
+    assert not reference.genes['S'].reverse_complement
     assert reference.genes['S'].name=='S'
     assert reference.genes['S'].codes_protein
     assert reference.genes['S'].feature_type=='GENE'
