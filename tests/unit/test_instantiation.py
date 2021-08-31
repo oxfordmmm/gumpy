@@ -455,7 +455,7 @@ def test_instanciate_vcf():
             "id": 4
         }
     }
-    assert len(vcf.records) == 12
+    assert len(vcf.records) == 13
 
     #Due to the dict structure here, several asserts are required
     variants = {
@@ -491,7 +491,12 @@ def test_instanciate_vcf():
 
         33: {'type': 'indel','call': ('ins',2),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 't','ALTS': ('ttt',)}},
 
-        36: {'type': 'indel','call': ('del',-1),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 'tt','ALTS': ('t',)}}}
+        36: {'type': 'indel','call': ('del',-1),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 'tt','ALTS': ('t',)}},
+
+        39: {'type': 'indel', 'call': ('ins', 1), 'ref': 't', 'pos': 1, 'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 'tc','ALTS': ('taa',)}},
+
+        40: {'type': 'snp', 'call': 'a', 'ref': 'c', 'pos': 2, 'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 'tc','ALTS': ('taa',)}}
+        }
 
     # could use assertDictEqual from unittest framework, but not using at present
     assert vcf.variants == variants
@@ -554,19 +559,19 @@ def test_instanciate_vcf():
     #GT
     gt = [record.values["GT"] for record in vcf.records]
     #None is given as a GT value for null values for alts
-    assert numpy.all(gt == [(None, None),(None, None),(None, None),(1, 1),(2, 2),(1, 1),(1, 2),(0, 2),(1, 2),(1, 3),(1, 1),(1, 1)])
+    assert numpy.all(gt == [(None, None),(None, None),(None, None),(1, 1),(2, 2),(1, 1),(1, 2),(0, 2),(1, 2),(1, 3),(1, 1),(1, 1), (1, 1)])
 
     #DP
     dp = [record.values["DP"] for record in vcf.records]
-    assert numpy.all(dp == [2, 4, 4, 50, 45, 70, 202, 202, 100, 100, 200, 200])
+    assert numpy.all(dp == [2, 4, 4, 50, 45, 70, 202, 202, 100, 100, 200, 200, 200])
     #COV
     cov = [record.values["COV"] for record in vcf.records]
-    assert numpy.all(cov == [(1, 1), (1, 2, 2), (1, 1, 1, 1), (0, 50), (0, 2, 43), (0, 68, 8), (1, 99, 100, 2), (99, 1, 100, 2), (0, 48, 50, 2), (0, 48, 2, 50), (1, 199), (1, 199)])
+    assert numpy.all(cov == [(1, 1), (1, 2, 2), (1, 1, 1, 1), (0, 50), (0, 2, 43), (0, 68, 8), (1, 99, 100, 2), (99, 1, 100, 2), (0, 48, 50, 2), (0, 48, 2, 50), (1, 199), (1, 199), (1, 199)])
 
     #GT_CONF
     gt_conf = [record.values["GT_CONF"] for record in vcf.records]
     assert numpy.all(gt_conf == [2.05, 3.77, 2.76, 200.58, 155.58, 300.25, 613.77, 613.77, 475.54, 315.11, 145.21,
-                                145.21])
+                                145.21, 145.21])
 
     #Quick test for VCFRecord.__repr__()
     assert vcf.records[0].__repr__() == "TEST_DNA\t2\ta\t('g',)\tNone\tPASS\tGT:DP:COV:GT_CONF\t(None, None):2:(1, 1):2.05\n"

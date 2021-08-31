@@ -2,9 +2,8 @@ import gumpy
 import time
 import sys
 
-g = gumpy.Genome("config/NC_045512.2.gbk")
-print(g.genes_lookup)
-
+# g = gumpy.Genome("config/NC_045512.2.gbk")
+# print(g.genes_lookup)
 
 
 # g = gumpy.Genome("config/TEST-DNA.gbk")
@@ -22,7 +21,7 @@ print(g.genes_lookup)
 
 
 
-# vcf = gumpy.VariantFile("tests/test-cases/01.vcf")
+vcf = gumpy.VariantFile("tests/test-cases/05.vcf")
 # df = vcf.to_df()
 # print(df)
 # print(df.attrs)
