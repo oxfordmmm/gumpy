@@ -193,15 +193,18 @@ class VariantFile(object):
 
             # VCF files are 1 indexed but keep for now
             index = copy.deepcopy(record.pos)
+            print("@",index)
             ref = record.ref
             alts = record.alts
 
             # if we've asked, bypass (for speed) if this is a ref call
             if self.bypass_reference_calls and record.is_reference:
+                print("bypassing ref", index)
                 continue
 
             # bypass filter fails , unless we have asked to ignore filter calls
             if not self.ignore_filter and not record.is_filter_pass:
+                print("Ignoring", index)
                 continue
 
             # only proceed if a dictionary has been passed (otherwise defaults to None)
@@ -211,6 +214,7 @@ class VariantFile(object):
                 for i in self.formats_min_thresholds:
                     proceed = proceed and record.values[i] >= self.formats_min_thresholds[i]
             if not proceed:
+                print("##", index)
                 continue
 
             if record.is_heterozygous:
@@ -227,7 +231,7 @@ class VariantFile(object):
                 variant_type='ref'
 
             if len(record.ref)==len(variant):
-
+                print("snp", index)
                 for counter,(before,after) in enumerate(zip(record.ref,variant)):
 
                     # only make a change if the ALT is different to the REF
@@ -245,8 +249,11 @@ class VariantFile(object):
                         self.variants[index+counter]=metadata
 
             else:
+                print("Getting mutations:", index)
                 mutations = self.indel(index, record.ref, variant)
                 for (p, type_, bases) in mutations:
+                    p = max(p - 1, 0)
+                    print("£", index, p, type_, bases)
                     if type_ in ["ins", "del"]:
                         indel_length = len(bases)
                         if type_ == "del":
@@ -261,19 +268,20 @@ class VariantFile(object):
                         vcf_info['REF']=record.ref
                         vcf_info['ALTS']=record.alts
                         metadata['original_vcf_row']=vcf_info
-                        self.variants[index]=metadata
+                        self.variants[index+p]=metadata
                     else:
-                        metadata={}
-                        metadata['type']=variant_type
+                        metadata = {}
+                        metadata['type'] = variant_type
                         metadata['call'] = bases[1]
                         metadata['ref'] = bases[0]
                         metadata['pos'] = p
-                        vcf_info={}
-                        vcf_info=copy.deepcopy(record.values)
-                        vcf_info['REF']=record.ref
-                        vcf_info['ALTS']=record.alts
-                        metadata['original_vcf_row']=vcf_info
-                        self.variants[index+counter]=metadata
+                        vcf_info = {}
+                        vcf_info = copy.deepcopy(record.values)
+                        vcf_info['REF'] = record.ref
+                        vcf_info['ALTS'] = record.alts
+                        metadata['original_vcf_row'] = vcf_info
+                        self.variants[index+p] = metadata
+                print()
     
     def indel(self, pos, ref, alt):
         '''Find where in the sequence the indel was, and the values.
