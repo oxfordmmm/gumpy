@@ -395,7 +395,10 @@ class VCFDifference(object):
         '''
         indices=[]
         for idx in self.vcf.variants:
-            if 'indel' not in self.vcf.variants[idx]:
+            if (
+                'indel' not in self.vcf.variants[idx]['type'] 
+                and 'ins' not in self.vcf.variants[idx]['type']
+                and 'del' not in self.vcf.variants[idx]['type']):
                 call=self.vcf.variants[idx]['call']
                 if self.genome.nucleotide_sequence[idx-1] != call:
                     indices.append(self.genome.nucleotide_index[idx- 1])
@@ -410,7 +413,11 @@ class VCFDifference(object):
         snps = []
 
         for idx in self.vcf.variants:
-            if 'indel' not in self.vcf.variants[idx] and self.vcf.variants[idx] in ['a','t','c','g']:
+            if (
+                'indel' not in self.vcf.variants[idx]['type']
+                and self.vcf.variants[idx] in ['a','t','c','g']
+                and 'ins' not in self.vcf.variants[idx]['type']
+                and 'del' not in self.vcf.variants[idx]['type']):
                 call=self.vcf.variants[idx]['call']
                 if self.genome.nucleotide_sequence[idx-1] != call:
                     snps.append(self.genome.nucleotide_sequence[idx- 1])
@@ -455,7 +462,7 @@ class VCFDifference(object):
         '''
         indels = {}
         for index in self.vcf.variants.keys():
-            if self.vcf.variants[index]['type']=='indel':
+            if self.vcf.variants[index]['type']in ['indel', 'ins', 'del']:
                 call=self.vcf.variants[index]['call']
                 #Indel call so check for differences
                 if self.genome.is_indel[index-1] == True and self.genome.indel_length[index-1] == call[1]:

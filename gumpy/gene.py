@@ -283,7 +283,10 @@ class Gene(object):
             alt=self.amino_acid_sequence[mask]
 
             for (r,p,a) in zip(ref,pos,alt):
-                mutations.append(r+str(int(p))+a)
+                if r == a:
+                    mutations.append(str(int(p))+"=")
+                else:
+                    mutations.append(r+str(int(p))+a)
 
             mask=(self.nucleotide_sequence!=other.nucleotide_sequence) & self.is_promoter
             pos=self.nucleotide_number[mask]
