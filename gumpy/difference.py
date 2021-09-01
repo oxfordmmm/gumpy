@@ -25,20 +25,24 @@ class Difference(ABC):
 
         if method == "full":
             self.nucleotides = self._nucleotides_full
-            if hasattr(self,'_codes_protein') and self._codes_protein:
+            self.indels = self._indels_full
+            if isinstance(self, GeneDifference) and self._codes_protein:
+                #Gene specific attributes
                 self.codons = self._codons_full
                 self.amino_acids = self._amino_acids_full
-            self.indels = self._indels_full
-            if hasattr(self, "_het_calls_full"):
+            if isinstance(self, GenomeDifference):
+                #Genome specific attributes
                 self.het_calls = self._het_calls_full
         if method == "diff":
             #Convert the full arrays into diff arrays
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)
-            if hasattr(self,'_codes_protein') and self._codes_protein:
+            self.indels = self.__full_to_diff(self._indels_full)
+            if isinstance(self, GeneDifference) and self._codes_protein:
+                #Gene specific attributes
                 self.codons = self.__full_to_diff(self._codons_full)
                 self.amino_acids = self.__full_to_diff(self._amino_acids_full)
-            self.indels = self.__full_to_diff(self._indels_full)
-            if hasattr(self, "_het_calls_full"):
+            if isinstance(self, GenomeDifference):
+                #Genome specific attributes
                 self.het_calls = self.__full_to_diff(self._het_calls_full)
         self._view_method = method
 
@@ -139,7 +143,6 @@ class GenomeDifference(Difference):
         self.genome1 = genome1
         self.genome2 = genome2
         self._view_method = "diff"
-        self._codes_protein=False
 
         #Calculate SNPs
         self.snp = self.__snp_distance()
@@ -455,7 +458,7 @@ class VCFDifference(object):
     #     return het_calls
 
     def __indels(self):
-        '''Find the difference in the indels and the positons which it varies at.
+        '''Find the difference in the indels and the positions which it varies at.
 
         Returns:
             dict: Dictionary mapping array_index->array(indel)
@@ -514,6 +517,8 @@ class GeneDifference(Difference):
             return None
         if gene1.name != gene2.name:
             warnings.warn("The two genes given have different names ("+gene1.name+", "+gene2.name+") but the same length, continuing...", UserWarning)
+        if gene1.codes_protein != gene2.codes_protein:
+            warnings.warn(f"The two genes given do not have the same protein coding for {gene1.name}: Gene1 = {gene1.codes_protein}, Gene2 = {gene2.codes_protein}", UserWarning)
         self.gene1 = gene1
         self.gene2 = gene2
         self._codes_protein=gene1.codes_protein
