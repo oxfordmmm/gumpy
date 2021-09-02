@@ -30,9 +30,9 @@ class Difference(ABC):
                 #Gene specific attributes
                 self.codons = self._codons_full
                 self.amino_acids = self._amino_acids_full
-            if isinstance(self, GenomeDifference):
-                #Genome specific attributes
-                self.het_calls = self._het_calls_full
+            # if isinstance(self, GenomeDifference):
+            #     #Genome specific attributes
+            #     self.het_calls = self._het_calls_full
         if method == "diff":
             #Convert the full arrays into diff arrays
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)
@@ -41,9 +41,9 @@ class Difference(ABC):
                 #Gene specific attributes
                 self.codons = self.__full_to_diff(self._codons_full)
                 self.amino_acids = self.__full_to_diff(self._amino_acids_full)
-            if isinstance(self, GenomeDifference):
-                #Genome specific attributes
-                self.het_calls = self.__full_to_diff(self._het_calls_full)
+            # if isinstance(self, GenomeDifference):
+            #     #Genome specific attributes
+            #     self.het_calls = self.__full_to_diff(self._het_calls_full)
         self._view_method = method
 
     def __check_none(self, arr, check):
@@ -160,8 +160,8 @@ class GenomeDifference(Difference):
         self.indel_indices = self.__indel_indices()
         self._indels_full = self.__indels()
 
-        self.het_indices = self.__het_indices()
-        self._het_calls_full = self.__het_calls()
+        # self.het_indices = self.__het_indices()
+        # self._het_calls_full = self.__het_calls()
 
         #Find the mutations if one of the genomes is a reference genome
         #This does not require any re-formatting to meet the `diff` view
@@ -229,28 +229,28 @@ class GenomeDifference(Difference):
         else:
             return numpy.array([(self.genome1.indels.get(index), self.genome2.indels.get(index)) for index in self.indel_indices])
 
-    def __het_indices(self):
-        '''Find the array indices at which there are het calls
+    # def __het_indices(self):
+    #     '''Find the array indices at which there are het calls
 
-        Returns:
-            numpy.array: Array of indices where there are het calls in at least one genome
-        '''
-        mask = numpy.logical_or(self.genome1.nucleotide_sequence == 'z', self.genome2.nucleotide_sequence == 'z')
-        return numpy.array(range(len(self.genome1)))[mask]
+    #     Returns:
+    #         numpy.array: Array of indices where there are het calls in at least one genome
+    #     '''
+    #     mask = numpy.logical_or(self.genome1.nucleotide_sequence == 'z', self.genome2.nucleotide_sequence == 'z')
+    #     return numpy.array(range(len(self.genome1)))[mask]
 
-    def __het_calls(self):
-        '''Find the het calls for each het index for each genome. Will only work if a VCF file has been applied to produce het calls.
-        Returns:
-            numpy.array: Array of tuples (het_calls1, het_calls2) where het_callsx is an array or None
-        '''
-        if self.genome1.calls is None and self.genome2.calls is None:
-            return numpy.array([])
-        elif self.genome1.calls is None:
-            return numpy.array([(None, self.genome2.calls[index]) for index in self.het_indices], dtype=object)
-        elif self.genome2.calls is None:
-            return numpy.array([(self.genome1.calls[index], None) for index in self.het_indices], dtype=object)
-        else:
-            return numpy.array([(self.genome1.calls.get(index), self.genome2.calls.get(index)) for index in self.het_indices], dtype=object)
+    # def __het_calls(self):
+    #     '''Find the het calls for each het index for each genome. Will only work if a VCF file has been applied to produce het calls.
+    #     Returns:
+    #         numpy.array: Array of tuples (het_calls1, het_calls2) where het_callsx is an array or None
+    #     '''
+    #     if self.genome1.calls is None and self.genome2.calls is None:
+    #         return numpy.array([])
+    #     elif self.genome1.calls is None:
+    #         return numpy.array([(None, self.genome2.calls[index]) for index in self.het_indices], dtype=object)
+    #     elif self.genome2.calls is None:
+    #         return numpy.array([(self.genome1.calls[index], None) for index in self.het_indices], dtype=object)
+    #     else:
+    #         return numpy.array([(self.genome1.calls.get(index), self.genome2.calls.get(index)) for index in self.het_indices], dtype=object)
 
     def __raise_mutations_warning(self, reference, mutant):
         '''Give a warning to the user that the genes within the two genomes are different.

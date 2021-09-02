@@ -1,4 +1,6 @@
 import numpy
+import re
+from gumpy import GeneDifference
 
 # FIXME: problems with rrs, mfpB
 class Gene(object):
@@ -149,7 +151,7 @@ class Gene(object):
         check = check and self.name == other.name
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
         check = check and numpy.all(self.index == other.index)
-        check = check and self.__list_eq(self.nucleotide_number, other.nucleotide_number)
+        check = check and numpy.all(self.nucleotide_number == other.nucleotide_number)
         check = check and numpy.all(self.is_cds == other.is_cds)
         check = check and numpy.all(self.is_promoter == other.is_promoter)
         check = check and numpy.all(self.is_indel == other.is_indel)
@@ -317,22 +319,6 @@ class Gene(object):
             mutations=None
 
         return(mutations)
-    
-    def __list_eq(self, l1, l2):
-        '''
-        Function used to test equality of 2 lists easily (used in self.__eq__)
-        Args:
-            l1 (list) : List 1
-            l2 (list) : List 2
-        Returns:
-            bool : Boolean showing whether the 2 lists are element-wise equal
-        '''
-        if len(l1) != len(l2):
-            return False
-        for (x1, x2) in zip(l1, l2):
-            if x1 != x2:
-                return False
-        return True
 
 
 
@@ -570,52 +556,125 @@ class Gene(object):
             return None
 
         return(numpy.array(positions))
+    
+    def difference(self, other):
+        '''Return a more detailed difference between two genes. The Gene objects should be referring to the same
+            gene (same name and protein coding), but must have the same length.
+
+        Args:
+            other (gumpy.Gene): Other Gene object
+        Returns:
+            gumpy.GeneDifference: The GeneDifference object to detail changes at all levels such as indel and amino acid.
+        '''        
+        return GeneDifference(self, other)
 
 
     def valid_variant(self, variant):
-        '''Determines if a given variant is valid
+        '''Determines if a given variant is valid for this gene
 
         Args:
             variant (str): String of a mutation in GARC
-
-        Raises:
-            TypeError: TypeError is raised if the variant is malformed
-            AssertationError: AssertationError is raised if the vairant is not valid
-
         Returns:
-            bool: Returns True when the variant is valid. Never returns False.
-        '''
-        #TODO: Fix or remove this?? self.positions does not exist... Is it referring to self.index?
-        #Surely it would make more sense to actually return False at some point instead of raising an AssertaionError??
+            bool: True when variant is valid, False otherwise
+        '''        
+        assert variant is not None, "No Variant given!"
+        assert type(variant) == str
+        assert len(variant) >= 2, "Variant must be longer than 2 e.g. A="
 
-        assert variant is not None, "variant must be specified! e.g. FIXME"
+        #Match mutation formats using regex
 
-        # since the smallest variant is 'a1c'
-        assert len(variant)>=3, "a variant must have at least 3 characters e.g. a3c"
-
-        before=variant[0]
-        after=variant[-1]
-
-        assert before!=after, "before and after are identical hence this is not a variant!"
-
-        try:
-            position=int(variant[1:-1])
-        except:
-            raise TypeError("position "+variant[1:-1]+" is not an integer!")
-
-        # check that the specified base is actually a base!
-        assert before in ['c','t','g','a'], before+" is not a valid nucleotide!"
-
-        # having checked that position is an integer, make a mask
-        mask=self.positions==position
-
-        # if the mask contains anything other than a single True, the position is not in the genome
-        assert numpy.count_nonzero(mask)==1, "position specified not in the genome!"
-
-        # confirm that the given base matches what is in the genome
-        assert before==self.nucleotide_sequence[mask][0], "base in genome is "+self.nucleotide_sequence[mask][0]+" but specified base is "+before
-
-        # check that the base to be mutated to is valid (z=het, ?=any other base according to the grammar)
-        assert after in ['c','t','g','a','?','z','x','o'], after+" is not a valid nucleotide!"
-
-        return True
+        #Match promoter/non-coding SNP format
+        promoter = re.compile(r"""
+                ([a-zA-Z_0-9]+@)? #Possibly a leading gene name
+                ([acgtzx]) #Reference base
+                (-?[0-9]+) #Position
+                ([acgtzx]) #Alt base
+                """, re.VERBOSE)
+        if promoter.fullmatch(variant):
+            #The variant is either promoter or non-coding
+            #Check that the mutation is valid
+            name, ref, pos, alt = promoter.fullmatch(variant).groups()
+            valid = True
+            #Strip '@' from gene name and compare
+            if name is not None and name != "":
+                valid = valid and name[:-1] == self.name
+            #Check that the pos is in the correct range
+            valid = valid and int(pos) in self.nucleotide_number
+            #Check that the ref matches the seq at the given pos
+            valid = valid and self.nucleotide_sequence[self.nucleotide_number == int(pos)] == ref
+            #Mutation should not have same ref and alt
+            valid = valid and ref != alt
+            return valid
+        #Match amino acid SNP
+        snp = re.compile(r"""
+                    ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                    ([A-Z]) #Reference amino acid
+                    ([0-9]+) #Position
+                    ([A-Z]) #Alt amino acid
+                    """, re.VERBOSE)
+        if self.codes_protein and snp.fullmatch(variant):
+            #The variant is an amino acid SNP
+            #Check it is valid
+            name, ref, pos, alt = snp.fullmatch(variant).groups()
+            valid = True
+            #Strip '@' from gene name and compare
+            if name is not None and name != "":
+                valid = valid and name[:-1] == self.name
+            #Check pos is in correct range
+            valid = valid and int(pos) in self.amino_acid_number
+            #Check ref matches the aa seq at the given pos
+            valid = valid and self.amino_acid_sequence[self.amino_acid_number == int(pos)] == ref
+            valid = valid and ref != alt
+            return valid
+        
+        #Match amino acid synon-mutation
+        synon = re.compile(r"""
+                        ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                        ([0-9]+) #Pos
+                        = #Synonymous amino acid
+                        """, re.VERBOSE)
+        if self.codes_protein and synon.fullmatch(variant):
+            #Variant is a synonymous mutation
+            #Check it is valid
+            name, pos = synon.fullmatch(variant).groups()
+            valid = True
+            if name is not None and name != "":
+                valid = valid and name[:-1] == self.name
+            valid = valid and int(pos) in self.amino_acid_number
+            return valid
+        
+        #Match indel
+        indel = re.compile(r"""
+                    ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                    (-?[0-9]+) #Position
+                    _(ins|del|indel)_? #Type
+                    ([0-9]+|[acgtzx]+)? #Bases deleted/inserted
+                    """, re.VERBOSE)
+        if indel.fullmatch(variant):
+            #Variant is an indel
+            #Check it is valid
+            name, pos, type_, bases = indel.fullmatch(variant).groups()
+            valid = True
+            #Check the names match
+            if name is not None and name != "":
+                valid = valid and name[:-1] == self.name
+            #Check pos in correct range
+            valid = valid and int(pos) in self.nucleotide_number
+            if type_ == "indel":
+                #If a mutation is given as `indel`, no length/bases should be given
+                valid = valid and (bases is None or bases == "")
+            if type_ == "del" and bases is not None and bases != "":
+                #Mutation was del, so check if the bases given match the ref
+                is_length = False
+                try:
+                    int(bases)
+                    is_length = True
+                except:
+                    pass
+                if not is_length:
+                    #Bases were given rather than a length, so check for equality against base seq
+                    for index in range(len(bases)):
+                        valid = valid and self.nucleotide_sequence[self.nucleotide_number == int(pos)+index] == bases[index]
+            return valid
+        #If none of the mutations have matched, return False
+        return False

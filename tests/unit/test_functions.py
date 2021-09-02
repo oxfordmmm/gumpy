@@ -390,6 +390,79 @@ def test_vcf_difference():
     diff = vcf.difference(g2)
     assert check_eq(diff.indels, {33: 'ins_2', 37: 'del_1', 40: "ins_1", 64: 'ins_2', 73: 'ins_1'}, True)
 
+def test_gene_difference():
+    #Test the Gene.difference() method and GeneDifference() objects
+    genome1 = gumpy.Genome("config/TEST-DNA.gbk")
+    genome2 = genome1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf"))
+    g1 = genome1.genes["A"]
+    g2 = genome2.genes["A"]
+    diff = g1.difference(g2)
+
+    assert isinstance(diff, gumpy.GeneDifference)
+    assert numpy.all(diff.nucleotides == ['a', 'a', 'a', 'a', 'c', 'c', 'c', 'c', 'g', 'g', 'g', 'g', 'g', 'g'])
+    assert numpy.all(diff.mutations == sorted(['A@a-2x', 'A@K1X', 'A@K2X', 'A@3=', 'A@P4R', 'A@P5C', 'A@G7Z', 'A@G8Z', 'A@G9Z']))
+    assert diff.indel_indices.tolist() == []
+    assert numpy.all(diff.codons == ['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg'])
+    assert numpy.all(diff.amino_acids == ['K', 'K' ,'P' ,'P' ,'G' ,'G' ,'G'])
+
+def test_valid_varaint():
+    #Test if the Gene.valid_variant() works
+    genome = gumpy.Genome("config/TEST-DNA.gbk")
+    gene = genome.genes["A"]
+
+    #Some normal valid varaints
+    assert gene.valid_variant("K2X")
+    assert gene.valid_variant("K2P")
+    assert gene.valid_variant("P5C")
+    assert gene.valid_variant("a-2z")
+    assert gene.valid_variant("a-3g")
+    assert gene.valid_variant("3=")
+    assert gene.valid_variant("17_ins_a")
+    assert gene.valid_variant("12_ins_1")
+    assert gene.valid_variant("23_ins")
+    assert gene.valid_variant("-2_ins_agaaat")
+    assert gene.valid_variant("12_indel")
+    assert gene.valid_variant("4_del")
+    assert gene.valid_variant("5_del_aa")
+    assert gene.valid_variant("7_del_3")
+    assert gene.valid_variant("a3c")
+
+    assert gene.valid_variant("A@P5C")
+    assert gene.valid_variant("A@a-2z")
+    assert gene.valid_variant("A@8_indel")
+    assert gene.valid_variant("A@9=")
+
+    #Invalid variants
+    assert not gene.valid_variant("A2X")
+    assert not gene.valid_variant("A192X")
+    assert not gene.valid_variant("B@K2X")
+    assert not gene.valid_variant("52=")
+    assert not gene.valid_variant("A@a-19c")
+    assert not gene.valid_variant("aaaaaa")
+    assert not gene.valid_variant("18-")
+    assert not gene.valid_variant("  ")
+    assert not gene.valid_variant("This is not a variant")
+    assert not gene.valid_variant("A@5_del_gg")
+    assert not gene.valid_variant("17_indel_2")
+    assert not gene.valid_variant("B@4_ins_a")
+    assert not gene.valid_variant(" @K2A")
+    assert not gene.valid_variant("gene@a4t")
+    assert not gene.valid_variant("A@K2K")
+    assert not gene.valid_variant("a-2a")
+
+    def assert_throws(mutation):
+        try:
+            gene.valid_variant(mutation)
+            assert False
+        except AssertionError:
+            assert True
+    
+    assert_throws(None)
+    assert_throws(0)
+    assert_throws("")
+    assert_throws("0")
+    assert_throws([1,2])
+
 def test_vcf_to_df():
     vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
 
