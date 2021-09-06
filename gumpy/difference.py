@@ -142,7 +142,7 @@ class GenomeDifference(Difference):
         self._codes_protein=False
 
         #Calculate SNPs
-        self.snp = self.__snp_distance()
+        self.snp_distance = self.__snp_distance()
         '''
         Where applicable, the `full` diference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
         '''
@@ -379,7 +379,7 @@ class VCFDifference(object):
 
         self.indices = self.__indices()
         self.snps = self.__snps()
-        self.snp = len(self.indices)
+        self.snp_distance = len(self.indices)
 
         # self.coverages = self.__coverages()
         # self.het_calls = self.__het_calls()
@@ -407,13 +407,14 @@ class VCFDifference(object):
         Returns:
             numpy.array: Array of SNP genome indices
         '''
-        snps = []
+        snps = {}
 
         for idx in self.vcf.variants:
-            if 'indel' not in self.vcf.variants[idx] and self.vcf.variants[idx] in ['a','t','c','g']:
+            # snp, null, het all ok
+            if self.vcf.variants[idx]['type']!='indel':
                 call=self.vcf.variants[idx]['call']
                 if self.genome.nucleotide_sequence[idx-1] != call:
-                    snps.append(self.genome.nucleotide_sequence[idx- 1])
+                    snps[idx]=self.genome.nucleotide_sequence[idx- 1]+">"+call
         return numpy.array(snps)
 
     # def __coverages(self):
@@ -457,7 +458,7 @@ class VCFDifference(object):
         for index in self.vcf.variants.keys():
             if self.vcf.variants[index]['type']=='indel':
                 call=self.vcf.variants[index]['call']
-                #Indel call so check for differences
+                # Indel call so check for differences
                 if self.genome.is_indel[index-1] == True and self.genome.indel_length[index-1] == call[1]:
                     #Check genome.indels to see if they are the same indel
 
