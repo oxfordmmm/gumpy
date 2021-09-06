@@ -29,9 +29,15 @@ class Gene(object):
                         'codons', 'amino_acid_sequence', 'ribosomal_shifts']
         #If reloading a Gene, just set the attributes and return
         if "reloading" in kwargs.keys():
+            seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
                     setattr(self, key, kwargs[key])
+                    seen.add(key)
+            for key in set(allowed_kwargs).difference(seen):
+                #Default values to None if the kwarg has not been passed
+                setattr(self, key, None)
+
             return
         
         #Set default values based on kwargs

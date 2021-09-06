@@ -36,9 +36,14 @@ class VCFRecord(object):
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given."
             allowed_kwargs = ['chrom', 'pos', 'ref', 'alts', 'qual', 'filter', 'info', 'values']
+            seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
                     setattr(self, key, kwargs[key])
+                    seen.add(key)
+            for key in set(allowed_kwargs).difference(seen):
+                #Default values to None if the kwarg has not been passed
+                setattr(self, key, None)
             return
         else:
             record = args[0]
@@ -136,9 +141,14 @@ class VariantFile(object):
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
             allowed_kwargs = ['VCF_VERSION', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'formats_min_thresholds', 'bypass_reference_calls']
+            seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
                     setattr(self, key, kwargs[key])
+                    seen.add(key)
+            for key in set(allowed_kwargs).difference(seen):
+                #Default values to None if the kwarg has not been passed
+                setattr(self, key, None)
             return
         else:
             filename = args[0]

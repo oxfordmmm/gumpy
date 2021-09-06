@@ -41,6 +41,7 @@ class Genome(object):
                             'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations',
                             'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes',
                             'multithreaded', 'indels', 'changes', 'original', 'calls', 'variant_file', 'is_reference']
+            seen = set()
             for key in kwargs.keys():
                 '''
                 Use of a whitelist of kwargs allowed to stop overriding of functions from loading malicious file
@@ -54,6 +55,11 @@ class Genome(object):
                 '''
                 if key in allowed_kwargs:
                     setattr(self, key, kwargs[key])
+                    seen.add(key)
+                for key in set(allowed_kwargs).difference(seen):
+                    #Default values to None if the kwarg has not been passed
+                    setattr(self, key, None)
+
             return
         else:
             #Set values for kwargs to defaults if not provided
