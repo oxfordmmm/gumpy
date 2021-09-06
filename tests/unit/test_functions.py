@@ -110,8 +110,6 @@ def test_gene_functions():
     g2.name = "C"
     assert g1 != g2
 
-    #valid_variant() requires fixing/removing
-
     #__repr__
     #As __repr__ returns a multiline string, convert it to a list of single line strings for ease of comparison
     r = [line for line in g1.__repr__().split("\n") if line != ""]
@@ -449,6 +447,8 @@ def test_valid_varaint():
     assert not gene.valid_variant("gene@a4t")
     assert not gene.valid_variant("A@K2K")
     assert not gene.valid_variant("a-2a")
+    assert not gene.valid_variant("A@28_del_aaccggttaaccggtt")
+    assert not gene.valid_variant("20_del_100")
 
     def assert_throws(mutation):
         try:
@@ -462,6 +462,9 @@ def test_valid_varaint():
     assert_throws("")
     assert_throws("0")
     assert_throws([1,2])
+    assert_throws(-10)
+    assert_throws(gumpy.Gene)
+    assert_throws("@")
 
 def test_vcf_to_df():
     vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")

@@ -579,7 +579,7 @@ class Gene(object):
         '''        
         assert variant is not None, "No Variant given!"
         assert type(variant) == str
-        assert len(variant) >= 2, "Variant must be longer than 2 e.g. A="
+        assert len(variant) >= 2, "Variant must be at least 2 characters e.g. A="
 
         #Match mutation formats using regex
 
@@ -671,9 +671,13 @@ class Gene(object):
                     is_length = True
                 except:
                     pass
-                if not is_length:
+                if is_length:
+                    #A length was given rather than bases so just check that all bases are in the correct range
+                    valid = valid and int(pos) + int(bases) in self.nucleotide_number
+                else:
                     #Bases were given rather than a length, so check for equality against base seq
                     for index in range(len(bases)):
+                        valid = valid and int(pos)+index in self.nucleotide_number
                         valid = valid and self.nucleotide_sequence[self.nucleotide_number == int(pos)+index] == bases[index]
             return valid
         #If none of the mutations have matched, return False
