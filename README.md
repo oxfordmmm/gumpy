@@ -7,9 +7,9 @@ Genetics with Numpy
 ```
 git clone https://github.com/oxfordmmm/gumpy
 cd gumpy
+pip install -r requirements.txt
 pip install .
 ```
-
 ## Documentation
 Easy access to documentation for public methods can be found using the `pydoc` module from a terminal:
 ```
