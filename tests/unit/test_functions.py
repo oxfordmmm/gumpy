@@ -308,18 +308,18 @@ def test_genome_difference():
     g3.nucleotide_sequence[91] = 'g'
     g3._Genome__recreate_genes()#Recreate the genes
 
-    diff = g3.difference(g4)
-    diff2 = g4.difference(g3)
-    assert diff.find_mutations(g1) == ["C@A2G"]
-    assert diff2.find_mutations(g1) == []
-    diff.update_view("full")
-    diff2.update_view("full")
-    assert numpy.all(diff.find_mutations(g1) == numpy.array([
-            ['C@A2G', None]
-        ]))
-    assert numpy.all(diff2.find_mutations(g1) == numpy.array([
-        [None, "C@A2G"]
-    ]))
+    # diff = g3.difference(g4)
+    # diff2 = g4.difference(g3)
+    # assert diff.find_mutations(g1) == ["C@A2G"]
+    # assert diff2.find_mutations(g1) == []
+    # diff.update_view("full")
+    # diff2.update_view("full")
+    # assert numpy.all(diff.find_mutations(g1) == numpy.array([
+            # ['C@A2G', None]
+        # ]))
+    # assert numpy.all(diff2.find_mutations(g1) == numpy.array([
+        # [None, "C@A2G"]
+    # ]))
 
 def test_vcf_difference():
     #Testing the VariantFile objects' difference()
@@ -329,8 +329,53 @@ def test_vcf_difference():
     #Get the difference
     diff = vcf.difference(g1)
     assert isinstance(diff, gumpy.VCFDifference)
-    assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
-    assert diff.snp == 15
+    #Checking the variant masks
+    assert numpy.all(diff.calls == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'ins_2', 'del_1', 'a', 'ins_1', 'ins_2', 'ins_1'])
+    assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 40, 64, 73]))
+    assert numpy.all(diff.is_snp == [False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, True, False, False, False])
+    assert numpy.all(diff.is_het == [False, False, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, False, False, False])
+    assert numpy.all(diff.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True])
+    assert numpy.all(diff.is_null == [True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False])
+    
+    full_variants = {
+        'GT': numpy.array([
+            (None, None), (None, None), (None, None), (None, None), (1, 1), (2, 2), (1, 1), (1, 1), (1, 2), (0, 2), (1, 2),
+            (1, 2), (1, 3), (1, 3), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1)
+        ]),
+        'DP': numpy.array([
+            2, 4, 4, 4, 50, 45, 70, 70, 202, 202, 100, 100, 100, 100, 200, 200, 200, 200, 200, 200
+        ]),
+        'COV': numpy.array([
+            (1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (0, 50), (0, 2, 43), (0, 68, 8), (0, 68, 8), (1, 99, 100, 2),
+            (99, 1, 100, 2), (0, 48, 50, 2), (0, 48, 50, 2), (0, 48, 2, 50), (0, 48, 2, 50), (1, 199), (1, 199), (1, 199), (1, 199), (1, 199),
+            (1, 198, 1)
+        ]),
+        'GT_CONF': numpy.array([
+            2.05, 2.76, 2.76, 2.76, 200.58, 155.58, 300.25, 300.25, 613.77, 613.77, 475.54, 475.54, 315.11, 315.11, 145.21, 145.21, 145.21,
+            145.21, 145.21, 145.21
+        ]),
+        'REF': numpy.array([
+            'a', 'aaa', 'aaa', 'aaa', 'c', 'c', 'ccc', 'ccc', 'g', 'g', 'gg', 'gg', 'gg', 'gg', 't', 'tt', 'tc', 'tc', 'gg', 't'
+        ]),
+        'ALTS': numpy.array([
+            ('g',), ('ggt', 'gta', 'ata'), ('ggt', 'gta', 'ata'), ('ggt', 'gta', 'ata'), ('t',), ('t', 'g'),
+            ('tgc', 'gtg'), ('tgc', 'gtg'), ('t', 'c', 'a'), ('t', 'c', 'a'), ('aa', 'ct', 'at'), ('aa', 'ct', 'at'), ('aa', 't', 'a'),
+            ('aa', 't', 'a'), ('ttt',), ('t',), ('tag',), ('tag',), ('cagg',), ('ta', 'at')
+        ]),
+    }
+    assert check_eq(diff.variants, full_variants, True)
+    
+    assert diff.snp_distance == 15
+    assert check_eq(diff.snps, {
+        2: 'x', 6: 'x',  
+        7: 'x',  8: 'x', 
+        12: 't', 14: 'g', 
+        16: 't', 17: 'g', 
+        22: 'z', 24: 'z', 
+        26: 'z', 27: 'z', 
+        28: 'z', 29: 'z', 
+        39: 'a'
+    }, True)
     # assert numpy.all(diff.coverages == {
     #     2: [(68, 'G')],
     #     16:[(68, 'T')],
