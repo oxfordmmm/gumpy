@@ -20,6 +20,6 @@ setup(
         "Operating System :: OS Independent"],
     python_requires='>=3.8',
     license="University of Oxford, see LICENSE.md",
-    scripts=['bin/gumpy-save-genome.py'],\
+    scripts=['bin/gumpy-save-genome.py', 'bin/to_piezo_catalogue.py'],\
     zip_safe=False
 )

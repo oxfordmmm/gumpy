@@ -15,6 +15,7 @@ if __name__ == "__main__":
     reference_genome=gumpy.Genome(genbank_file=options.genbank_file,show_progress_bar=True,name=options.name)
 
     # save a compressed pickle to disc
-    reference_genome.save_pickle(filename=options.name,compression=True,compresslevel=3)
+    # reference_genome.save_pickle(filename=options.name,compression=True,compresslevel=3)
+    reference_genome.save(options.name, compression_level=3)
 
     print(reference_genome)

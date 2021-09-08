@@ -456,7 +456,7 @@ class VCFDifference(object):
         self.is_null = numpy.array(is_null)
         self.variants = dict()
         for key in variants:
-            self.variants[key] = numpy.array(variants[key])
+            self.variants[key] = numpy.array(variants[key], dtype=object)
 
     # def __indices(self):
     #     '''Find the SNP positions caused by this VCF

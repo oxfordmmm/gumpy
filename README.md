@@ -3,6 +3,13 @@
 # gumpy
 Genetics with Numpy
 
+## Installation
+```
+git clone https://github.com/oxfordmmm/gumpy
+cd gumpy
+pip install .
+```
+
 ## Documentation
 Easy access to documentation for public methods can be found using the `pydoc` module from a terminal:
 ```
