@@ -227,7 +227,7 @@ def test_genome_difference():
 
     diff = g2.difference(g1)
     #Default view
-    assert diff.snp == 14
+    assert diff.snp_distance == 14
     assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z','z']))
     # assert numpy.all(diff.codons == numpy.array(['aga', 'tcc', 'zgg', 'ttz', 'aax','']))
@@ -327,7 +327,7 @@ def test_vcf_difference():
     diff = vcf.difference(g1)
     assert isinstance(diff, gumpy.VCFDifference)
     assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 36]))
-    assert diff.snp == 16
+    assert diff.snp_distance == 16
     # assert numpy.all(diff.coverages == {
     #     2: [(68, 'G')],
     #     16:[(68, 'T')],
