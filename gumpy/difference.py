@@ -541,7 +541,7 @@ class GeneDifference(Difference):
         if index < 0 or index > max(self.gene1.amino_acid_number) or index > max(self.gene2.amino_acid_number):
             warnings.warn("The index is out of range of the amino acids in this gene.", UserWarning)
             return {}
-        #Convert amino acid index to genome index
+        #Convert amino acid index to genome index for use as Gene.variants key
         #This should produce 3 indices
         index1 = set(self.gene1.index[self.gene1.is_cds][self.gene1.coding_aa_number == index])
         index2 = set(self.gene2.index[self.gene2.is_cds][self.gene2.coding_aa_number == index])
@@ -563,12 +563,6 @@ class GeneDifference(Difference):
             }
             
         return variants
-
-
-
-
-
-
 
 '''
 Helper functions not specific to a class

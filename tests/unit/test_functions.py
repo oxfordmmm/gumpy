@@ -436,6 +436,7 @@ def test_vcf_difference():
         'GT_CONF': (None, 2.76),
         'REF': (None, 'aaa')
         }, True)
+    assert check_eq(g_diff[2].nucleotide_variants(1), {}, True)
     with pytest.warns(UserWarning):
         assert g_diff[0].nucleotide_variants(100) == {}
     try:
@@ -461,6 +462,7 @@ def test_vcf_difference():
         'REF': ([None, None], ['gg', 'gg']),
         'ALTS': ([None, None], [('aa', 't', 'a'), ('aa', 't', 'a')]),
     }, True)
+    assert check_eq(g_diff[2].amino_acid_variants(1), {}, True)
     assert check_eq(g_diff[1].amino_acid_variants(3), {}, True)
     with pytest.warns(UserWarning):
         assert g_diff[1].amino_acid_variants(-6) == {}
