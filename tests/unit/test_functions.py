@@ -229,7 +229,7 @@ def test_genome_difference():
 
     diff = g2.difference(g1)
     #Default view
-    assert diff.snp == 15
+    assert diff.snp_distance == 15
     assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z','z', 'a']))
     # assert numpy.all(diff.codons == numpy.array(['aga', 'tcc', 'zgg', 'ttz', 'aax','']))
@@ -367,14 +367,14 @@ def test_vcf_difference():
 
     assert diff.snp_distance == 15
     assert check_eq(diff.snps, {
-        2: 'x', 6: 'x',
-        7: 'x',  8: 'x',
-        12: 't', 14: 'g',
-        16: 't', 17: 'g',
-        22: 'z', 24: 'z',
-        26: 'z', 27: 'z',
-        28: 'z', 29: 'z',
-        39: 'a'
+        2: 'a>x', 6: 'a>x',
+        7: 'a>x',  8: 'a>x',
+        12: 'c>t', 14: 'c>g',
+        16: 'c>t', 17: 'c>g',
+        22: 'g>z', 24: 'g>z',
+        26: 'g>z', 27: 'g>z',
+        28: 'g>z', 29: 'g>z',
+        39: 't>a'
     }, True)
     # assert numpy.all(diff.coverages == {
     #     2: [(68, 'G')],
