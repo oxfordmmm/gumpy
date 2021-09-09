@@ -36,9 +36,14 @@ class VCFRecord(object):
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given."
             allowed_kwargs = ['chrom', 'pos', 'ref', 'alts', 'qual', 'filter', 'info', 'values']
+            seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
                     setattr(self, key, kwargs[key])
+                    seen.add(key)
+            for key in set(allowed_kwargs).difference(seen):
+                #Default values to None if the kwarg has not been passed
+                setattr(self, key, None)
             return
         else:
             record = args[0]
@@ -136,9 +141,14 @@ class VariantFile(object):
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
             allowed_kwargs = ['VCF_VERSION', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'formats_min_thresholds', 'bypass_reference_calls']
+            seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
                     setattr(self, key, kwargs[key])
+                    seen.add(key)
+            for key in set(allowed_kwargs).difference(seen):
+                #Default values to None if the kwarg has not been passed
+                setattr(self, key, None)
             return
         else:
             filename = args[0]
@@ -209,7 +219,7 @@ class VariantFile(object):
             if isinstance(self.formats_min_thresholds,dict):
                 # ok to just do since we've already check in the constructor that these fields exist in the VCF
                 for i in self.formats_min_thresholds:
-                    proceed=False if record.values[i]<self.formats_min_thresholds[i] else True
+                    proceed = proceed and record.values[i] >= self.formats_min_thresholds[i]
             if not proceed:
                 continue
 
@@ -227,7 +237,6 @@ class VariantFile(object):
                 variant_type='ref'
 
             if len(record.ref)==len(variant):
-
                 for counter,(before,after) in enumerate(zip(record.ref,variant)):
 
                     # only make a change if the ALT is different to the REF
@@ -245,21 +254,110 @@ class VariantFile(object):
                         self.variants[index+counter]=metadata
 
             else:
-                indel_length=len(variant)-len(record.ref)
-                metadata={}
-                metadata['type']='indel'
-                if indel_length>0:
-                    metadata['call']=('ins',indel_length)
+                mutations = self.indel(index, record.ref, variant)
+                for (p, type_, bases) in mutations:
+                    # p = max(p - 1, 0)
+                    if type_ in ["ins", "del"]:
+                        indel_length = len(bases)
+                        # if type_ == "del":
+                        #     indel_length *= -1
+                        metadata = {}
+                        metadata['type'] = 'indel'
+                        metadata['call'] = (type_, indel_length)
+                        metadata['ref']=record.ref[0]
+                        metadata['pos']=p
+                        vcf_info={}
+                        vcf_info=copy.deepcopy(record.values)
+                        vcf_info['REF']=record.ref
+                        vcf_info['ALTS']=record.alts
+                        metadata['original_vcf_row']=vcf_info
+                        self.variants[index+p]=metadata
+                    else:
+                        metadata = {}
+                        metadata['type'] = variant_type
+                        metadata['call'] = bases[1]
+                        metadata['ref'] = bases[0]
+                        metadata['pos'] = p
+                        vcf_info = {}
+                        vcf_info = copy.deepcopy(record.values)
+                        vcf_info['REF'] = record.ref
+                        vcf_info['ALTS'] = record.alts
+                        metadata['original_vcf_row'] = vcf_info
+                        self.variants[index+p] = metadata
+    
+    def indel(self, pos, ref, alt):
+        '''Find where in the sequence the indel was, and the values.
+        Based on finding the indel position at which there is the least SNPs
+
+        Args:
+            pos (int): Genome index of the first base in the sequence
+            ref (str): Reference bases. Should match reference bases at this point
+            alt (str): Alt bases.
+        Returns:
+            (int, str, str): Returns tuple of (indel pos, one of ['ins','del','snp'], indel bases) 
+        '''        
+        def snp_number(ref, alt):
+            '''Count the number of SNPs between 2 sequences
+
+            Args:
+                ref (str): Reference bases
+                alt (str): Alt bases
+
+            Returns:
+                int: Number of SNPs between ref and alt
+            '''            
+            snps = 0
+            for (a, b) in zip(ref, alt):
+                if a is not None and b is not None and a != b:
+                    snps += 1
+            return snps
+        
+        '''The process for finding the positions for indels are almost identical
+        as the process for finding a del can be interpreted as finding an ins with ref and alt reversed.
+        The approach here is to use a sliding window to find the position of the indel where the number of SNPs is lowest.
+        Assumes that there is only a single indel between the ref and the alt - there may be cases where this does not work
+            these will just produce large amounts of SNPs... Could be adapted to check for multi-indel but this will scale 
+            exponentially the number of versions checked.
+        '''
+        if len(ref) > len(alt):
+            #Del
+            length = len(ref) - len(alt)
+            x = ref
+            y = alt
+            indel = "del"
+        elif len(ref) < len(alt):
+            #Ins
+            length = len(alt) - len(ref)
+            x = alt
+            y = ref
+            indel = "ins"
+        start = 0
+        current = None
+        current_snps = 999
+        mutations = []
+        for i in range(len(y)+1):
+            y1 = [y[a] for a in range(i)] + [None for a in range(length)] + [y[a] for a in range(i, len(y))]
+            if snp_number(y1, x) <= current_snps:
+                current = y1
+                current_snps = snp_number(y1, x)
+                start = i
+        seq = [x[i] for i in range(len(current)) if current[i] is None]
+        #Add the indel
+        if indel == "ins":
+            #Ins after index, del at index so adjust ins
+            start -= 1
+        mutations.append((start, indel, ''.join(seq)))
+        #Check for SNPs and add those
+        for (i, (a, b)) in enumerate(zip(x, current)):
+            if a is not None and b is not None and a != b:
+                if indel == "ins":
+                    mutations.append((i-1, "snp", (b, a)))
                 else:
-                    metadata['call']=('del',indel_length)
-                metadata['ref']=record.ref[0]
-                metadata['pos']=0
-                vcf_info={}
-                vcf_info=copy.deepcopy(record.values)
-                vcf_info['REF']=record.ref
-                vcf_info['ALTS']=record.alts
-                metadata['original_vcf_row']=vcf_info
-                self.variants[index]=metadata
+                    mutations.append((i-1, "snp", (a, b)))
+        return mutations
+
+
+        
 
 
     def to_df(self):

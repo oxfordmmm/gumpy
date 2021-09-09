@@ -41,6 +41,7 @@ class Genome(object):
                             'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations',
                             'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes',
                             'multithreaded', 'indels', 'changes', 'original', 'calls', 'variant_file', 'is_reference']
+            seen = set()
             for key in kwargs.keys():
                 '''
                 Use of a whitelist of kwargs allowed to stop overriding of functions from loading malicious file
@@ -54,6 +55,11 @@ class Genome(object):
                 '''
                 if key in allowed_kwargs:
                     setattr(self, key, kwargs[key])
+                    seen.add(key)
+                for key in set(allowed_kwargs).difference(seen):
+                    #Default values to None if the kwarg has not been passed
+                    setattr(self, key, None)
+
             return
         else:
             #Set values for kwargs to defaults if not provided
@@ -169,7 +175,7 @@ class Genome(object):
     def __sub__(self, other):
 
         """
-        Overload the subtraction operator so it returns a tuple of the indices where there differences between the two genomes
+        Overload the subtraction operator so it returns a tuple of the indices where there are differences between the two genomes
         Args:
             other (gumpy.Genome) : The other genome used in the subtraction
         Returns:
@@ -252,7 +258,7 @@ class Genome(object):
         Returns the name of any genome features (genes, loci) at a specified genome index (1-based).
 
         Args:
-            index : (int)
+            index (int): Genome index to check for genes at.
 
         Returns:
             list : list of gene_names or locus_tags at that index in the genome
@@ -435,7 +441,6 @@ class Genome(object):
             filename (str): path of the output file
             compression (bool): If True, save compressed using gzip. (bzip2 is too slow)
             compresslevel (0-9): the higher the number, the harder the algorithm tries to compress but it takes longer. Default is 2.
-            # additional_metadata (str): will be added to the header of the FASTA file
             chars_per_line (int): the number of characters per line. Default=70. Must be either a positive integer or None (i.e. no CRs)
         '''
 
@@ -590,7 +595,6 @@ class Genome(object):
             #Check for -1 PFS
             if len(positions) > 1 and positions[0][1] > positions[1][0]:
                 shifts.append(positions[1][0] - gene_start + 1)
-                x = positions[1][0]
 
             # record feature metadata in a dict
             self.genes_lookup[gene_name]={  'reverse_complement':rev_comp,\
@@ -792,7 +796,9 @@ class Genome(object):
     def _build_gene(self, gene, conn=None):
         '''
         Private function to build the gumpy.Gene object
-        (Should be private with leading `__` but a cross-platform bug means this causes crashes)
+        Should be private with leading `__` but a cross-platform bug means this causes crashes
+        https://bugs.python.org/issue44675 - with multithreading, only inheritable items are included on non-linux
+        platforms, so this has to be made inheritable to be called from child thread
         Args:
             gene (str) : The name of the gene
             conn (multiprocessing.connection=None) : Connection object from a multiprocessing.Pipe(), default to None
@@ -832,7 +838,7 @@ class Genome(object):
         hence necessary after applying a vcf file, albeit only for those genes whose sequence has been altered.
 
         Args:
-            show_progress_bar (bool):  whether to show the (tqdm) progress bar
+            show_progress_bar (bool, optional):  Whether to show the (tqdm) progress bar. Defaults to False
         """
         list_of_genes = list(self.genes_lookup.keys())
 

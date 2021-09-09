@@ -1,6 +1,9 @@
 from setuptools import setup
 from gumpy import __version__
 
+with open("README.md", "r") as f:
+    README = f.read()
+
 setup(
     install_requires=[
         "numpy >= 1.13",
@@ -12,6 +15,7 @@ setup(
     author='Philip W Fowler',
     author_email="philip.fowler@ndm.ox.ac.uk",
     description="Genetics with Numpy",
+    long_descriptions=README,
     url="https://github.com/oxfordmmm/gumpy",
     packages=['gumpy'],
     package_data={'': ['../config/*']},
@@ -20,6 +24,6 @@ setup(
         "Operating System :: OS Independent"],
     python_requires='>=3.8',
     license="University of Oxford, see LICENSE.md",
-    scripts=['bin/gumpy-save-genome.py'],\
+    scripts=['bin/gumpy-save-genome.py', 'bin/to_piezo_catalogue.py'],\
     zip_safe=False
 )

@@ -1,4 +1,6 @@
-import numpy, warnings
+import numpy
+import warnings
+from collections import defaultdict
 from abc import ABC #Python library for abstract classes
 
 '''
@@ -25,21 +27,25 @@ class Difference(ABC):
 
         if method == "full":
             self.nucleotides = self._nucleotides_full
-            if hasattr(self,'_codes_protein') and self._codes_protein:
+            self.indels = self._indels_full
+            if isinstance(self, GeneDifference) and self._codes_protein:
+                #Gene specific attributes
                 self.codons = self._codons_full
                 self.amino_acids = self._amino_acids_full
-            self.indels = self._indels_full
-            if hasattr(self, "_het_calls_full"):
-                self.het_calls = self._het_calls_full
+            # if isinstance(self, GenomeDifference):
+            #     #Genome specific attributes
+            #     self.het_calls = self._het_calls_full
         if method == "diff":
             #Convert the full arrays into diff arrays
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)
-            if hasattr(self,'_codes_protein') and self._codes_protein:
+            self.indels = self.__full_to_diff(self._indels_full)
+            if isinstance(self, GeneDifference) and self._codes_protein:
+                #Gene specific attributes
                 self.codons = self.__full_to_diff(self._codons_full)
                 self.amino_acids = self.__full_to_diff(self._amino_acids_full)
-            self.indels = self.__full_to_diff(self._indels_full)
-            if hasattr(self, "_het_calls_full"):
-                self.het_calls = self.__full_to_diff(self._het_calls_full)
+            # if isinstance(self, GenomeDifference):
+            #     #Genome specific attributes
+            #     self.het_calls = self.__full_to_diff(self._het_calls_full)
         self._view_method = method
 
     def __check_none(self, arr, check):
@@ -139,7 +145,6 @@ class GenomeDifference(Difference):
         self.genome1 = genome1
         self.genome2 = genome2
         self._view_method = "diff"
-        self._codes_protein=False
 
         #Calculate SNPs
         self.snp_distance = self.__snp_distance()
@@ -157,12 +162,16 @@ class GenomeDifference(Difference):
         self.indel_indices = self.__indel_indices()
         self._indels_full = self.__indels()
 
-        self.het_indices = self.__het_indices()
-        self._het_calls_full = self.__het_calls()
+        # self.het_indices = self.__het_indices()
+        # self._het_calls_full = self.__het_calls()
 
         #Find the mutations if one of the genomes is a reference genome
         #This does not require any re-formatting to meet the `diff` view
-        self.mutations = self.__mutations()
+        # self.mutations = self.__mutations()
+
+        #Checking for the same genes, give a warning is the genes are different
+        if self.genome1.genes.keys() != self.genome2.genes.keys():
+            self.__raise_mutations_warning(self.genome1, self.genome2)
 
         self.update_view(self._view_method)
 
@@ -226,28 +235,28 @@ class GenomeDifference(Difference):
         else:
             return numpy.array([(self.genome1.indels.get(index), self.genome2.indels.get(index)) for index in self.indel_indices])
 
-    def __het_indices(self):
-        '''Find the array indices at which there are het calls
+    # def __het_indices(self):
+    #     '''Find the array indices at which there are het calls
 
-        Returns:
-            numpy.array: Array of indices where there are het calls in at least one genome
-        '''
-        mask = numpy.logical_or(self.genome1.nucleotide_sequence == 'z', self.genome2.nucleotide_sequence == 'z')
-        return numpy.array(range(len(self.genome1)))[mask]
+    #     Returns:
+    #         numpy.array: Array of indices where there are het calls in at least one genome
+    #     '''
+    #     mask = numpy.logical_or(self.genome1.nucleotide_sequence == 'z', self.genome2.nucleotide_sequence == 'z')
+    #     return numpy.array(range(len(self.genome1)))[mask]
 
-    def __het_calls(self):
-        '''Find the het calls for each het index for each genome. Will only work if a VCF file has been applied to produce het calls.
-        Returns:
-            numpy.array: Array of tuples (het_calls1, het_calls2) where het_callsx is an array or None
-        '''
-        if self.genome1.calls is None and self.genome2.calls is None:
-            return numpy.array([])
-        elif self.genome1.calls is None:
-            return numpy.array([(None, self.genome2.calls[index]) for index in self.het_indices], dtype=object)
-        elif self.genome2.calls is None:
-            return numpy.array([(self.genome1.calls[index], None) for index in self.het_indices], dtype=object)
-        else:
-            return numpy.array([(self.genome1.calls.get(index), self.genome2.calls.get(index)) for index in self.het_indices], dtype=object)
+    # def __het_calls(self):
+    #     '''Find the het calls for each het index for each genome. Will only work if a VCF file has been applied to produce het calls.
+    #     Returns:
+    #         numpy.array: Array of tuples (het_calls1, het_calls2) where het_callsx is an array or None
+    #     '''
+    #     if self.genome1.calls is None and self.genome2.calls is None:
+    #         return numpy.array([])
+    #     elif self.genome1.calls is None:
+    #         return numpy.array([(None, self.genome2.calls[index]) for index in self.het_indices], dtype=object)
+    #     elif self.genome2.calls is None:
+    #         return numpy.array([(self.genome1.calls[index], None) for index in self.het_indices], dtype=object)
+    #     else:
+    #         return numpy.array([(self.genome1.calls.get(index), self.genome2.calls.get(index)) for index in self.het_indices], dtype=object)
 
     def __raise_mutations_warning(self, reference, mutant):
         '''Give a warning to the user that the genes within the two genomes are different.
@@ -275,80 +284,80 @@ class GenomeDifference(Difference):
         message += "Continuing only with genes which exist in both genomes."
         warnings.warn(message, UserWarning)
 
-    def __mutations(self, reference=None, mutant=None):
-        '''Find the mutations within genes. Mutations outside of genes are not considered. FIXME if this is required.
+    # def __mutations(self, reference=None, mutant=None):
+    #     '''Find the mutations within genes. Mutations outside of genes are not considered. FIXME if this is required.
 
-        Returns:
-            numpy.array: Array of mutations in GARC
-        '''
-        if reference is None and mutant is None:
-            #Use XOR to determine if there is 1 reference
-            if self.genome1.is_reference ^ self.genome2.is_reference:
-                #There is exactly 1 reference genome so mutations can be found
-                if self.genome1.is_reference == True:
-                    reference = self.genome1
-                    mutant = self.genome2
-                else:
-                    reference = self.genome2
-                    mutant = self.genome1
-            else:
-                return numpy.array([])
+    #     Returns:
+    #         numpy.array: Array of mutations in GARC
+    #     '''
+    #     if reference is None and mutant is None:
+    #         #Use XOR to determine if there is 1 reference
+    #         if self.genome1.is_reference ^ self.genome2.is_reference:
+    #             #There is exactly 1 reference genome so mutations can be found
+    #             if self.genome1.is_reference == True:
+    #                 reference = self.genome1
+    #                 mutant = self.genome2
+    #             else:
+    #                 reference = self.genome2
+    #                 mutant = self.genome1
+    #         else:
+    #             return numpy.array([])
 
-        #Checking for the same genes
-        if reference.genes.keys() != mutant.genes.keys():
-            #Get only the genes which are the same but give a warning
-            genes = set(reference.genes.keys()).intersection(set(mutant.genes.keys()))
-            self.__raise_mutations_warning(reference, mutant)
-        else:
-            genes = reference.genes.keys()
+    #     #Checking for the same genes
+    #     if reference.genes.keys() != mutant.genes.keys():
+    #         #Get only the genes which are the same but give a warning
+    #         genes = set(reference.genes.keys()).intersection(set(mutant.genes.keys()))
+    #         self.__raise_mutations_warning(reference, mutant)
+    #     else:
+    #         genes = reference.genes.keys()
 
-        mutations = []
-        for gene in genes:
-            gene_mutation = reference.genes[gene].list_mutations_wrt(mutant.genes[gene])
-            if gene_mutation is not None:
-                for mutation in gene_mutation:
-                    mutations.append(gene+"@"+mutation)
-        return numpy.array(sorted(mutations))
+    #     mutations = []
+    #     for gene in genes:
+    #         gene_mutation = reference.genes[gene].list_mutations_wrt(mutant.genes[gene])
+    #         if gene_mutation is not None:
+    #             for mutation in gene_mutation:
+    #                 mutations.append(gene+"@"+mutation)
+    #     return numpy.array(sorted(mutations))
 
-    def __pad_mutations(self, arr1, arr2):
-        '''Pad lists of mutations to be the same length so zip() doesn't lose results
+    # def __pad_mutations(self, arr1, arr2):
+    #     '''Pad lists of mutations to be the same length so zip() doesn't lose results
 
-        Args:
-            arr1 (numpy.array): Array1
-            arr2 (numpy.array): Array2
-        Returns:
-            numpy.array, numpy.array: The two arrays padded to be the same length
-        '''
-        while len(arr1) > len(arr2):
-            arr2 = numpy.append(arr2, None)
-        while len(arr2) > len(arr1):
-            arr1 = numpy.append(arr1, None)
-        return arr1, arr2
+    #     Args:
+    #         arr1 (numpy.array): Array1
+    #         arr2 (numpy.array): Array2
+    #     Returns:
+    #         numpy.array, numpy.array: The two arrays padded to be the same length
+    #     '''
+    #     while len(arr1) > len(arr2):
+    #         arr2 = numpy.append(arr2, None)
+    #     while len(arr2) > len(arr1):
+    #         arr1 = numpy.append(arr1, None)
+    #     return arr1, arr2
 
-    def find_mutations(self, reference):
-        '''Version of self.__mutations() which takes a reference genome for when neither genome is a reference - finding the difference in mutations.
+    # def find_mutations(self, reference):
+    #     '''Version of self.__mutations() which takes a reference genome for when neither genome is a reference - finding the difference in mutations.
 
-        Args:
-            reference (gumpy.Genome): A reference genome
+    #     Args:
+    #         reference (gumpy.Genome): A reference genome
 
-        Returns:
-            (numpy.array): Array of mutations. Structure depends on viewing method set.
-                            `diff` (default): returns an array of mutations present in genome1 but not genome2
-                            `full`: returns an array of tuples of (genome1_mutation, genome2_mutation)
-        '''
-        assert reference.is_reference == True, "Genome passed is not a reference genome!"
-        self.genome1_mutations = self.__mutations(reference=reference, mutant=self.genome1)
-        self.genome2_mutations = self.__mutations(reference=reference, mutant=self.genome2)
-        if self._view_method == "full":
-            return numpy.array([
-                (m1, m2) for (m1, m2) in
-                    list(zip(
-                        *self.__pad_mutations(
-                            sorted(self.genome1_mutations), sorted(self.genome2_mutations))
-                        ))
-                if m1 != m2])
-        if self._view_method == "diff":
-            return sorted(list(set(self.genome1_mutations).difference(set(self.genome2_mutations))))
+    #     Returns:
+    #         (numpy.array): Array of mutations. Structure depends on viewing method set.
+    #                         `diff` (default): returns an array of mutations present in genome1 but not genome2
+    #                         `full`: returns an array of tuples of (genome1_mutation, genome2_mutation)
+    #     '''
+    #     assert reference.is_reference == True, "Genome passed is not a reference genome!"
+    #     self.genome1_mutations = self.__mutations(reference=reference, mutant=self.genome1)
+    #     self.genome2_mutations = self.__mutations(reference=reference, mutant=self.genome2)
+    #     if self._view_method == "full":
+    #         return numpy.array([
+    #             (m1, m2) for (m1, m2) in
+    #                 list(zip(
+    #                     *self.__pad_mutations(
+    #                         sorted(self.genome1_mutations), sorted(self.genome2_mutations))
+    #                     ))
+    #             if m1 != m2])
+    #     if self._view_method == "diff":
+    #         return sorted(list(set(self.genome1_mutations).difference(set(self.genome2_mutations))))
 
     def gene_differences(self):
         '''Get the GeneDifference objects for each gene in the genomes.
@@ -371,15 +380,23 @@ class GenomeDifference(Difference):
 class VCFDifference(object):
     '''Object used to find the difference a VCF file makes to a given Genome.
     This includes differences within codons/amino acids, coverages and mutations.
-    Reports the values of indel calls which differ in length from any indels within the genome
+    Reports the values of indel calls which differ in length from any indels within the genome.
+    Whenever an index is given within an array/dict, it refers to the genome index (i.e 1 indexed)
     '''
     def __init__(self, vcf, genome):
+        '''VCF difference object constructor.
+
+        Args:
+            vcf (gumpy.VariantFile): VariantFile object
+            genome (gumpy.Genome): Genome object
+        '''
         self.genome = genome
         self.vcf = vcf
 
-        self.indices = self.__indices()
+        self.__get_variants()
+        # self.indices = self.__indices()
         self.snps = self.__snps()
-        self.snp_distance = len(self.indices)
+        self.snp_distance = len(self.snps)
 
         # self.coverages = self.__coverages()
         # self.het_calls = self.__het_calls()
@@ -387,35 +404,90 @@ class VCFDifference(object):
 
         self.genes= genome.stacked_gene_name[numpy.isin(genome.stacked_nucleotide_index,(self.indices))]
 
-    def __indices(self):
-        '''Find the SNP positions caused by this VCF
-
-        Returns:
-            numpy.array: Array of SNP genome indices
+    def __get_variants(self):
+        '''Pull the variants out of the VariantFile object. Builds arrays
+            of the variant calls, and their respective genome indices, as well as
+            masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
+            i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
         '''
-        indices=[]
-        for idx in self.vcf.variants:
-            if 'indel' not in self.vcf.variants[idx]:
-                call=self.vcf.variants[idx]['call']
-                if self.genome.nucleotide_sequence[idx-1] != call:
-                    indices.append(self.genome.nucleotide_index[idx- 1])
-        return numpy.array(indices)
+        calls = []
+        indices = []
+        is_snp = []
+        is_het = []
+        is_null = []
+        is_indel = []
+        variants = defaultdict(list)
+
+        for index in sorted(list(self.vcf.variants.keys())):
+            indices.append(index)
+            call = self.vcf.variants[index]['call']
+            #Update the masks with the appropriate types
+            if self.vcf.variants[index]["type"] == 'indel':
+                #Convert to ins_x or del_x rather than tuple
+                call = call[0]+"_"+str(call[1])
+                is_indel.append(True)
+                is_snp.append(False)
+                is_het.append(False)
+                is_null.append(False)
+            elif self.vcf.variants[index]["type"] == "snp":
+                is_indel.append(False)
+                is_snp.append(True)
+                is_het.append(False)
+                is_null.append(False)
+            elif self.vcf.variants[index]['type'] == 'het':
+                is_indel.append(False)
+                is_snp.append(False)
+                is_het.append(True)
+                is_null.append(False)
+            elif self.vcf.variants[index]['type'] == 'null':
+                is_indel.append(False)
+                is_snp.append(False)
+                is_het.append(False)
+                is_null.append(True)
+            calls.append(call)
+            for key in self.vcf.variants[index]['original_vcf_row']:
+                variants[key].append(self.vcf.variants[index]['original_vcf_row'][key])
+        #Convert to numpy arrays for neat indexing
+        self.calls = numpy.array(calls)
+        self.indices = numpy.array(indices)
+        self.is_indel = numpy.array(is_indel)
+        self.is_snp = numpy.array(is_snp)
+        self.is_het = numpy.array(is_het)
+        self.is_null = numpy.array(is_null)
+        self.variants = dict()
+        for key in variants:
+            self.variants[key] = numpy.array(variants[key], dtype=object)
+
+    # def __indices(self):
+    #     '''Find the SNP positions caused by this VCF
+
+    #     Returns:
+    #         numpy.array: Array of SNP genome indices
+    #     '''
+    #     indices=[]
+    #     for idx in self.vcf.variants:
+    #         if (
+    #             'indel' not in self.vcf.variants[idx]['type']
+    #             and 'ins' not in self.vcf.variants[idx]['type']
+    #             and 'del' not in self.vcf.variants[idx]['type']):
+    #             call=self.vcf.variants[idx]['call']
+    #             if self.genome.nucleotide_sequence[idx-1] != call:
+    #                 indices.append(self.genome.nucleotide_index[idx- 1])
+    #     return numpy.array(indices)
 
     def __snps(self):
-        '''Find the SNPs positions caused by this VCF
+        '''Find the SNPs positions caused by this VCF. Het and null calls are included in SNPs.
 
         Returns:
-            numpy.array: Array of SNP genome indices
+            dict: Dictionary mapping genome_index->snp_call
         '''
-        snps = {}
-
-        for idx in self.vcf.variants:
-            # snp, null, het all ok
-            if self.vcf.variants[idx]['type']!='indel':
-                call=self.vcf.variants[idx]['call']
-                if self.genome.nucleotide_sequence[idx-1] != call:
-                    snps[idx]=self.genome.nucleotide_sequence[idx- 1]+">"+call
-        return numpy.array(snps)
+        #Utilise the masks to determine SNP positions
+        #Include HET and NULL calls in SNPs too
+        mask = numpy.logical_or(
+                            numpy.logical_or(self.is_snp, self.is_het),
+                            self.is_null)
+        snps = dict(zip(self.indices[mask],self.calls[mask]))
+        return snps
 
     # def __coverages(self):
     #     '''Finds the coverages of each call at each position
@@ -449,27 +521,12 @@ class VCFDifference(object):
     #     return het_calls
 
     def __indels(self):
-        '''Find the difference in the indels and the positons which it varies at.
+        '''Find the difference in the indels and the positions which it varies at.
 
         Returns:
             dict: Dictionary mapping array_index->array(indel)
         '''
-        indels = {}
-        for index in self.vcf.variants.keys():
-            if self.vcf.variants[index]['type']=='indel':
-                call=self.vcf.variants[index]['call']
-                # Indel call so check for differences
-                if self.genome.is_indel[index-1] == True and self.genome.indel_length[index-1] == call[1]:
-                    #Check genome.indels to see if they are the same indel
-
-                    if self.genome.indels is not None and numpy.any(self.genome.indels[index-1] != call[0]+"_"+str(call[1])):
-                        #There is a same length, but different value indel
-                        indels[index] = call[0]+"_"+str(call[1])
-                    else:
-                        #No differences in indels so ignore it
-                        continue
-                else:
-                    indels[index] = call[0]+"_"+str(call[1])
+        indels = dict(zip(self.indices[self.is_indel], self.calls[self.is_indel]))
         return indels
 
 
@@ -508,6 +565,8 @@ class GeneDifference(Difference):
             return None
         if gene1.name != gene2.name:
             warnings.warn("The two genes given have different names ("+gene1.name+", "+gene2.name+") but the same length, continuing...", UserWarning)
+        if gene1.codes_protein != gene2.codes_protein:
+            warnings.warn(f"The two genes given do not have the same protein coding for {gene1.name}: Gene1 = {gene1.codes_protein}, Gene2 = {gene2.codes_protein}", UserWarning)
         self.gene1 = gene1
         self.gene2 = gene2
         self._codes_protein=gene1.codes_protein

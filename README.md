@@ -3,6 +3,14 @@
 # gumpy
 Genetics with Numpy
 
+## Installation
+```
+git clone https://github.com/oxfordmmm/gumpy
+cd gumpy
+pip install -r requirements.txt
+python setup.py build --force
+pip install .
+```
 ## Documentation
 Easy access to documentation for public methods can be found using the `pydoc` module from a terminal:
 ```
@@ -78,12 +86,9 @@ g2 = g1.apply_variant_file(VariantFile("filename2.vcf")) #A genome which has bee
 g1 == g2 #Equality check
 
 diff = g2 - g1 #Subtraction returns a GenomeDifference object
-print(diff.snp) #SNP distance between the two genomes
+print(diff.snp_distance) #SNP distance between the two genomes
 print(diff.nucleotides) #Array of nucleotides in g2 which are different in g1
-print(diff.codons) #Array of codons in g2 which are different in g1
 print(diff.indels) #Array of indels in g2 where there are indels in either g1 or g2
-print(diff.het_calls) #Array of calls with coverages for every het call in both g1 and g2
-print(diff.mutations) #Array of mutations within the genes in g2 compared to the reference of g1
 ```
 ### Compare VCF file
 There is functionality to find the impact which a given VCF file has on a given genome.
@@ -94,9 +99,8 @@ vcf = VariantFile("filename.vcf")
 genome = Genome("filename.gbk", is_reference=True)
 
 diff = vcf.difference(genome) #Returns a VCFDifference object
-diff.coverage #List of the coverages of all calls
-diff.codons #List of the codons within the genome which are changed by the VCF
-diff.amino_acids #List of the amino acids within the genome which are changed by the VCF
+diff.variants.get('COV') #List of the coverages of all calls
+diff.snps #Dictionary mapping genome_index->snp_call
 
 genes_diff = diff.gene_differences() #Array of GeneDifference objects
 [g_diff.codons for g_diff in genes_diff] #List of the codon changes made within each gene (if the changes are within codons)
@@ -120,6 +124,10 @@ g2_gene1 = g2.genes["gene1_name"]
 
 g1_gene1 == g2_gene1 #Equality check of the two genes
 g1_gene1 - g2_gene1 #Returns the indicies within the gene where the two genes differ
+
+#Get a detailed difference between genes
+diff = g1_gene1.difference(g2_gene1)
+diff.mutations #List of mutations in GARC detailing the variation between the two genes
 ```
 
 ### Save and load Genome objects

@@ -110,8 +110,6 @@ def test_gene_functions():
     g2.name = "C"
     assert g1 != g2
 
-    #valid_variant() requires fixing/removing
-
     #__repr__
     #As __repr__ returns a multiline string, convert it to a list of single line strings for ease of comparison
     r = [line for line in g1.__repr__().split("\n") if line != ""]
@@ -135,9 +133,9 @@ def test_apply_vcf():
     g2 = g1.apply_variant_file(vcf)
     assert g1 != g2
     assert numpy.all(g2.nucleotide_sequence ==  numpy.array(
-                    list('axaaaxxxaactcgctgcccgzgzgzzzzgttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc')
+                    list('axaaaxxxaactcgctgcccgzgzgzzzzgttttttttataaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc')
     ))
-    assert numpy.all(g2 - g1 == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29]))
+    assert numpy.all(g2 - g1 == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
     assert g2.variant_file == vcf
     assert g2.original == {1: 'a',
          5: 'a',
@@ -154,9 +152,13 @@ def test_apply_vcf():
          27: 'g',
          28: 'g',
          32: 't',
-         35: 't'
+         36: 't',
+         38: 't',
+         39: 't',
+         63: 'g',
+         72: 't'
     }
-    assert g2.indels == {32: 'ins_2', 35: 'del_-1'}
+    assert g2.indels == {32: 'ins_2', 36: 'del_1', 39: 'ins_1', 63: 'ins_2', 72: 'ins_1'}
     calls = {
         1: [(0, '-'), (68, 'g')],
         15: [(0, '-'), (68, 't')],
@@ -227,13 +229,13 @@ def test_genome_difference():
 
     diff = g2.difference(g1)
     #Default view
-    assert diff.snp_distance == 14
-    assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29]))
-    assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z','z']))
+    assert diff.snp == 15
+    assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
+    assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z','z', 'a']))
     # assert numpy.all(diff.codons == numpy.array(['aga', 'tcc', 'zgg', 'ttz', 'aax','']))
     # assert numpy.all(diff.amino_acids == numpy.array(['R', 'S', 'Z', 'Z', 'X']))
-    assert numpy.all(diff.indel_indices == numpy.array([32,35]))
-    assert numpy.all(diff.indels == numpy.array(['ins_2', 'del_-1']))
+    assert numpy.all(diff.indel_indices == numpy.array([32, 36, 39, 63, 72]))
+    assert numpy.all(diff.indels == numpy.array(['ins_2', 'del_1', 'ins_1', 'ins_2', 'ins_1']))
     # assert numpy.all(diff.het_indices == numpy.array([27, 77]))
 
     # het_calls = numpy.array([
@@ -262,7 +264,8 @@ def test_genome_difference():
        ['z', 'g'],
        ['z', 'g'],
        ['z', 'g'],
-       ['z', 'g']
+       ['z', 'g'],
+       ['a', 't']
     ]))
     # assert numpy.all(diff.codons == numpy.array([(
     #     ('aga', 'aaa'), ('tcc', 'ccc'), ('zgg', 'ggg'),
@@ -272,7 +275,7 @@ def test_genome_difference():
     #     ('R', 'K'), ('S', 'P'), ('Z', 'G'),
     #     ('Z', 'F'), ('X', 'K')
     # ]))
-    assert check_eq(diff.indels, numpy.array([['ins_2', None],['del_-1', None]], dtype=object), True)
+    assert check_eq(diff.indels, numpy.array([['ins_2', None], ['del_1', None], ['ins_1', None], ['ins_2', None], ['ins_1', None]], dtype=object), True)
 
     # het_calls = numpy.array([
     #     [[(1, '-'), (99, 't'), (100, 'c')], None],
@@ -305,18 +308,18 @@ def test_genome_difference():
     g3.nucleotide_sequence[91] = 'g'
     g3._Genome__recreate_genes()#Recreate the genes
 
-    diff = g3.difference(g4)
-    diff2 = g4.difference(g3)
-    assert diff.find_mutations(g1) == ["C@A2G"]
-    assert diff2.find_mutations(g1) == []
-    diff.update_view("full")
-    diff2.update_view("full")
-    assert numpy.all(diff.find_mutations(g1) == numpy.array([
-            ['C@A2G', None]
-        ]))
-    assert numpy.all(diff2.find_mutations(g1) == numpy.array([
-        [None, "C@A2G"]
-    ]))
+    # diff = g3.difference(g4)
+    # diff2 = g4.difference(g3)
+    # assert diff.find_mutations(g1) == ["C@A2G"]
+    # assert diff2.find_mutations(g1) == []
+    # diff.update_view("full")
+    # diff2.update_view("full")
+    # assert numpy.all(diff.find_mutations(g1) == numpy.array([
+            # ['C@A2G', None]
+        # ]))
+    # assert numpy.all(diff2.find_mutations(g1) == numpy.array([
+        # [None, "C@A2G"]
+    # ]))
 
 def test_vcf_difference():
     #Testing the VariantFile objects' difference()
@@ -326,8 +329,53 @@ def test_vcf_difference():
     #Get the difference
     diff = vcf.difference(g1)
     assert isinstance(diff, gumpy.VCFDifference)
-    assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 36]))
-    assert diff.snp_distance == 16
+    #Checking the variant masks
+    assert numpy.all(diff.calls == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'ins_2', 'del_1', 'a', 'ins_1', 'ins_2', 'ins_1'])
+    assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 40, 64, 73]))
+    assert numpy.all(diff.is_snp == [False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, True, False, False, False])
+    assert numpy.all(diff.is_het == [False, False, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, False, False, False])
+    assert numpy.all(diff.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True])
+    assert numpy.all(diff.is_null == [True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False])
+
+    full_variants = {
+        'GT': numpy.array([
+            (None, None), (None, None), (None, None), (None, None), (1, 1), (2, 2), (1, 1), (1, 1), (1, 2), (0, 2), (1, 2),
+            (1, 2), (1, 3), (1, 3), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1)
+        ]),
+        'DP': numpy.array([
+            2, 4, 4, 4, 50, 45, 70, 70, 202, 202, 100, 100, 100, 100, 200, 200, 200, 200, 200, 200
+        ]),
+        'COV': numpy.array([
+            (1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (0, 50), (0, 2, 43), (0, 68, 8), (0, 68, 8), (1, 99, 100, 2),
+            (99, 1, 100, 2), (0, 48, 50, 2), (0, 48, 50, 2), (0, 48, 2, 50), (0, 48, 2, 50), (1, 199), (1, 199), (1, 199), (1, 199), (1, 199),
+            (1, 198, 1)
+        ]),
+        'GT_CONF': numpy.array([
+            2.05, 2.76, 2.76, 2.76, 200.58, 155.58, 300.25, 300.25, 613.77, 613.77, 475.54, 475.54, 315.11, 315.11, 145.21, 145.21, 145.21,
+            145.21, 145.21, 145.21
+        ]),
+        'REF': numpy.array([
+            'a', 'aaa', 'aaa', 'aaa', 'c', 'c', 'ccc', 'ccc', 'g', 'g', 'gg', 'gg', 'gg', 'gg', 't', 'tt', 'tc', 'tc', 'gg', 't'
+        ]),
+        'ALTS': numpy.array([
+            ('g',), ('ggt', 'gta', 'ata'), ('ggt', 'gta', 'ata'), ('ggt', 'gta', 'ata'), ('t',), ('t', 'g'),
+            ('tgc', 'gtg'), ('tgc', 'gtg'), ('t', 'c', 'a'), ('t', 'c', 'a'), ('aa', 'ct', 'at'), ('aa', 'ct', 'at'), ('aa', 't', 'a'),
+            ('aa', 't', 'a'), ('ttt',), ('t',), ('tag',), ('tag',), ('cagg',), ('ta', 'at')
+        ]),
+    }
+    assert check_eq(diff.variants, full_variants, True)
+
+    assert diff.snp_distance == 15
+    assert check_eq(diff.snps, {
+        2: 'x', 6: 'x',
+        7: 'x',  8: 'x',
+        12: 't', 14: 'g',
+        16: 't', 17: 'g',
+        22: 'z', 24: 'z',
+        26: 'z', 27: 'z',
+        28: 'z', 29: 'z',
+        39: 'a'
+    }, True)
     # assert numpy.all(diff.coverages == {
     #     2: [(68, 'G')],
     #     16:[(68, 'T')],
@@ -340,7 +388,7 @@ def test_vcf_difference():
     #     28: ('T', 'C'),
     #     78: ('GTT', 'G'),
     # })
-    assert check_eq(diff.indels, {33: 'ins_2', 36: 'del_-1'}, True)
+    assert check_eq(diff.indels, {33: 'ins_2', 37: 'del_1', 40: 'ins_1', 64: 'ins_2', 73: 'ins_1'}, True)
     # assert numpy.all(diff.codons == {
     #     0: ('aaa', 'aga'),
     #     5: ('ccc', 'tcc'),
@@ -357,33 +405,111 @@ def test_vcf_difference():
     assert numpy.all([isinstance(g, gumpy.GeneDifference) for g in g_diff])
     assert check_eq([g.nucleotides for g in g_diff], [
         numpy.array(['a','a','a','a','c','c','c','c','g','g','g','g','g','g']),
-        numpy.array(["g",'g']),
+        numpy.array(['g','g', 't']),
         numpy.array([])
     ], True)
     assert check_eq([g.mutations for g in g_diff], [
-        numpy.array(sorted(['A@G7Z','A@G8Z', 'A@G9Z', 'A@K1X', 'A@K2X','A@P4R', 'A@P5C', 'A@T3T', 'A@a-2x'])),
-        numpy.array(sorted(['B@6_ins_2', 'B@9_ins_1', 'B@G1Z'])),
+        numpy.array(sorted(['A@G7Z','A@G8Z', 'A@G9Z', 'A@K1X', 'A@K2X','A@P4R', 'A@P5C', 'A@3=', 'A@a-2x'])),
+        numpy.array(sorted(['B@6_ins_2', 'B@10_ins_1', 'B@G1Z', 'B@13_ins_1', 'B@F4L'])),
         numpy.array([])
     ], True)
     assert check_eq([g.indel_indices for g in g_diff], [
-        numpy.array([]), numpy.array([6,9]), numpy.array([])
+        numpy.array([]), numpy.array([6,10, 13]), numpy.array([])
     ], True)
     # assert check_eq([g.indels for g in g_diff], [numpy.array([]), numpy.array([]), numpy.array([])], True)
     assert check_eq([g.codons for g in g_diff], [
         numpy.array(['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg']),
-        numpy.array(["ggg"]),
+        numpy.array(["ggg", "ttt"]),
         numpy.array([])
     ], True)
     assert check_eq([g.amino_acids for g in g_diff], [
         numpy.array(['K', 'K' ,'P' ,'P' ,'G' ,'G' ,'G']),
-        numpy.array(['G']),
+        numpy.array(['G', 'F']),
         numpy.array([])
     ], True)
 
     #Testing an edge case with 2 different indels at the same position
     g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA-2.vcf"))
     diff = vcf.difference(g2)
-    assert check_eq(diff.indels, {33: 'ins_2', 36: 'del_-1'}, True)
+    assert check_eq(diff.indels, {33: 'ins_2', 37: 'del_1', 40: "ins_1", 64: 'ins_2', 73: 'ins_1'}, True)
+
+def test_gene_difference():
+    #Test the Gene.difference() method and GeneDifference() objects
+    genome1 = gumpy.Genome("config/TEST-DNA.gbk")
+    genome2 = genome1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf"))
+    g1 = genome1.genes["A"]
+    g2 = genome2.genes["A"]
+    diff = g1.difference(g2)
+
+    assert isinstance(diff, gumpy.GeneDifference)
+    assert numpy.all(diff.nucleotides == ['a', 'a', 'a', 'a', 'c', 'c', 'c', 'c', 'g', 'g', 'g', 'g', 'g', 'g'])
+    assert numpy.all(diff.mutations == sorted(['A@a-2x', 'A@K1X', 'A@K2X', 'A@3=', 'A@P4R', 'A@P5C', 'A@G7Z', 'A@G8Z', 'A@G9Z']))
+    assert diff.indel_indices.tolist() == []
+    assert numpy.all(diff.codons == ['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg'])
+    assert numpy.all(diff.amino_acids == ['K', 'K' ,'P' ,'P' ,'G' ,'G' ,'G'])
+
+def test_valid_varaint():
+    #Test if the Gene.valid_variant() works
+    genome = gumpy.Genome("config/TEST-DNA.gbk")
+    gene = genome.genes["A"]
+
+    #Some normal valid varaints
+    assert gene.valid_variant("K2X")
+    assert gene.valid_variant("K2P")
+    assert gene.valid_variant("P5C")
+    assert gene.valid_variant("a-2z")
+    assert gene.valid_variant("a-3g")
+    assert gene.valid_variant("3=")
+    assert gene.valid_variant("17_ins_a")
+    assert gene.valid_variant("12_ins_1")
+    assert gene.valid_variant("23_ins")
+    assert gene.valid_variant("-2_ins_agaaat")
+    assert gene.valid_variant("12_indel")
+    assert gene.valid_variant("4_del")
+    assert gene.valid_variant("5_del_aa")
+    assert gene.valid_variant("7_del_3")
+    assert gene.valid_variant("a3c")
+
+    assert gene.valid_variant("A@P5C")
+    assert gene.valid_variant("A@a-2z")
+    assert gene.valid_variant("A@8_indel")
+    assert gene.valid_variant("A@9=")
+
+    #Invalid variants
+    assert not gene.valid_variant("A2X")
+    assert not gene.valid_variant("A192X")
+    assert not gene.valid_variant("B@K2X")
+    assert not gene.valid_variant("52=")
+    assert not gene.valid_variant("A@a-19c")
+    assert not gene.valid_variant("aaaaaa")
+    assert not gene.valid_variant("18-")
+    assert not gene.valid_variant("  ")
+    assert not gene.valid_variant("This is not a variant")
+    assert not gene.valid_variant("A@5_del_gg")
+    assert not gene.valid_variant("17_indel_2")
+    assert not gene.valid_variant("B@4_ins_a")
+    assert not gene.valid_variant(" @K2A")
+    assert not gene.valid_variant("gene@a4t")
+    assert not gene.valid_variant("A@K2K")
+    assert not gene.valid_variant("a-2a")
+    assert not gene.valid_variant("A@28_del_aaccggttaaccggtt")
+    assert not gene.valid_variant("20_del_100")
+
+    def assert_throws(mutation):
+        try:
+            gene.valid_variant(mutation)
+            assert False
+        except AssertionError:
+            assert True
+
+    assert_throws(None)
+    assert_throws(0)
+    assert_throws("")
+    assert_throws("0")
+    assert_throws([1,2])
+    assert_throws(-10)
+    assert_throws(gumpy.Gene)
+    assert_throws("@")
 
 def test_vcf_to_df():
     vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
@@ -417,9 +543,9 @@ def test_vcf_to_df():
     }
     #Building the reference dataframe
     data = {
-        "CHROM": ["TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA","TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA"],
-        "POS": [2, 4, 6, 12, 14, 16, 22, 24, 26, 28, 33, 36],
-        "REF": ['a', 'a', 'aaa', 'c', 'c', 'ccc', 'g', 'g', 'gg', 'gg', 't', 'tt'],
+        "CHROM": ["TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA","TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA"],
+        "POS": [2, 4, 6, 12, 14, 16, 22, 24, 26, 28, 33, 36, 39, 65, 69, 73],
+        "REF": ['a', 'a', 'aaa', 'c', 'c', 'ccc', 'g', 'g', 'gg', 'gg', 't', 'tt', 'tc', 'gg', 'gg', 't'],
         "ALTS": [('g',),
                  ('g', 't'),
                  ('ggt', 'gta', 'ata'),
@@ -431,9 +557,10 @@ def test_vcf_to_df():
                  ('aa', 'ct', 'at'),
                  ('aa', 't', 'a'),
                  ('ttt',),
-                 ('t',)],
-        "QUAL": [None, None, None, None, None, None,None, None, None, None, None, None],
-        "INFO": [{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15},{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}],
+                 ('t',), ('tag',),
+                 ('cagg',), ('gg',), ('ta', 'at')],
+        "QUAL": [None, None, None, None, None, None,None, None, None, None, None, None, None, None, None, None],
+        "INFO": [{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15},{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {'KMER': 15}, {'KMER': 15}, {'KMER': 15}, {'KMER': 15}],
         "GT": [(None, None),
              (None, None),
              (None, None),
@@ -445,8 +572,12 @@ def test_vcf_to_df():
              (1, 2),
              (1, 3),
              (1, 1),
+             (1, 1),
+             (1, 1),
+             (1, 1),
+             (0, 0),
              (1, 1)],
-        "DP": [2, 4, 4, 50, 45, 70, 202, 202, 100, 100, 200, 200],
+        "DP": [2, 4, 4, 50, 45, 70, 202, 202, 100, 100, 200, 200, 200, 200, 200, 200],
         "COV": [(1, 1),
                  (1, 2, 2),
                  (1, 1, 1, 1),
@@ -458,7 +589,11 @@ def test_vcf_to_df():
                  (0, 48, 50, 2),
                  (0, 48, 2, 50),
                  (1, 199),
-                 (1, 199)],
+                 (1, 199),
+                 (1, 199),
+                 (1, 199),
+                 (1, 199),
+                 (1, 198, 1)],
         "GT_CONF": [2.05,
                      3.77,
                      2.76,
@@ -470,7 +605,7 @@ def test_vcf_to_df():
                      475.54,
                      315.11,
                      145.21,
-                     145.21]
+                     145.21, 145.21, 145.21, 145.21, 145.21]
     }
     #Already tested the metadata so test equality against just data
     data = pandas.DataFrame(data)
