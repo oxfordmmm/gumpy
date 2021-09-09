@@ -1,6 +1,9 @@
 from setuptools import setup
 from gumpy import __version__
 
+with open("README.md", "r") as f:
+    README = f.read()
+
 setup(
     install_requires=[
         "numpy >= 1.13",
@@ -12,6 +15,7 @@ setup(
     author='Philip W Fowler',
     author_email="philip.fowler@ndm.ox.ac.uk",
     description="Genetics with Numpy",
+    long_descriptions=README,
     url="https://github.com/oxfordmmm/gumpy",
     packages=['gumpy'],
     package_data={'': ['../config/*']},
