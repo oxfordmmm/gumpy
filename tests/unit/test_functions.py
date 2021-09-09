@@ -416,7 +416,6 @@ def test_vcf_difference():
     assert check_eq([g.indel_indices for g in g_diff], [
         numpy.array([]), numpy.array([6,10, 13]), numpy.array([])
     ], True)
-    # assert check_eq([g.indels for g in g_diff], [numpy.array([]), numpy.array([]), numpy.array([])], True)
     assert check_eq([g.codons for g in g_diff], [
         numpy.array(['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg']),
         numpy.array(["ggg", "ttt"]),
@@ -427,6 +426,53 @@ def test_vcf_difference():
         numpy.array(['G', 'F']),
         numpy.array([])
     ], True)
+
+
+    assert check_eq(g_diff[0].nucleotide_variants(3), {
+        'GT': (None, (None, None)),
+        'DP': (None, 4),
+        'COV': (None, (1,1,1,1)),
+        'ALTS': (None, ('ggt', 'gta', 'ata')),
+        'GT_CONF': (None, 2.76),
+        'REF': (None, 'aaa')
+        }, True)
+    with pytest.warns(UserWarning):
+        assert g_diff[0].nucleotide_variants(100) == {}
+    try:
+        g_diff[0].nucleotide_variants(None)
+        assert False, "This should have thrown an assertation error..."
+    except AssertionError:
+        pass
+
+
+    assert check_eq(g_diff[0].amino_acid_variants(1), {
+        'GT': ([None], [(None, None)]),
+        'DP': ([None], [4]),
+        'COV': ([None], [(1,1,1,1)]),
+        'ALTS': ([None], [('ggt', 'gta', 'ata')]),
+        'GT_CONF': ([None], [2.76]),
+        'REF': ([None], ['aaa'])
+    }, True)
+    assert check_eq(g_diff[1].amino_acid_variants(1), {
+        'GT': ([None, None], [(1, 3), (1, 3)]),
+        'DP': ([None, None], [100, 100]),
+        'COV': ([None, None], [(0, 48, 2, 50), (0, 48, 2, 50)]),
+        'GT_CONF': ([None, None], [315.11, 315.11]),
+        'REF': ([None, None], ['gg', 'gg']),
+        'ALTS': ([None, None], [('aa', 't', 'a'), ('aa', 't', 'a')]),
+    }, True)
+    assert check_eq(g_diff[1].amino_acid_variants(3), {}, True)
+    with pytest.warns(UserWarning):
+        assert g_diff[1].amino_acid_variants(-6) == {}
+    try:
+        g_diff[0].amino_acid_variants(None)
+        assert False, "This should have thrown an assertation error..."
+    except AssertionError:
+        pass
+
+    
+
+
 
     #Testing an edge case with 2 different indels at the same position
     g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA-2.vcf"))

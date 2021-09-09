@@ -78,6 +78,12 @@ class Genome(object):
         self.verbose=verbose
         self.gene_subset=gene_subset
         self.max_gene_name_length=max_gene_name_length
+        #Set default attributes for items populated when a VCF is applied
+        self.indels = None
+        self.variants = None
+        self.original = None
+        self.calls = None
+        self.variant_file = None
 
         if self.verbose:
             timings=defaultdict(list)
@@ -110,13 +116,6 @@ class Genome(object):
                 print("%20s %6.3f s" % (i, numpy.sum(timings[i])))
 
         self.__convert_references()
-
-        #Set default attributes for items populated when a VCF is applied
-        self.indels = None
-        self.variants = None
-        self.original = None
-        self.calls = None
-        self.variant_file = None
 
     def __convert_references(self):
         '''Convert BIOPython Reference objects to normal dictionaries. They do not
@@ -812,19 +811,30 @@ class Genome(object):
         #The mask for singular arrays (1-dim) by collapsing stacked mask to 1-dim
         mask=numpy.any(stacked_mask,axis=0)
 
+        #Check for variants
+        gene_variants = {}
+        if self.variant_file:
+            #If the variant_file has been set, check for variants within the gene
+            for index in self.variant_file.variants.keys():
+                if mask[index-1]:
+                    #The gene is present at this index so add to variants
+                    gene_variants[index] = self.variant_file.variants[index]
+
         assert numpy.count_nonzero(mask)>0, "gene ("+gene+") not found in genome!"
-        g = Gene(  name=gene,\
-                                nucleotide_sequence=self.nucleotide_sequence[mask],\
-                                index=self.nucleotide_index[mask],\
-                                nucleotide_number=self.stacked_nucleotide_number[stacked_mask],\
-                                is_cds=self.stacked_is_cds[stacked_mask],\
-                                is_promoter=self.stacked_is_promoter[stacked_mask],\
-                                is_indel=self.is_indel[mask],
-                                indel_length=self.indel_length[mask],
-                                codes_protein=self.genes_lookup[gene]['codes_protein'],\
-                                reverse_complement=self.genes_lookup[gene]['reverse_complement'],\
-                                feature_type=self.genes_lookup[gene]['type'],
-                                ribosomal_shifts=self.genes_lookup[gene]['ribosomal_shifts'])
+        g = Gene(name=gene,
+                    nucleotide_sequence=self.nucleotide_sequence[mask],
+                    index=self.nucleotide_index[mask],
+                    nucleotide_number=self.stacked_nucleotide_number[stacked_mask],
+                    is_cds=self.stacked_is_cds[stacked_mask],
+                    is_promoter=self.stacked_is_promoter[stacked_mask],
+                    is_indel=self.is_indel[mask],
+                    indel_length=self.indel_length[mask],
+                    codes_protein=self.genes_lookup[gene]['codes_protein'],
+                    reverse_complement=self.genes_lookup[gene]['reverse_complement'],
+                    feature_type=self.genes_lookup[gene]['type'],
+                    ribosomal_shifts=self.genes_lookup[gene]['ribosomal_shifts'],
+                    variants=gene_variants
+                )
         if conn:
             conn.send(g)
         else:
@@ -932,14 +942,14 @@ class Genome(object):
             else:
                 raise Exception('variant type not recognised!', vcf.variants[idx])
 
-        #Rebuild the genes with this new information
-        print("Rebuilding the Gene objects with the updated genome...")
-        genome.__recreate_genes(show_progress_bar=True)
-
         #Save all of the calls in the format {arr_index: (n_reads, call)}
         # genome.calls = {index: vcf.variants[index][1] for index in vcf.variants.keys()}
         genome.variant_file = vcf
         #The genome has been altered so not a reference genome
         genome.is_reference = False
+
+        #Rebuild the genes with this new information
+        print("Rebuilding the Gene objects with the updated genome...")
+        genome.__recreate_genes(show_progress_bar=True)
 
         return genome

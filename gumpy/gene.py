@@ -1,5 +1,6 @@
 import numpy
 import re
+import functools
 from gumpy import GeneDifference
 
 # FIXME: problems with rrs, mfpB
@@ -20,13 +21,14 @@ class Gene(object):
             codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
+            variants (dict(int:numpy.array), optional): Dictionary of VCF data. Defaults to {}
         '''
         #Set the kwargs
         #UPDATE THIS AS REQUIRED
         allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter', 
                         'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type', 
                         'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number', 
-                        'codons', 'amino_acid_sequence', 'ribosomal_shifts']
+                        'codons', 'amino_acid_sequence', 'ribosomal_shifts', 'variants']
         #If reloading a Gene, just set the attributes and return
         if "reloading" in kwargs.keys():
             seen = set()
@@ -53,6 +55,12 @@ class Gene(object):
         codes_protein = kwargs.get("codes_protein", True)
         feature_type = kwargs.get("feature_type")
         ribosomal_shifts = kwargs.get("ribosomal_shifts", [])
+        #VCF data which is accessed by GeneDifference. Has no direct references here...
+        self.variants = kwargs.get('variants', dict())
+        # print(name)
+        # print(*index.tolist(), sep="\t")
+        # print(*nucleotide_number.tolist(), sep="\t")
+        # assert False
 
         assert name is not None, "must provide a gene name!"
         self.name=name
@@ -204,8 +212,6 @@ class Gene(object):
         return(numpy.array(complement))
 
     def _translate_sequence(self):
-        #TODO: Optimise this - may require some extra knowledge on why it is done like this...
-
         # this will ensure that only amino acids with all three bases present
         unique,counts=numpy.unique(self.triplet_number,return_counts=True)
         self.amino_acid_number=unique[counts==3]
@@ -216,6 +222,14 @@ class Gene(object):
         number_codons=int(numpy.sum(self.is_cds)/3)
 
         stacked_codons=cds_sequence.reshape((number_codons,3))
+        #Variable to map amino acid numbers onto the coding sequence as a mask
+        self.coding_aa_number = numpy.array(
+                                            functools.reduce(
+                                                lambda x, y: x+y, 
+                                                [[i+1 for x in range(len(seq))] for (i, seq) in enumerate(stacked_codons)], 
+                                                []
+                                            )
+                                )
 
         codons=numpy.char.add(stacked_codons[:,0],stacked_codons[:,1])
         self.codons=numpy.char.add(codons,stacked_codons[:,2])

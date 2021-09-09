@@ -6,7 +6,7 @@ import sys
 # print(g.genes_lookup)
 
 
-# g = gumpy.Genome("config/TEST-DNA.gbk")
+g = gumpy.Genome("config/TEST-DNA.gbk")
 # g.save("testing.json")
 
 
@@ -21,7 +21,7 @@ import sys
 
 
 
-vcf = gumpy.VariantFile("tests/test-cases/05.vcf")
+# vcf = gumpy.VariantFile("tests/test-cases/05.vcf")
 # df = vcf.to_df()
 # print(df)
 # print(df.attrs)

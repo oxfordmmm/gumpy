@@ -408,7 +408,8 @@ class GeneDifference(Difference):
         if gene1.name != gene2.name:
             warnings.warn("The two genes given have different names ("+gene1.name+", "+gene2.name+") but the same length, continuing...", UserWarning)
         if gene1.codes_protein != gene2.codes_protein:
-            warnings.warn(f"The two genes given do not have the same protein coding for {gene1.name}: Gene1 = {gene1.codes_protein}, Gene2 = {gene2.codes_protein}", UserWarning)
+            warnings.warn(f"The two genes given do not have the same protein coding for {gene1.name}: Gene1 = {gene1.codes_protein}, Gene2 = {gene2.codes_protein}, so comparison failed...", UserWarning)
+            return None
         self.gene1 = gene1
         self.gene2 = gene2
         self._codes_protein=gene1.codes_protein
@@ -495,6 +496,76 @@ class GeneDifference(Difference):
             if aa1 != aa2:
                 aa_diff.append((aa1, aa2))
         return numpy.array(aa_diff)
+    
+    def nucleotide_variants(self, index):
+        '''Get the VCF fields such as COV and GT at a given nucleotide index
+
+        Args:
+            index (int): Gene index to find the variance at.
+
+        Returns:
+            dict: Dictionary mapping vcf_field->(gene1_val, gene2_val)
+        '''
+        assert type(index) == int, "Index given should be an integer."
+        if (index not in range(min(self.gene1.nucleotide_number),max(self.gene1.nucleotide_number)+1) 
+            or index not in range(min(self.gene2.nucleotide_number),max(self.gene2.nucleotide_number)+1) 
+            or index == 0):
+            warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.gene1.nucleotide_number)},{max(self.gene1.nucleotide_number)}).", UserWarning)
+            return {}
+        #Convert gene index to genome index for use as Gene.variants key
+        index1 = self.gene1.index[self.gene1.nucleotide_number == index].tolist()[0]
+        index2 = self.gene2.index[self.gene2.nucleotide_number == index].tolist()[0]
+        variants = {}
+        for field in set(self.gene1.variants.get(index1, {}).get('original_vcf_row', {}).keys()).union(set(self.gene2.variants.get(index2, {}).get('original_vcf_row', {}).keys())):
+            #Pull out the values if they exist
+            gene1_val = self.gene1.variants.get(index1, {}).get('original_vcf_row', {}).get(field, None)
+            gene2_val = self.gene2.variants.get(index2, {}).get('original_vcf_row', {}).get(field, None)
+            variants[field] = (gene1_val, gene2_val)
+        return variants
+    
+    def amino_acid_variants(self, index):
+        '''Get the VCF fields such as COV and GT for variants which constitute the amino acid
+        at a given amino acid index
+
+        Args:
+            index (int): Amino acid index to find the variance at
+
+        Returns:
+            dict: Dictionary mapping vcf_field->((gene1_val1, ...), (gene2_val1, ...)) with up to 3 values per gene
+                    according to the possible 3 variants due to 3 nucleotides per amino acid
+        '''
+        assert type(index) == int, "Index given should be an integer."
+        if not self.gene1.codes_protein:
+            warnings.warn("These genes do not code a protein so there are no amino acids...", UserWarning)
+            return {}
+        if index < 0 or index > max(self.gene1.amino_acid_number) or index > max(self.gene2.amino_acid_number):
+            warnings.warn("The index is out of range of the amino acids in this gene.", UserWarning)
+            return {}
+        #Convert amino acid index to genome index
+        #This should produce 3 indices
+        index1 = set(self.gene1.index[self.gene1.is_cds][self.gene1.coding_aa_number == index])
+        index2 = set(self.gene2.index[self.gene2.is_cds][self.gene2.coding_aa_number == index])
+        indices = index1.union(index2)
+
+        #Use dicts mapping field->values as an intermediary step
+        variants1 = defaultdict(list)
+        variants2 = defaultdict(list)
+        for i in indices:
+            for field in set(self.gene1.variants.get(i, {}).get('original_vcf_row', {}).keys()).union(set(self.gene2.variants.get(i, {}).get('original_vcf_row', {}).keys())):
+                #Pull out the values if they exist
+                variants1[field].append(self.gene1.variants.get(i, {}).get('original_vcf_row', {}).get(field, None))
+                variants2[field].append(self.gene2.variants.get(i, {}).get('original_vcf_row', {}).get(field, None))
+        #Convert to dict mapping field->([g1_val1, g1_val2..], [g2_val1, g2_val2..])
+        variants = {
+            field: (variants1[field], variants2[field]) 
+            for field in variants1.keys() 
+            if variants1[field] is not None and variants2[field] if not None
+            }
+            
+        return variants
+
+
+
 
 
 
