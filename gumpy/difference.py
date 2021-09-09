@@ -497,6 +497,24 @@ class GeneDifference(Difference):
                 aa_diff.append((aa1, aa2))
         return numpy.array(aa_diff)
     
+    def __collapse_inner_dict(self, dict_):
+        '''Takes a dict which also contains 1 or more internal dictionaries
+        Converts to a single 1D dictionary, ignoring key clashes
+
+        Args:
+            dict_ (dict): Dictionary to collapse
+        Returns:
+            dict: Collapsed dict
+        '''        
+        fixed = {}
+        for key in dict_.keys():
+            if isinstance(dict_[key], dict):
+                #Dict so unpack
+                fixed = {**fixed, **dict_[key]}
+            else:
+                fixed[key] = dict_[key]
+        return fixed
+    
     def nucleotide_variants(self, index):
         '''Get the VCF fields such as COV and GT at a given nucleotide index
 
@@ -516,15 +534,18 @@ class GeneDifference(Difference):
         index1 = self.gene1.index[self.gene1.nucleotide_number == index].tolist()[0]
         index2 = self.gene2.index[self.gene2.nucleotide_number == index].tolist()[0]
         variants = {}
-        for field in set(self.gene1.variants.get(index1, {}).get('original_vcf_row', {}).keys()).union(set(self.gene2.variants.get(index2, {}).get('original_vcf_row', {}).keys())):
+        d1 = self.__collapse_inner_dict(self.gene1.variants.get(index1, {}))
+        d2 = self.__collapse_inner_dict(self.gene2.variants.get(index2, {}))
+        for field in set(d1.keys()).union(set(d2.keys())):
             #Pull out the values if they exist
-            gene1_val = self.gene1.variants.get(index1, {}).get('original_vcf_row', {}).get(field, None)
-            gene2_val = self.gene2.variants.get(index2, {}).get('original_vcf_row', {}).get(field, None)
-            variants[field] = (gene1_val, gene2_val)
+            if field in ["call", 'REF', 'ALTS', 'type']:
+                gene1_val = d1.get(field, None)
+                gene2_val = d2.get(field, None)
+                variants[field] = (gene1_val, gene2_val)
         return variants
     
     def amino_acid_variants(self, index):
-        '''Get the VCF fields such as COV and GT for variants which constitute the amino acid
+        '''Get the VCF fields such as call and alts for variants which constitute the amino acid
         at a given amino acid index
 
         Args:
@@ -538,7 +559,7 @@ class GeneDifference(Difference):
         if not self.gene1.codes_protein:
             warnings.warn("These genes do not code a protein so there are no amino acids...", UserWarning)
             return {}
-        if index < 0 or index > max(self.gene1.amino_acid_number) or index > max(self.gene2.amino_acid_number):
+        if index <= 0 or index > max(self.gene1.amino_acid_number) or index > max(self.gene2.amino_acid_number):
             warnings.warn("The index is out of range of the amino acids in this gene.", UserWarning)
             return {}
         #Convert amino acid index to genome index for use as Gene.variants key
@@ -551,10 +572,13 @@ class GeneDifference(Difference):
         variants1 = defaultdict(list)
         variants2 = defaultdict(list)
         for i in indices:
-            for field in set(self.gene1.variants.get(i, {}).get('original_vcf_row', {}).keys()).union(set(self.gene2.variants.get(i, {}).get('original_vcf_row', {}).keys())):
+            d1 = self.__collapse_inner_dict(self.gene1.variants.get(i, {}))
+            d2 = self.__collapse_inner_dict(self.gene2.variants.get(i, {}))
+            for field in set(d1.keys()).union(set(d2.keys())):
                 #Pull out the values if they exist
-                variants1[field].append(self.gene1.variants.get(i, {}).get('original_vcf_row', {}).get(field, None))
-                variants2[field].append(self.gene2.variants.get(i, {}).get('original_vcf_row', {}).get(field, None))
+                if field in ["call", 'REF', 'ALTS', 'type']:
+                    variants1[field].append(d1.get(field, None))
+                    variants2[field].append(d2.get(field, None))
         #Convert to dict mapping field->([g1_val1, g1_val2..], [g2_val1, g2_val2..])
         variants = {
             field: (variants1[field], variants2[field]) 

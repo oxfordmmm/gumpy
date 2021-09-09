@@ -188,6 +188,9 @@ class VariantFile(object):
         for record in list(vcf):
             for sample in record.samples.keys():
                 self.records.append(VCFRecord(record, sample))
+        
+        #Ensure that only a single record exists for each position specified
+        assert len(self.records) == len(set([record.pos for record in self.records])), "There must only be 1 record per position!"
 
         self.__find_variants()
 

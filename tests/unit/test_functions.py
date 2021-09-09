@@ -167,11 +167,6 @@ def test_apply_vcf():
         77: [(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')],
         89: [(0, '-'), (68, 'x')]
     }
-    # assert g2.calls.keys() == calls.keys()
-    # for key in g2.calls.keys():
-    #     for ((n_reads1, call1), (n_reads2, call2)) in zip(g2.calls[key], calls[key]):
-    #         assert n_reads1 == n_reads2
-    #         assert numpy.all(call1 == call2)
 
     #Check for gene level changes
     gene_changes = []
@@ -232,21 +227,8 @@ def test_genome_difference():
     assert diff.snp_distance == 15
     assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z','z', 'a']))
-    # assert numpy.all(diff.codons == numpy.array(['aga', 'tcc', 'zgg', 'ttz', 'aax','']))
-    # assert numpy.all(diff.amino_acids == numpy.array(['R', 'S', 'Z', 'Z', 'X']))
     assert numpy.all(diff.indel_indices == numpy.array([32, 36, 39, 63, 72]))
     assert numpy.all(diff.indels == numpy.array(['ins_2', 'del_1', 'ins_1', 'ins_2', 'ins_1']))
-    # assert numpy.all(diff.het_indices == numpy.array([27, 77]))
-
-    # het_calls = numpy.array([
-    #     [(1, '-'), (99, 't'), (100, 'c')],
-    #     [(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')]
-    # ], dtype=object)
-    # assert check_eq(diff.het_calls, het_calls, True)
-
-    # assert numpy.all(diff.mutations == numpy.array(sorted([
-    #     'A@g-2a', 'A@S5P', 'A@Z9G', 'B@Z1G'
-    # ])))
 
     #Change the view and test all outputs
     diff.update_view("full")
@@ -267,22 +249,7 @@ def test_genome_difference():
        ['z', 'g'],
        ['a', 't']
     ]))
-    # assert numpy.all(diff.codons == numpy.array([(
-    #     ('aga', 'aaa'), ('tcc', 'ccc'), ('zgg', 'ggg'),
-    #     ('ttz', 'ttt'), ('aax', 'aaa')
-    # )]))
-    # assert numpy.all(diff.amino_acids == numpy.array([
-    #     ('R', 'K'), ('S', 'P'), ('Z', 'G'),
-    #     ('Z', 'F'), ('X', 'K')
-    # ]))
     assert check_eq(diff.indels, numpy.array([['ins_2', None], ['del_1', None], ['ins_1', None], ['ins_2', None], ['ins_1', None]], dtype=object), True)
-
-    # het_calls = numpy.array([
-    #     [[(1, '-'), (99, 't'), (100, 'c')], None],
-    #     [[(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')], None]
-    # ], dtype=object)
-    # assert check_eq(diff.het_calls, het_calls, True)
-
 
 
     #Testing the warning about inconsistent genes
@@ -302,24 +269,6 @@ def test_genome_difference():
     diff = g1.difference(g1)
     assert diff is None
 
-    #Testing cases when 2 different genomes are given. Neither are reference
-    #This is basically just for testing mutations
-    g4 = copy.deepcopy(g3)
-    g3.nucleotide_sequence[91] = 'g'
-    g3._Genome__recreate_genes()#Recreate the genes
-
-    # diff = g3.difference(g4)
-    # diff2 = g4.difference(g3)
-    # assert diff.find_mutations(g1) == ["C@A2G"]
-    # assert diff2.find_mutations(g1) == []
-    # diff.update_view("full")
-    # diff2.update_view("full")
-    # assert numpy.all(diff.find_mutations(g1) == numpy.array([
-            # ['C@A2G', None]
-        # ]))
-    # assert numpy.all(diff2.find_mutations(g1) == numpy.array([
-        # [None, "C@A2G"]
-    # ]))
 
 def test_vcf_difference():
     #Testing the VariantFile objects' difference()
@@ -376,29 +325,7 @@ def test_vcf_difference():
         28: 'g>z', 29: 'g>z',
         39: 't>a'
     }, True)
-    # assert numpy.all(diff.coverages == {
-    #     2: [(68, 'G')],
-    #     16:[(68, 'T')],
-    #     28: [(99, 'T'), (100, 'C')],
-    #     72: [(68, 'GCC')],
-    #     78: [(48, 'GTT'), (20, 'G')],
-    #     90: [(68, 'x')]
-    # })
-    # assert numpy.all(diff.het_calls == {
-    #     28: ('T', 'C'),
-    #     78: ('GTT', 'G'),
-    # })
     assert check_eq(diff.indels, {33: 'ins_2', 37: 'del_1', 40: 'ins_1', 64: 'ins_2', 73: 'ins_1'}, True)
-    # assert numpy.all(diff.codons == {
-    #     0: ('aaa', 'aga'),
-    #     5: ('ccc', 'tcc'),
-    #     9: ('ggg', 'zgg'),
-    #     25: ('ttt', 'ttz'),
-    #     29: ('aaa', 'aax')
-    # })
-    # assert numpy.all(diff.amino_acids == numpy.array([
-    #     "K0R", "P5S", "G9Z", "F25Z", 'K29X'
-    # ]))
 
     #Checking gene difference objects
     g_diff = diff.gene_differences()
@@ -427,54 +354,50 @@ def test_vcf_difference():
         numpy.array([])
     ], True)
 
-
     assert check_eq(g_diff[0].nucleotide_variants(3), {
-        'GT': (None, (None, None)),
-        'DP': (None, 4),
-        'COV': (None, (1,1,1,1)),
         'ALTS': (None, ('ggt', 'gta', 'ata')),
-        'GT_CONF': (None, 2.76),
-        'REF': (None, 'aaa')
+        'REF': (None, 'aaa'),
+        'call': (None, 'x'),
+        'type': (None, 'null')
         }, True)
     assert check_eq(g_diff[2].nucleotide_variants(1), {}, True)
     with pytest.warns(UserWarning):
         assert g_diff[0].nucleotide_variants(100) == {}
+    with pytest.warns(UserWarning):
+        assert g_diff[0].nucleotide_variants(0) == {}
+    with pytest.warns(UserWarning):
+        assert g_diff[0].nucleotide_variants(-8) == {}
     try:
         g_diff[0].nucleotide_variants(None)
         assert False, "This should have thrown an assertation error..."
     except AssertionError:
         pass
 
-
     assert check_eq(g_diff[0].amino_acid_variants(1), {
-        'GT': ([None], [(None, None)]),
-        'DP': ([None], [4]),
-        'COV': ([None], [(1,1,1,1)]),
         'ALTS': ([None], [('ggt', 'gta', 'ata')]),
-        'GT_CONF': ([None], [2.76]),
-        'REF': ([None], ['aaa'])
+        'REF': ([None], ['aaa']),
+        'call': ([None], ['x']),
+        'type': ([None], ['null'])
     }, True)
     assert check_eq(g_diff[1].amino_acid_variants(1), {
-        'GT': ([None, None], [(1, 3), (1, 3)]),
-        'DP': ([None, None], [100, 100]),
-        'COV': ([None, None], [(0, 48, 2, 50), (0, 48, 2, 50)]),
-        'GT_CONF': ([None, None], [315.11, 315.11]),
         'REF': ([None, None], ['gg', 'gg']),
         'ALTS': ([None, None], [('aa', 't', 'a'), ('aa', 't', 'a')]),
+        'call': ([None, None], ['z', 'z']),
+        'type': ([None, None], ['het', 'het'])
     }, True)
     assert check_eq(g_diff[2].amino_acid_variants(1), {}, True)
     assert check_eq(g_diff[1].amino_acid_variants(3), {}, True)
     with pytest.warns(UserWarning):
         assert g_diff[1].amino_acid_variants(-6) == {}
+    with pytest.warns(UserWarning):
+        assert g_diff[1].amino_acid_variants(0) == {}
+    with pytest.warns(UserWarning):
+        assert g_diff[1].amino_acid_variants(1824) == {}
     try:
         g_diff[0].amino_acid_variants(None)
         assert False, "This should have thrown an assertation error..."
     except AssertionError:
         pass
-
-    
-
-
 
     #Testing an edge case with 2 different indels at the same position
     g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA-2.vcf"))
