@@ -1,4 +1,7 @@
-import pysam, numpy, copy
+'''
+Classes used to parse and store VCF data
+'''
+import pysam, copy
 import pandas as pd
 from gumpy import VCFDifference
 

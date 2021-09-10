@@ -1,3 +1,6 @@
+'''
+Gene object
+'''
 import numpy
 import re
 import functools
@@ -122,10 +125,13 @@ class Gene(object):
         #Convert to gene array index
         index = int(numpy.where(self.nucleotide_number == index)[0])+1
 
-        #Update the nucelotide_numebers so they include the duplicate
+        #Update the nucelotide_numbers so they include the duplicate
         #Check for promoters before the codons
         first_half = [self.nucleotide_number[i] for i in range(index)]
-        second_half = [self.nucleotide_number[i] + 1 if self.nucleotide_number[i] > 0 else self.nucleotide_number[i] for i in range(index, len(self.nucleotide_number))]
+        second_half = [
+            self.nucleotide_number[i] + 1 if self.nucleotide_number[i] > 0 
+            else self.nucleotide_number[i] 
+            for i in range(index, len(self.nucleotide_number))]
         self.nucleotide_number = numpy.array(first_half + [self.nucleotide_number[index]] + second_half)
         #Update all 
         self.nucleotide_sequence = self.__duplicate_index(index, self.nucleotide_sequence)

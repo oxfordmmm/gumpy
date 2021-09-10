@@ -1,3 +1,6 @@
+'''
+Genome object
+'''
 import base64
 import copy
 from gumpy.variantfile import VCFRecord, VariantFile

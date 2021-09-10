@@ -1,11 +1,22 @@
+'''
+Used to find differences between Genomes and Genes, as well as the impact a VCF has on a genome.
+
+Abstract classes:
+    Difference - Abstract class providing the ability to change data views
+Classes:
+    GenomeDifference
+    GeneDifference
+    VCFDifference
+Functions:
+    convert_nucleotides_codons(numpy.array) -> numpy.array: Converts an array of nucleotides to an array of codons.
+    setup_codon_aa_dict() -> dict: Returns a dictionary mapping codon->amino_acid
+    collapse_inner_dict(dict) -> dict: Converts a dictionary with an inner dictionary to a single dictionary. Key collisions are not considered
+                                        intentionally as this should not be an issue with this use case
+'''
 import numpy
 import warnings
 from collections import defaultdict
 from abc import ABC #Python library for abstract classes
-
-'''
-Classes for difference objects
-'''
 
 class Difference(ABC):
     '''Abstract class used to provide the ability to switch between views. Inherited by GenomeDifference and GeneDifference.
