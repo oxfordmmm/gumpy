@@ -234,6 +234,32 @@ def test_genome_difference():
         assert check_eq(diff.variants(-3), {}, True)
     with pytest.warns(UserWarning):
         assert check_eq(diff.variants(241), {}, True)
+    check = True
+    try:
+        diff.variants(None)
+        check = False #Reached if code does not assert False
+    except AssertionError:
+        pass
+    finally:
+        if not check:
+            assert False, "Code did not throw AssertationError"    
+    try:
+        diff.variants("3")
+        check = False #Reached if code does not assert False
+    except AssertionError:
+        pass
+    finally:
+        if not check:
+            assert False, "Code did not throw AssertationError"
+    try:
+        diff.variants([5])
+        check = False #Reached if code does not assert False
+    except AssertionError:
+        pass
+    finally:
+        if not check:
+            assert False, "Code did not throw AssertationError"
+    
     full_variants = {
         'GT': numpy.array([(i,None) for i in [
             (None, None), (None, None), (None, None), (None, None), (1, 1), (2, 2), (1, 1), (1, 1), (1, 2), (0, 2), (1, 2),
@@ -369,21 +395,26 @@ def test_vcf_difference():
         assert check_eq(diff.variants_by_index(0), {}, True)
     with pytest.warns(UserWarning):
         assert check_eq(diff.variants_by_index(912), {}, True)
+    with pytest.warns(UserWarning):
+        assert check_eq(diff.variants_by_index(-10), {}, True)
+    check = True
     try:
         diff.variants_by_index(None)
-        assert False, "AssertationError expected"
+        check = False
     except AssertionError:
         pass
-    try:
-        diff.variants_by_index(-10)
-        assert False, "AssertationError expected"
-    except AssertionError:
-        pass    
+    finally:
+        if not check:
+            assert False, "Code did not throw expected AssertationError"
+
     try:
         diff.variants_by_index([1])
-        assert False, "AssertationError expected"
+        check = False
     except AssertionError:
         pass
+    finally:
+        if not check:
+            assert False, "Code did not throw expected AssertationError"    
     assert check_eq(diff.variants_by_index(1), {}, True)
     #Check all indices
     for (idx, genome_index) in enumerate(diff.indices.tolist()):
@@ -442,11 +473,15 @@ def test_vcf_difference():
         assert g_diff[0].nucleotide_variants(0) == {}
     with pytest.warns(UserWarning):
         assert g_diff[0].nucleotide_variants(-8) == {}
+    check = True
     try:
         g_diff[0].nucleotide_variants(None)
-        assert False, "This should have thrown an assertation error..."
+        check = False
     except AssertionError:
         pass
+    finally:
+        if not check:
+            assert False, "Code did not throw expected AssertationError"    
 
     assert check_eq(g_diff[0].amino_acid_variants(1), {
         'ALTS': ([None], [('ggt', 'gta', 'ata')]),
@@ -468,11 +503,15 @@ def test_vcf_difference():
         assert g_diff[1].amino_acid_variants(0) == {}
     with pytest.warns(UserWarning):
         assert g_diff[1].amino_acid_variants(1824) == {}
+    check = True
     try:
         g_diff[0].amino_acid_variants(None)
-        assert False, "This should have thrown an assertation error..."
+        check = False
     except AssertionError:
         pass
+    finally:
+        if not check:
+            assert False, "Code did not throw expected AssertationError"    
 
     #Testing an edge case with 2 different indels at the same position
     g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA-2.vcf"))
@@ -542,11 +581,15 @@ def test_valid_varaint():
     assert not gene.valid_variant("20_del_100")
 
     def assert_throws(mutation):
+        check = True
         try:
             gene.valid_variant(mutation)
-            assert False
+            check = False
         except AssertionError:
-            assert True
+            pass
+        finally:
+            if not check:
+                assert False, "Code did not throw expected AssertationError"    
 
     assert_throws(None)
     assert_throws(0)
