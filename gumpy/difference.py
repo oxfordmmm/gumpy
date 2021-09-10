@@ -189,7 +189,7 @@ class GenomeDifference(Difference):
         '''Finds the positions at which there are indels in either genome. Use genome.indels.get(item) for safe retrieval of indels
 
         Returns:
-            numpy.array: Array of array indices where there are indels in either genome
+            numpy.array: Array of genome indices where there are indels in either genome
         '''
         if self.genome1.indels is None:
             indices1 = set()
@@ -201,7 +201,7 @@ class GenomeDifference(Difference):
         else:
             indices2 = set(self.genome2.indels.keys())
 
-        return numpy.array(sorted(list(indices1.union(indices2))))
+        return numpy.array(sorted([i+1 for i in indices1.union(indices2)]))
 
     def __indels(self):
         '''Find the indels for both genomes and report where they are different
@@ -262,6 +262,39 @@ class GenomeDifference(Difference):
         else:
             genes = self.genome1.genes.keys()
         return numpy.array([GeneDifference(self.genome1.genes[gene], self.genome2.genes[gene]) for gene in genes])
+    
+    def variants(self, index):        
+        '''Get the VCF fields such as COV and GT at a given genome index
+
+        Args:
+            index (int): Genome index to find the variance at.
+
+        Returns:
+            dict: Dictionary mapping vcf_field->(genome1_val, genome2_val)
+        '''
+        assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
+        if (index not in range(min(self.genome1.nucleotide_index),max(self.genome1.nucleotide_index)+1) 
+            or index not in range(min(self.genome2.nucleotide_index),max(self.genome2.nucleotide_index)+1) 
+            or index == 0):
+            warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.genome1.nucleotide_index)},{max(self.genome1.nucleotide_index)}).", UserWarning)
+            return {}
+        variants = {}
+        if self.genome1.variant_file:
+            d1 = collapse_inner_dict(self.genome1.variant_file.variants.get(index, {}))
+        else:
+            warnings.warn(f"There is no variants for genome1 {self.genome1.name}", UserWarning)
+            d1 = {}
+        if self.genome2.variant_file:
+            d2 = collapse_inner_dict(self.genome2.variant_file.variants.get(index, {}))
+        else:
+            warnings.warn(f"There is no variants for genome2 {self.genome2.name}", UserWarning)
+            d2 = {}
+        for field in set(d1.keys()).union(set(d2.keys())):
+            #Pull out the values if they exist
+            genome1_val = d1.get(field, None)
+            genome2_val = d2.get(field, None)
+            variants[field] = (genome1_val, genome2_val)
+        return variants
 
 
 class VCFDifference(object):
@@ -370,6 +403,23 @@ class VCFDifference(object):
         '''
         indels = dict(zip(self.indices[self.is_indel], self.calls[self.is_indel]))
         return indels
+    
+    def variants_by_index(self, index):
+        '''Get original vcf row from the variants by genome index
+
+        Args:
+            index (int): Genome index to find variants at
+
+        Returns:
+            dict: Dictionary mapping field->value
+        '''        
+        assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index must be an integer!"
+        if index not in range(min(self.genome.nucleotide_index), max(self.genome.nucleotide_index)+1) or index <= 0:
+            #If the index is out of range, don't crash, just give a warning
+            warnings.warn("Index out of range of nucleotide numbers for this genome!", UserWarning)
+        #Pull out the original vcf row if it exists
+        variants = self.vcf.variants.get(index, {}).get("original_vcf_row", {})
+        return variants
 
 
     def gene_differences(self):
@@ -497,26 +547,8 @@ class GeneDifference(Difference):
                 aa_diff.append((aa1, aa2))
         return numpy.array(aa_diff)
     
-    def __collapse_inner_dict(self, dict_):
-        '''Takes a dict which also contains 1 or more internal dictionaries
-        Converts to a single 1D dictionary, ignoring key clashes
-
-        Args:
-            dict_ (dict): Dictionary to collapse
-        Returns:
-            dict: Collapsed dict
-        '''        
-        fixed = {}
-        for key in dict_.keys():
-            if isinstance(dict_[key], dict):
-                #Dict so unpack
-                fixed = {**fixed, **dict_[key]}
-            else:
-                fixed[key] = dict_[key]
-        return fixed
-    
     def nucleotide_variants(self, index):
-        '''Get the VCF fields such as COV and GT at a given nucleotide index
+        '''Get the VCF fields such as call and type at a given nucleotide index
 
         Args:
             index (int): Gene index to find the variance at.
@@ -524,7 +556,7 @@ class GeneDifference(Difference):
         Returns:
             dict: Dictionary mapping vcf_field->(gene1_val, gene2_val)
         '''
-        assert type(index) == int, "Index given should be an integer."
+        assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
         if (index not in range(min(self.gene1.nucleotide_number),max(self.gene1.nucleotide_number)+1) 
             or index not in range(min(self.gene2.nucleotide_number),max(self.gene2.nucleotide_number)+1) 
             or index == 0):
@@ -534,8 +566,8 @@ class GeneDifference(Difference):
         index1 = self.gene1.index[self.gene1.nucleotide_number == index].tolist()[0]
         index2 = self.gene2.index[self.gene2.nucleotide_number == index].tolist()[0]
         variants = {}
-        d1 = self.__collapse_inner_dict(self.gene1.variants.get(index1, {}))
-        d2 = self.__collapse_inner_dict(self.gene2.variants.get(index2, {}))
+        d1 = collapse_inner_dict(self.gene1.variants.get(index1, {}))
+        d2 = collapse_inner_dict(self.gene2.variants.get(index2, {}))
         for field in set(d1.keys()).union(set(d2.keys())):
             #Pull out the values if they exist
             if field in ["call", 'REF', 'ALTS', 'type']:
@@ -555,7 +587,7 @@ class GeneDifference(Difference):
             dict: Dictionary mapping vcf_field->((gene1_val1, ...), (gene2_val1, ...)) with up to 3 values per gene
                     according to the possible 3 variants due to 3 nucleotides per amino acid
         '''
-        assert type(index) == int, "Index given should be an integer."
+        assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
         if not self.gene1.codes_protein:
             warnings.warn("These genes do not code a protein so there are no amino acids...", UserWarning)
             return {}
@@ -572,8 +604,8 @@ class GeneDifference(Difference):
         variants1 = defaultdict(list)
         variants2 = defaultdict(list)
         for i in indices:
-            d1 = self.__collapse_inner_dict(self.gene1.variants.get(i, {}))
-            d2 = self.__collapse_inner_dict(self.gene2.variants.get(i, {}))
+            d1 = collapse_inner_dict(self.gene1.variants.get(i, {}))
+            d2 = collapse_inner_dict(self.gene2.variants.get(i, {}))
             for field in set(d1.keys()).union(set(d2.keys())):
                 #Pull out the values if they exist
                 if field in ["call", 'REF', 'ALTS', 'type']:
@@ -622,3 +654,21 @@ def setup_codon_aa_dict():
     aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXXZZZZXZOOOOOXOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXXZZZZXZOOOOOXOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXXZZZZXZOOOOOXOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXXZZZZXZOOOOOXOOXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXXZZZZXZOOOOOXOOOOOOXOOOOOOXOOOOOOXOOOOOOXOOXXXXXXXOOOOXOOOOOOXOO'
     all_codons = [a+b+c for a in bases for b in bases for c in bases]
     return dict(zip(all_codons, aminoacids))
+
+def collapse_inner_dict(dict_):
+    '''Takes a dict which also contains 1 or more internal dictionaries
+    Converts to a single 1D dictionary, ignoring key clashes
+
+    Args:
+        dict_ (dict): Dictionary to collapse
+    Returns:
+        dict: Collapsed dict
+    '''        
+    fixed = {}
+    for key in dict_.keys():
+        if isinstance(dict_[key], dict):
+            #Dict so unpack
+            fixed = {**fixed, **dict_[key]}
+        else:
+            fixed[key] = dict_[key]
+    return fixed

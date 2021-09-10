@@ -192,7 +192,7 @@ def check_eq(arr1, arr2, check):
     Returns:
         bool: True when the two arrays are equal
     '''
-    if type(arr1) != type(arr2) or check == False:
+    if not check:
         return False
     if type(arr1) == dict:
         if arr1.keys() != arr2.keys():
@@ -227,8 +227,59 @@ def test_genome_difference():
     assert diff.snp_distance == 15
     assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z','z', 'a']))
-    assert numpy.all(diff.indel_indices == numpy.array([32, 36, 39, 63, 72]))
+    assert numpy.all(diff.indel_indices == numpy.array([33, 37, 40, 64, 73]))
     assert numpy.all(diff.indels == numpy.array(['ins_2', 'del_1', 'ins_1', 'ins_2', 'ins_1']))
+
+    with pytest.warns(UserWarning):
+        assert check_eq(diff.variants(-3), {}, True)
+    with pytest.warns(UserWarning):
+        assert check_eq(diff.variants(241), {}, True)
+    full_variants = {
+        'GT': numpy.array([(i,None) for i in [
+            (None, None), (None, None), (None, None), (None, None), (1, 1), (2, 2), (1, 1), (1, 1), (1, 2), (0, 2), (1, 2),
+            (1, 2), (1, 3), (1, 3), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1)
+        ]]),
+        'DP': numpy.array([(i,None) for i in [
+            2, 4, 4, 4, 50, 45, 70, 70, 202, 202, 100, 100, 100, 100, 200, 200, 200, 200, 200, 200
+        ]]),
+        'COV': numpy.array([(i,None) for i in [
+            (1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (0, 50), (0, 2, 43), (0, 68, 8), (0, 68, 8), (1, 99, 100, 2),
+            (99, 1, 100, 2), (0, 48, 50, 2), (0, 48, 50, 2), (0, 48, 2, 50), (0, 48, 2, 50), (1, 199), (1, 199), (1, 199), (1, 199), (1, 199),
+            (1, 198, 1)
+        ]]),
+        'GT_CONF': numpy.array([(i,None) for i in [
+            2.05, 2.76, 2.76, 2.76, 200.58, 155.58, 300.25, 300.25, 613.77, 613.77, 475.54, 475.54, 315.11, 315.11, 145.21, 145.21, 145.21,
+            145.21, 145.21, 145.21
+        ]]),
+        'REF': numpy.array([(i,None) for i in [
+            'a', 'aaa', 'aaa', 'aaa', 'c', 'c', 'ccc', 'ccc', 'g', 'g', 'gg', 'gg', 'gg', 'gg', 't', 'tt', 'tc', 'tc', 'gg', 't'
+        ]]),
+        'ALTS': numpy.array([(i,None) for i in [
+            ('g',), ('ggt', 'gta', 'ata'), ('ggt', 'gta', 'ata'), ('ggt', 'gta', 'ata'), ('t',), ('t', 'g'),
+            ('tgc', 'gtg'), ('tgc', 'gtg'), ('t', 'c', 'a'), ('t', 'c', 'a'), ('aa', 'ct', 'at'), ('aa', 'ct', 'at'), ('aa', 't', 'a'),
+            ('aa', 't', 'a'), ('ttt',), ('t',), ('tag',), ('tag',), ('cagg',), ('ta', 'at')
+        ]]),
+        'call': numpy.array(
+            [(i, None) 
+            for i in 
+                ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 
+                    ('ins', 2), ('del', 1), 'a', ('ins', 1), ('ins', 2), ('ins', 1)
+                ]
+            ]),
+        'type': numpy.array(
+            [
+                (i, None) 
+                for i in [
+                    'null', 'null', 'null', 'null', 'snp', 'snp', 'snp', 'snp', 
+                    'het', 'het', 'het', 'het', 'het', 'het', 'indel', 'indel', 'snp', 'indel', 'indel', 'indel'
+                ]
+            ]),
+        'pos': numpy.array([(i, None) for i in [0, 0, 1, 2, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, -1, 0]]),
+        'ref': numpy.array([(i, None) for i in ['a', 'a', 'a', 'a', 'c', 'c', 'c', 'c', 'g', 'g', 'g', 'g', 'g', 'g', 't', 't', 'c', 't', 'g', 't']])
+    }
+    all_indices = [2, 6, 7, 8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 40, 64, 73]
+    for (idx, genome_index) in enumerate(all_indices):
+        assert check_eq(diff.variants(genome_index), {field: full_variants[field][idx] for field in full_variants.keys()}, True)
 
     #Change the view and test all outputs
     diff.update_view("full")
@@ -313,6 +364,30 @@ def test_vcf_difference():
         ]),
     }
     assert check_eq(diff.variants, full_variants, True)
+
+    with pytest.warns(UserWarning):
+        assert check_eq(diff.variants_by_index(0), {}, True)
+    with pytest.warns(UserWarning):
+        assert check_eq(diff.variants_by_index(912), {}, True)
+    try:
+        diff.variants_by_index(None)
+        assert False, "AssertationError expected"
+    except AssertionError:
+        pass
+    try:
+        diff.variants_by_index(-10)
+        assert False, "AssertationError expected"
+    except AssertionError:
+        pass    
+    try:
+        diff.variants_by_index([1])
+        assert False, "AssertationError expected"
+    except AssertionError:
+        pass
+    assert check_eq(diff.variants_by_index(1), {}, True)
+    #Check all indices
+    for (idx, genome_index) in enumerate(diff.indices.tolist()):
+        assert check_eq(diff.variants_by_index(genome_index), {field: full_variants[field][idx] for field in full_variants.keys()}, True)
 
     assert diff.snp_distance == 15
     assert check_eq(diff.snps, {
