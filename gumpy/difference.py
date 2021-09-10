@@ -12,7 +12,8 @@ class Difference(ABC):
     This should not be instantiated.
     '''
     def __init__(self):
-        #If this class is instantiated, crash
+        '''If this class is instantiated, crash
+        '''        
         assert False, "This class should not be instantiated!"
     def update_view(self, method):
         '''Update the viewing method. Can either be `diff` or `full`:
@@ -111,24 +112,20 @@ class GenomeDifference(Difference):
                     This is the default view.
             `full`: Arrays of tuples consisting of (genome1_val, genome2_val) - more information but less like classical subtraction
                     and more difficult to wrangle meaningful information from.
-        This option can be set by using the `update_view()` method
+        This option can be set by using the update_view() method
 
         Instance variables:
-            `snp` (int): SNP distance between the two genomes
-            `indices` (numpy.array): Array of genome indices where the two genomes differ in nucleotides
-            `nucleotides` (numpy.array): Array of differences in nucleotides. Exact format depends on which view is selected.
-            `codons` (numpy.array): Array of differences in codons. Exact format depends on which view is selected.
-            `amino_acids` (numpy.array): Array of differences in amino acids. Exact format depends on which view is selected.
-            `indel_indices` (numpy.array): Array of indices where the two genomes have indels
-            `indels` (numpy.array): Array of differences in inels. Exact format depends on which view is selected.
-            `het_indices` (numpy.array): Array of indices where there are het calls in either genome
-            `het_calls` (numpy.array): Array of het_calls at `het_indices`. Exact format depends on which view is selected.
-            `mutations` (numpy.array): Array of mutations within genes of a mutant genome given one of the genomes is a reference genome.
-            `genome1_mutations` (numpy.array): Array of mutations within genes of genome1 compared to a reference. Only set once `find_mutations()` has been called
-            `genome2_mutations` (numpy.array): Array of mutations within genes of genome2 compared to a reference. Only set once `find_mutations()` has been called
-        Methods:
-            `update_view(method: str) -> None`: Used to change the viewing method for instance variables. `method` values are either `diff` or `full`
-            `find_mutations(reference: gumpy.Genome) -> numpy.array`: Used to find the mutations within the genes of the geomes when neither are reference genomes. Exact format depends on which view is selected.
+            snp_distance (int): SNP distance between the two genomes
+            indices (numpy.array): Array of genome indices where the two genomes differ in nucleotides
+            nucleotides (numpy.array): Array of differences in nucleotides. Format depends on the current view.
+            indel_indices (numpy.array): Array of indices where the two genomes have indels
+            indels (numpy.array): Array of differences in inels. Format depends on the current view.
+        Functions:
+            variants(int) -> dict: Takes a genome index and returns a dictionary mapping field->(genome1_val, genome2_val) for all fields
+                                    of a vcf file (if applicable)
+            gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects
+        Inherited functions:
+            update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
     def __init__(self, genome1, genome2):
         '''Constructor for the GenomeDifference object. Called implictly when `genome1.difference(genome2)` is performed.
@@ -302,6 +299,23 @@ class VCFDifference(object):
     This includes differences within codons/amino acids, coverages and mutations.
     Reports the values of indel calls which differ in length from any indels within the genome.
     Whenever an index is given within an array/dict, it refers to the genome index (i.e 1 indexed)
+
+    Instance variables:
+        genome (gumpy.Genome): Reference genome object
+        vcf (gumpy.VariantFile): VCF object
+        indices (numpy.array): Numpy array of genome indices which are affected by the VCF
+        calls (numpy.array): Array of calls which corresponds to `indices`, i.e indices[3] <-> calls[3]
+        is_snp (numpy.array): Array to act as a mask for `indices` to show which are SNPs
+        is_het (numpy.array): Array to act as a mask for `indices` to show which are heterozygous calls
+        is_null (numpy.array): Array to act as a mask for `indices` to show which are null calls
+        is_indel (numpy.array): Array to act as a mask for `indices` to show which are indel calls
+        variants (dict): Dictionary mapping field->numpy.array for items within the original VCF row, where the array corresponds to `indices`.
+        snps (dict): Dictionary mapping genome_index->SNP where SNPs are given in GARC, i.e ref>call
+        snp_distance (int): SNP distance caused by the VCF
+        indels (dict): Dictionary mapping genome_index->indel where indels are given in GARC, e.g. `del_2`
+    Functions:
+        variants_by_index(int) -> dict: Takes a genome index and returns values of the original VCF row for this index (if exists)
+        gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects corresponding to each gene in the genome
     '''
     def __init__(self, vcf, genome):
         '''VCF difference object constructor.
@@ -440,9 +454,28 @@ class VCFDifference(object):
 
 
 class GeneDifference(Difference):
-    '''Object to store the differences within genes. The same view system is inherited from the Difference class.
+    '''Object to store the differences within genes. The view system is inherited from the Difference class.
     Set to `full` for arrays of tuple values where applicable.
     Set to `diff` for arrays of values from gene1 where the values vary. Default.
+    This can be updated using the update_view function.
+
+    Instance variables:
+        gene1 (gumpy.Gene): Gene object 1
+        gene2 (gumpy.Gene): Gene object 2
+        nucleotides (numpy.array): Array of the nucleotides at which the genes differ. Format depends on the current view.
+        mutations (numpy.array): Array of mutations in GARC between the two Gene objects.
+        indel_indices (numpy.array): Array of nucleotide numbers where the indel lengths in the two genes differ.
+        indels (numpy.array): Array of indel lengths where the indel lengths differ. Format depends on the current view.
+        codons (numpy.array): Array of codons where the two Gene objects have different codons. Format depends on the current view.
+        amino_acids (numpy.array): Array of amino acids where the two Gene objects have different amino acids. Format depends on the current view.
+    Functions:
+        amino_acid_variants(int) -> dict: Takes an amino acid index and returns a dictionary containing data from a vcf 
+                                            file (if applicable) for attributes such as calls, ref, and alt for all nucleotides
+                                            within the codons for this amino acid index. If these genes do not code protien, returns {}
+        nucleotide_variants(int) -> dict: Takes a nucleotide index and returns a dictionary containing data from a vcf
+                                            file (if applicable) for attributes such as calls, ref, and alt at the given index
+    Inherited functions:
+        update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
     def __init__(self, gene1, gene2):
         '''Constructor. Takes in two gene objects and calculates the difference in a few areas such as nucleotides, codons, and amino acids.
