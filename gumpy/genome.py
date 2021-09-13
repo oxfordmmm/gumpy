@@ -222,7 +222,7 @@ class Genome(object):
 
     def __len__(self):
         '''
-        Adding len functionality - len(genome) will now return length of the genome
+        Adding len functionality - len(genome) returns the length of the genome
         Returns:
             int : Length of the genome
         '''
@@ -283,7 +283,7 @@ class Genome(object):
 
     def save(self, filename, compression_level=None):
         '''Experimental way to save the entire object (and Gene objects) based on
-            json and base64 encoding rather than relying on pickles
+            json and base64 encoding rather than relying on pickles (due to security implications of pickle)
             Based on numpy serialisation detailed here by daniel451:
                 https://stackoverflow.com/questions/30698004/how-can-i-serialize-a-numpy-array-while-preserving-matrix-dimensions
             This is definitely space inefficient (~1.7GB for a TB genome) but faster than re-instanciation. Using compression, this can be reduced to <100MB
@@ -779,8 +779,7 @@ class Genome(object):
                         new_start_end[gene_name]["start"] = start - 1
             start_end = new_start_end
 
-    @staticmethod
-    def __insert_newlines(string: str, every=70):
+    def __insert_newlines(self, string: str, every=70):
         '''
         Simple private method for inserting a carriage return every N characters into a long string.
 
