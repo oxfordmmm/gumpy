@@ -260,7 +260,7 @@ class VariantFile(object):
                         self.calls[index+counter]=metadata
 
             else:
-                mutations = self.indel(index, record.ref, variant)
+                mutations = self.indel( record.ref, variant)
                 for (p, type_, bases) in mutations:
                     # p = max(p - 1, 0)
                     if type_ in ["ins", "del"]:
@@ -291,12 +291,11 @@ class VariantFile(object):
                         metadata['original_vcf_row'] = vcf_info
                         self.calls[index+p] = metadata
 
-    def indel(self, pos, ref, alt):
+    def indel(self, ref, alt):
         '''Find where in the sequence the indel was, and the values.
         Based on finding the indel position at which there is the least SNPs
 
         Args:
-            pos (int): Genome index of the first base in the sequence
             ref (str): Reference bases. Should match reference bases at this point
             alt (str): Alt bases.
         Returns:
@@ -359,7 +358,7 @@ class VariantFile(object):
                 if indel == "ins":
                     mutations.append((i-1, "snp", (b, a)))
                 else:
-                    mutations.append((i-1, "snp", (a, b)))
+                    mutations.append((i, "snp", (a, b)))
         return mutations
 
 

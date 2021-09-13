@@ -701,3 +701,17 @@ def test_vcf_to_df():
     data.attrs = {}
     df.attrs = {}
     assert df.equals(data)
+
+def test_indels():
+    #Tests the VariantFile.indel()
+
+    #Not a static function, so a VariantFile must be instanciated
+    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    assert sorted(vcf.indel("ga", "c")) == sorted([(0, "snp", ("g", "c")), (1, "del", "a")])
+    assert vcf.indel("aaa", "a") == [(1, "del", "aa")]
+    assert sorted(vcf.indel("acgtaa", "cgt")) == sorted(
+                                                        [
+                                                            (0, "snp", ("a", "c")), (1, "snp", ("c", "g")),
+                                                            (2, "snp", ("g", "t")), (3, "del", "taa")
+                                                        ])
+    assert sorted(vcf.indel("a", "gga")) == [(-1, "ins", "gg")]

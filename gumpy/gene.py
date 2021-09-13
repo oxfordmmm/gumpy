@@ -688,13 +688,7 @@ class Gene(object):
                 valid = valid and (bases is None or bases == "")
             if type_ == "del" and bases is not None and bases != "":
                 #Mutation was del, so check if the bases given match the ref
-                is_length = False
-                try:
-                    int(bases)
-                    is_length = True
-                except:
-                    pass
-                if is_length:
+                if bases.isnumeric():
                     #A length was given rather than bases so just check that all bases are in the correct range
                     valid = valid and int(pos) + int(bases) in self.nucleotide_number
                 else:
