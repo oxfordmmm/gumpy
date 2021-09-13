@@ -66,10 +66,9 @@ vcf = VariantFile("filename.vcf")
 resultant_genome = reference_genome.apply_variant_file(vcf)
 ```
 
-### Comparisons
+### Genome level comparisons
 There are two different methods for comparing changes. One can quickly check for changes which are caused by a given VCF file. The other can check for changes between two genome. The latter is therefore suited best for comparisons in which either both genomes are mutated, or the VCF file(s) are not available. The former is best suited for cases where changes caused by a VCF want to be determined, but finding gene-level differences will require rebuilding the Gene objects, which can be time consuming.
 
-Both methods can be used to find gene level differences, found by calling the `gene_differences()` function on the difference object.
 #### Compare genomes
 Two genomes of the same length can be easily compared, including equality and changes between the two.
 Best suited to cases where two mutated genomes are to be compared.
@@ -96,6 +95,7 @@ diff = vcf.difference(genome) #Returns a VCFDifference object
 diff.variants.get('COV') #List of the coverages of all calls
 diff.snps #Dictionary mapping genome_index->snp_call
 
+#Getting gene level differences
 genes_diff = diff.gene_differences() #Array of GeneDifference objects
 [g_diff.codons for g_diff in genes_diff] #List of the codon changes made within each gene (if the changes are within codons)
 [g_diff.amino_acids for g_diff in genes_diff] #List of the amino acid changes within each gene (if coding for amino acids)
@@ -103,9 +103,10 @@ genes_diff = diff.gene_differences() #Array of GeneDifference objects
 [g_diff.indels for g_diff in genes_diff] #List of the indel lengths where the indels differ between the VCF and the genome
 ```
 
-### Compare genes within genomes
+### Gene level comparisons
 When a Genome object is instanciated, it is populated with Gene objects for each gene detailed in the genbank file.
 These genes can also be compared.
+Gene differences can be found through direct comparison of Gene objects, or systematically through the `gene_differences()` method of both `GenomeDifference` and `VCFDifference`.
 ```
 from gumpy import Genome, Gene
 
