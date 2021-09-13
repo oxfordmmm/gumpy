@@ -45,15 +45,6 @@ from gumpy import Genome
 g = Genome("filename.gbk", multithreaded=True)
 ```
 
-#### Setting a genome as a reference genome
-When comparing two Genomes, it is helpful to know if a Genome is a reference genome.
-This allows ease of finding mutations. To do this, use the `is_reference` flag when instanciating a Genome.
-```
-from gumpy import Genome
-
-g = Genome("filename.gbk", is_reference=True)
-```
-
 ### Parse a VCF file
 VariantFile objects can be created by passing a filename of a vcf file
 ```
@@ -75,24 +66,27 @@ vcf = VariantFile("filename.vcf")
 resultant_genome = reference_genome.apply_variant_file(vcf)
 ```
 
-### Compare genomes
+### Comparisons
+There are two different methods for comparing changes. One can quickly check for changes which are caused by a given VCF file. The other can check for changes between two genome. The latter is therefore suited best for comparisons in which either both genomes are mutated, or the VCF file(s) are not available. The former is best suited for cases where changes caused by a VCF want to be determined, but finding gene-level differences will require rebuilding the Gene objects, which can be time consuming.
+
+Both methods can be used to find gene level differences, found by calling the `gene_differences()` function on the difference object.
+#### Compare genomes
 Two genomes of the same length can be easily compared, including equality and changes between the two.
+Best suited to cases where two mutated genomes are to be compared.
 ```
 from gumpy import Genome, GenomeDifference
 
-g1 = Genome("filename1.gbk", is_reference=True) #A reference genome
-g2 = g1.apply_variant_file(VariantFile("filename2.vcf")) #A genome which has been altered by a VCF
+g1 = Genome("filename1.gbk")
+g2 = Genome("filename2.gbk")
 
-g1 == g2 #Equality check
-
-diff = g2 - g1 #Subtraction returns a GenomeDifference object
+diff = g2.difference(g1) #Genome.difference returns a GenomeDifference object
 print(diff.snp_distance) #SNP distance between the two genomes
 print(diff.nucleotides) #Array of nucleotides in g2 which are different in g1
 print(diff.indels) #Array of indels in g2 where there are indels in either g1 or g2
 ```
-### Compare VCF file
+#### Compare VCF file
 There is functionality to find the impact which a given VCF file has on a given genome.
-This includes changes in codons, amino acids as well as genes
+This includes changes in codons, amino acids as well as genes (although gene differences are computationally expensive)
 ```
 from gumpy import VariantFile, VCFDifference, GeneDifference, Genome
 vcf = VariantFile("filename.vcf")
