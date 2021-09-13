@@ -85,7 +85,6 @@ class Genome(object):
         self.indels = None
         self.variants = None
         self.original = None
-        self.calls = None
         self.variant_file = None
 
         if self.verbose:

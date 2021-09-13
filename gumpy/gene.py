@@ -233,14 +233,6 @@ class Gene(object):
         number_codons=int(numpy.sum(self.is_cds)/3)
 
         stacked_codons=cds_sequence.reshape((number_codons,3))
-        #Variable to map amino acid numbers onto the coding sequence as a mask
-        self.coding_aa_number = numpy.array(
-                                            functools.reduce(
-                                                lambda x, y: x+y,
-                                                [[i+1 for x in range(len(seq))] for (i, seq) in enumerate(stacked_codons)],
-                                                []
-                                            )
-                                )
 
         codons=numpy.char.add(stacked_codons[:,0],stacked_codons[:,1])
         self.codons=numpy.char.add(codons,stacked_codons[:,2])

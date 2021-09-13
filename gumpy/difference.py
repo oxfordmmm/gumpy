@@ -649,8 +649,8 @@ class GeneDifference(Difference):
             return {}
         #Convert amino acid index to genome index for use as Gene.variants key
         #This should produce 3 indices
-        index1 = set(self.gene1.index[self.gene1.is_cds][self.gene1.coding_aa_number == index])
-        index2 = set(self.gene2.index[self.gene2.is_cds][self.gene2.coding_aa_number == index])
+        index1 = set(self.gene1.index[self.gene1.is_cds][self.gene1.triplet_number == index])
+        index2 = set(self.gene2.index[self.gene2.is_cds][self.gene2.triplet_number == index])
         indices = index1.union(index2)
 
         #Use dicts mapping field->values as an intermediary step
