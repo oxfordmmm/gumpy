@@ -28,9 +28,9 @@ class Gene(object):
         '''
         #Set the kwargs
         #UPDATE THIS AS REQUIRED
-        allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter', 
-                        'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type', 
-                        'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number', 
+        allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter',
+                        'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type',
+                        'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number',
                         'codons', 'amino_acid_sequence', 'ribosomal_shifts', 'variants']
         #If reloading a Gene, just set the attributes and return
         if "reloading" in kwargs.keys():
@@ -44,7 +44,7 @@ class Gene(object):
                 setattr(self, key, None)
 
             return
-        
+
         #Set default values based on kwargs
         name = kwargs.get("name")
         nucleotide_sequence = kwargs.get("nucleotide_sequence")
@@ -105,17 +105,22 @@ class Gene(object):
             self.indel_length=self.indel_length[::-1]
             if self.codes_protein:
                 self.triplet_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
-
+                self.gene_position=numpy.concatenate((self.nucleotide_number[self.nucleotide_number<0], self.triplet_number))
+            else:
+                self.gene_position=self.nucleotide_number
         else:
             if self.codes_protein:
                 self.triplet_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
+                self.gene_position=numpy.concatenate((self.nucleotide_number[self.nucleotide_number<0], self.triplet_number))
+            else:
+                self.gene_position=self.nucleotide_number
 
         self.total_number_nucleotides=len(nucleotide_sequence)
 
         if self.codes_protein:
             self._setup_conversion_dicts()
             self._translate_sequence()
-    
+
     def __duplicate(self, index):
         '''Duplicate all indcides of important arrays to add the ribosomal shift
 
@@ -129,11 +134,11 @@ class Gene(object):
         #Check for promoters before the codons
         first_half = [self.nucleotide_number[i] for i in range(index)]
         second_half = [
-            self.nucleotide_number[i] + 1 if self.nucleotide_number[i] > 0 
-            else self.nucleotide_number[i] 
+            self.nucleotide_number[i] + 1 if self.nucleotide_number[i] > 0
+            else self.nucleotide_number[i]
             for i in range(index, len(self.nucleotide_number))]
         self.nucleotide_number = numpy.array(first_half + [self.nucleotide_number[index]] + second_half)
-        #Update all 
+        #Update all
         self.nucleotide_sequence = self.__duplicate_index(index, self.nucleotide_sequence)
         self.index = self.__duplicate_index(index, self.index)
         self.is_cds = self.__duplicate_index(index, self.is_cds)
@@ -141,7 +146,7 @@ class Gene(object):
         self.is_indel = self.__duplicate_index(index, self.is_indel)
         self.indel_length = self.__duplicate_index(index, self.indel_length)
 
-        
+
 
     def __duplicate_index(self, index, array):
         '''Duplicates an element at a given index and returns the new array
@@ -231,8 +236,8 @@ class Gene(object):
         #Variable to map amino acid numbers onto the coding sequence as a mask
         self.coding_aa_number = numpy.array(
                                             functools.reduce(
-                                                lambda x, y: x+y, 
-                                                [[i+1 for x in range(len(seq))] for (i, seq) in enumerate(stacked_codons)], 
+                                                lambda x, y: x+y,
+                                                [[i+1 for x in range(len(seq))] for (i, seq) in enumerate(stacked_codons)],
                                                 []
                                             )
                                 )
@@ -556,7 +561,7 @@ class Gene(object):
         """
         Overload the subtraction operator so it returns a tuple of the differences between the two genes.
         Differences are given in the form of an array of gene indices where the two Genes differ.
-        
+
         Args:
             other (gumpy.Gene): Other gene object
         Raises:
@@ -582,7 +587,7 @@ class Gene(object):
             return None
 
         return(numpy.array(positions))
-    
+
     def difference(self, other):
         '''Return a more detailed difference between two genes. The Gene objects should be referring to the same
             gene (same name and protein coding), but must have the same length.
@@ -591,7 +596,7 @@ class Gene(object):
             other (gumpy.Gene): Other Gene object
         Returns:
             gumpy.GeneDifference: The GeneDifference object to detail changes at all levels such as indel and amino acid.
-        '''        
+        '''
         return GeneDifference(self, other)
 
 
@@ -602,7 +607,7 @@ class Gene(object):
             variant (str): String of a mutation in GARC
         Returns:
             bool: True when variant is valid, False otherwise
-        '''        
+        '''
         assert variant is not None, "No Variant given!"
         assert type(variant) == str
         assert len(variant) >= 2, "Variant must be at least 2 characters e.g. A="
@@ -652,7 +657,7 @@ class Gene(object):
             valid = valid and self.amino_acid_sequence[self.amino_acid_number == int(pos)] == ref
             valid = valid and ref != alt
             return valid
-        
+
         #Match amino acid synon-mutation
         synon = re.compile(r"""
                         ([a-zA-Z_0-9]+@)? #Possibly leading gene name
@@ -668,7 +673,7 @@ class Gene(object):
                 valid = valid and name[:-1] == self.name
             valid = valid and int(pos) in self.amino_acid_number
             return valid
-        
+
         #Match indel
         indel = re.compile(r"""
                     ([a-zA-Z_0-9]+@)? #Possibly leading gene name

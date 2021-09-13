@@ -458,7 +458,7 @@ def test_instanciate_vcf():
     assert len(vcf.records) == 16
 
     #Due to the dict structure here, several asserts are required
-    variants = {
+    calls = {
         2: {'type': 'null','call': 'x','ref': 'a','pos': 0,'original_vcf_row':{'GT': (None, None),'DP': 2,'COV': (1, 1),'GT_CONF': 2.05, 'REF': 'a', 'ALTS': ('g',)}},
 
         4: {'type': 'null','call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 2, 2),'GT_CONF': 3.77,'REF': 'a','ALTS': ('g', 't')}},
@@ -496,14 +496,14 @@ def test_instanciate_vcf():
         39: {'type': 'snp', 'call': 'a', 'ref': 'c', 'pos': 0, 'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 'tc','ALTS': ('tag',)}},
 
         40: {'type': 'indel', 'call': ('ins', 1), 'ref': 't', 'pos': 1, 'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 'tc','ALTS': ('tag',)}},
-        
+
         64: {'type': 'indel', 'call': ('ins', 2), 'ref': 'g', 'pos': -1, 'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 199),'GT_CONF': 145.21,'REF': 'gg','ALTS': ('cagg',)}},
-        
+
         73: {'type': 'indel', 'call': ('ins', 1), 'ref': 't', 'pos': 0, 'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 198, 1),'GT_CONF': 145.21,'REF': 't','ALTS': ('ta', 'at')}},
         }
 
     # could use assertDictEqual from unittest framework, but not using at present
-    assert vcf.variants == variants
+    assert vcf.calls == calls
     #Testing record objects
 
     #Features common to all record objects:

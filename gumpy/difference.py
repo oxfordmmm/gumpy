@@ -24,7 +24,7 @@ class Difference(ABC):
     '''
     def __init__(self):
         '''If this class is instantiated, crash
-        '''        
+        '''
         assert False, "This class should not be instantiated!"
     def update_view(self, method):
         '''Update the viewing method. Can either be `diff` or `full`:
@@ -270,8 +270,8 @@ class GenomeDifference(Difference):
         else:
             genes = self.genome1.genes.keys()
         return numpy.array([GeneDifference(self.genome1.genes[gene], self.genome2.genes[gene]) for gene in genes])
-    
-    def variants(self, index):        
+
+    def variants(self, index):
         '''Get the VCF fields such as COV and GT at a given genome index
 
         Args:
@@ -281,19 +281,19 @@ class GenomeDifference(Difference):
             dict: Dictionary mapping vcf_field->(genome1_val, genome2_val)
         '''
         assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
-        if (index not in range(min(self.genome1.nucleotide_index),max(self.genome1.nucleotide_index)+1) 
-            or index not in range(min(self.genome2.nucleotide_index),max(self.genome2.nucleotide_index)+1) 
+        if (index not in range(min(self.genome1.nucleotide_index),max(self.genome1.nucleotide_index)+1)
+            or index not in range(min(self.genome2.nucleotide_index),max(self.genome2.nucleotide_index)+1)
             or index == 0):
             warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.genome1.nucleotide_index)},{max(self.genome1.nucleotide_index)}).", UserWarning)
             return {}
         variants = {}
         if self.genome1.variant_file:
-            d1 = collapse_inner_dict(self.genome1.variant_file.variants.get(index, {}))
+            d1 = collapse_inner_dict(self.genome1.variant_file.calls.get(index, {}))
         else:
             warnings.warn(f"There is no variants for genome1 {self.genome1.name}", UserWarning)
             d1 = {}
         if self.genome2.variant_file:
-            d2 = collapse_inner_dict(self.genome2.variant_file.variants.get(index, {}))
+            d2 = collapse_inner_dict(self.genome2.variant_file.calls.get(index, {}))
         else:
             warnings.warn(f"There is no variants for genome2 {self.genome2.name}", UserWarning)
             d2 = {}
@@ -352,53 +352,62 @@ class VCFDifference(object):
             masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
             i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
         '''
-        calls = []
+        variants = []
         indices = []
+        refs=[]
+        positions=[]
         is_snp = []
         is_het = []
         is_null = []
         is_indel = []
-        variants = defaultdict(list)
+        metadata = defaultdict(list)
 
-        for index in sorted(list(self.vcf.variants.keys())):
+        for index in sorted(list(self.vcf.calls.keys())):
             indices.append(index)
-            call = self.vcf.variants[index]['call']
+            call = self.vcf.calls[index]['call']
+            ref = self.vcf.calls[index]['ref']
+            refs.append(ref)
+            pos = self.vcf.calls[index]['pos']
+            positions.append(pos)
             #Update the masks with the appropriate types
-            if self.vcf.variants[index]["type"] == 'indel':
+            if self.vcf.calls[index]["type"] == 'indel':
                 #Convert to ins_x or del_x rather than tuple
                 call = call[0]+"_"+str(call[1])
                 is_indel.append(True)
                 is_snp.append(False)
                 is_het.append(False)
                 is_null.append(False)
-            elif self.vcf.variants[index]["type"] == "snp":
+            elif self.vcf.calls[index]["type"] == "snp":
+                # call = str(index)
                 is_indel.append(False)
                 is_snp.append(True)
                 is_het.append(False)
                 is_null.append(False)
-            elif self.vcf.variants[index]['type'] == 'het':
+            elif self.vcf.calls[index]['type'] == 'het':
                 is_indel.append(False)
                 is_snp.append(False)
                 is_het.append(True)
                 is_null.append(False)
-            elif self.vcf.variants[index]['type'] == 'null':
+            elif self.vcf.calls[index]['type'] == 'null':
                 is_indel.append(False)
                 is_snp.append(False)
                 is_het.append(False)
                 is_null.append(True)
-            calls.append(call)
-            for key in self.vcf.variants[index]['original_vcf_row']:
-                variants[key].append(self.vcf.variants[index]['original_vcf_row'][key])
+            variants.append(call)
+            for key in self.vcf.calls[index]['original_vcf_row']:
+                metadata[key].append(self.vcf.calls[index]['original_vcf_row'][key])
         #Convert to numpy arrays for neat indexing
-        self.calls = numpy.array(calls)
+        self.variants = numpy.array(variants)
         self.indices = numpy.array(indices)
         self.is_indel = numpy.array(is_indel)
         self.is_snp = numpy.array(is_snp)
         self.is_het = numpy.array(is_het)
         self.is_null = numpy.array(is_null)
-        self.variants = dict()
-        for key in variants:
-            self.variants[key] = numpy.array(variants[key], dtype=object)
+        self.ref=numpy.array(refs)
+        self.pos=numpy.array(positions)
+        self.metadata = dict()
+        for key in metadata:
+            self.metadata[key] = numpy.array(metadata[key], dtype=object)
 
     def __snps(self):
         '''Find the SNPs positions caused by this VCF. Het and null calls are included in SNPs.
@@ -412,7 +421,7 @@ class VCFDifference(object):
                             numpy.logical_or(self.is_snp, self.is_het),
                             self.is_null)
         #Get dict mapping genome_index->snp_call
-        _snps = dict(zip(self.indices[mask],self.calls[mask]))
+        _snps = dict(zip(self.indices[mask],self.variants[mask]))
 
         #Convert to GARC mutation nomenclature of ref>call
         snps = {}
@@ -426,9 +435,9 @@ class VCFDifference(object):
         Returns:
             dict: Dictionary mapping genome_index->indel
         '''
-        indels = dict(zip(self.indices[self.is_indel], self.calls[self.is_indel]))
+        indels = dict(zip(self.indices[self.is_indel], self.variants[self.is_indel]))
         return indels
-    
+
     def variants_by_index(self, index):
         '''Get original vcf row from the variants by genome index
 
@@ -437,13 +446,13 @@ class VCFDifference(object):
 
         Returns:
             dict: Dictionary mapping field->value
-        '''        
+        '''
         assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index must be an integer!"
         if index not in range(min(self.genome.nucleotide_index), max(self.genome.nucleotide_index)+1) or index <= 0:
             #If the index is out of range, don't crash, just give a warning
             warnings.warn("Index out of range of nucleotide numbers for this genome!", UserWarning)
         #Pull out the original vcf row if it exists
-        variants = self.vcf.variants.get(index, {}).get("original_vcf_row", {})
+        variants = self.vcf.calls.get(index, {}).get("original_vcf_row", {})
         return variants
 
 
@@ -480,7 +489,7 @@ class GeneDifference(Difference):
         codons (numpy.array): Array of codons where the two Gene objects have different codons. Format depends on the current view.
         amino_acids (numpy.array): Array of amino acids where the two Gene objects have different amino acids. Format depends on the current view.
     Functions:
-        amino_acid_variants(int) -> dict: Takes an amino acid index and returns a dictionary containing data from a vcf 
+        amino_acid_variants(int) -> dict: Takes an amino acid index and returns a dictionary containing data from a vcf
                                             file (if applicable) for attributes such as calls, ref, and alt for all nucleotides
                                             within the codons for this amino acid index. If these genes do not code protien, returns {}
         nucleotide_variants(int) -> dict: Takes a nucleotide index and returns a dictionary containing data from a vcf
@@ -590,7 +599,7 @@ class GeneDifference(Difference):
             if aa1 != aa2:
                 aa_diff.append((aa1, aa2))
         return numpy.array(aa_diff)
-    
+
     def nucleotide_variants(self, index):
         '''Get the VCF fields such as call and type at a given nucleotide index
 
@@ -601,8 +610,8 @@ class GeneDifference(Difference):
             dict: Dictionary mapping vcf_field->(gene1_val, gene2_val)
         '''
         assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
-        if (index not in range(min(self.gene1.nucleotide_number),max(self.gene1.nucleotide_number)+1) 
-            or index not in range(min(self.gene2.nucleotide_number),max(self.gene2.nucleotide_number)+1) 
+        if (index not in range(min(self.gene1.nucleotide_number),max(self.gene1.nucleotide_number)+1)
+            or index not in range(min(self.gene2.nucleotide_number),max(self.gene2.nucleotide_number)+1)
             or index == 0):
             warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.gene1.nucleotide_number)},{max(self.gene1.nucleotide_number)}).", UserWarning)
             return {}
@@ -619,7 +628,7 @@ class GeneDifference(Difference):
                 gene2_val = d2.get(field, None)
                 variants[field] = (gene1_val, gene2_val)
         return variants
-    
+
     def amino_acid_variants(self, index):
         '''Get the VCF fields such as call and alts for variants which constitute the amino acid
         at a given amino acid index
@@ -657,11 +666,11 @@ class GeneDifference(Difference):
                     variants2[field].append(d2.get(field, None))
         #Convert to dict mapping field->([g1_val1, g1_val2..], [g2_val1, g2_val2..])
         variants = {
-            field: (variants1[field], variants2[field]) 
-            for field in variants1.keys() 
+            field: (variants1[field], variants2[field])
+            for field in variants1.keys()
             if variants1[field] is not None and variants2[field] if not None
             }
-            
+
         return variants
 
 '''
@@ -707,7 +716,7 @@ def collapse_inner_dict(dict_):
         dict_ (dict): Dictionary to collapse
     Returns:
         dict: Collapsed dict
-    '''        
+    '''
     fixed = {}
     for key in dict_.keys():
         if isinstance(dict_[key], dict):

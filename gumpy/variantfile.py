@@ -191,19 +191,19 @@ class VariantFile(object):
         for record in list(vcf):
             for sample in record.samples.keys():
                 self.records.append(VCFRecord(record, sample))
-        
+
         #Ensure that only a single record exists for each position specified
         assert len(self.records) == len(set([record.pos for record in self.records])), "There must only be 1 record per position!"
 
-        self.__find_variants()
+        self.__find_calls()
 
-    def __find_variants(self):
+    def __find_calls(self):
         '''Function to find changes within the genome based on the variant file
         '''
         #Use a dict to store the changes with keys as indicies
         #{index: (base, {calls: base}) ...} where a base of * represents wildtype
         #Where index is 0 indexed for array access
-        self.variants = {}
+        self.calls = {}
         # i = 0
         for record in self.records:
 
@@ -257,7 +257,7 @@ class VariantFile(object):
                         vcf_info['REF']=record.ref
                         vcf_info['ALTS']=record.alts
                         metadata['original_vcf_row']=vcf_info
-                        self.variants[index+counter]=metadata
+                        self.calls[index+counter]=metadata
 
             else:
                 mutations = self.indel(index, record.ref, variant)
@@ -277,7 +277,7 @@ class VariantFile(object):
                         vcf_info['REF']=record.ref
                         vcf_info['ALTS']=record.alts
                         metadata['original_vcf_row']=vcf_info
-                        self.variants[index+p]=metadata
+                        self.calls[index+p]=metadata
                     else:
                         metadata = {}
                         metadata['type'] = variant_type
@@ -289,8 +289,8 @@ class VariantFile(object):
                         vcf_info['REF'] = record.ref
                         vcf_info['ALTS'] = record.alts
                         metadata['original_vcf_row'] = vcf_info
-                        self.variants[index+p] = metadata
-    
+                        self.calls[index+p] = metadata
+
     def indel(self, pos, ref, alt):
         '''Find where in the sequence the indel was, and the values.
         Based on finding the indel position at which there is the least SNPs
@@ -300,8 +300,8 @@ class VariantFile(object):
             ref (str): Reference bases. Should match reference bases at this point
             alt (str): Alt bases.
         Returns:
-            (int, str, str): Returns tuple of (indel pos, one of ['ins','del','snp'], indel bases) 
-        '''        
+            (int, str, str): Returns tuple of (indel pos, one of ['ins','del','snp'], indel bases)
+        '''
         def snp_number(ref, alt):
             '''Count the number of SNPs between 2 sequences
 
@@ -311,18 +311,18 @@ class VariantFile(object):
 
             Returns:
                 int: Number of SNPs between ref and alt
-            '''            
+            '''
             snps = 0
             for (a, b) in zip(ref, alt):
                 if a is not None and b is not None and a != b:
                     snps += 1
             return snps
-        
+
         '''The process for finding the positions for indels are almost identical
         as the process for finding a del can be interpreted as finding an ins with ref and alt reversed.
         The approach here is to use a sliding window to find the position of the indel where the number of SNPs is lowest.
         Assumes that there is only a single indel between the ref and the alt - there may be cases where this does not work
-            these will just produce large amounts of SNPs... Could be adapted to check for multi-indel but this will scale 
+            these will just produce large amounts of SNPs... Could be adapted to check for multi-indel but this will scale
             exponentially the number of versions checked.
         '''
         if len(ref) > len(alt):
@@ -363,7 +363,7 @@ class VariantFile(object):
         return mutations
 
 
-        
+
 
 
     def to_df(self):

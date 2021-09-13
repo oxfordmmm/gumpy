@@ -242,7 +242,7 @@ def test_genome_difference():
         pass
     finally:
         if not check:
-            assert False, "Code did not throw AssertationError"    
+            assert False, "Code did not throw AssertationError"
     try:
         diff.variants("3")
         check = False #Reached if code does not assert False
@@ -259,8 +259,8 @@ def test_genome_difference():
     finally:
         if not check:
             assert False, "Code did not throw AssertationError"
-    
-    full_variants = {
+
+    full_metadata = {
         'GT': numpy.array([(i,None) for i in [
             (None, None), (None, None), (None, None), (None, None), (1, 1), (2, 2), (1, 1), (1, 1), (1, 2), (0, 2), (1, 2),
             (1, 2), (1, 3), (1, 3), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1)
@@ -286,17 +286,17 @@ def test_genome_difference():
             ('aa', 't', 'a'), ('ttt',), ('t',), ('tag',), ('tag',), ('cagg',), ('ta', 'at')
         ]]),
         'call': numpy.array(
-            [(i, None) 
-            for i in 
-                ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 
+            [(i, None)
+            for i in
+                ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z',
                     ('ins', 2), ('del', 1), 'a', ('ins', 1), ('ins', 2), ('ins', 1)
                 ]
             ]),
         'type': numpy.array(
             [
-                (i, None) 
+                (i, None)
                 for i in [
-                    'null', 'null', 'null', 'null', 'snp', 'snp', 'snp', 'snp', 
+                    'null', 'null', 'null', 'null', 'snp', 'snp', 'snp', 'snp',
                     'het', 'het', 'het', 'het', 'het', 'het', 'indel', 'indel', 'snp', 'indel', 'indel', 'indel'
                 ]
             ]),
@@ -305,7 +305,7 @@ def test_genome_difference():
     }
     all_indices = [2, 6, 7, 8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 40, 64, 73]
     for (idx, genome_index) in enumerate(all_indices):
-        assert check_eq(diff.variants(genome_index), {field: full_variants[field][idx] for field in full_variants.keys()}, True)
+        assert check_eq(diff.variants(genome_index), {field: full_metadata[field][idx] for field in full_metadata.keys()}, True)
 
     #Change the view and test all outputs
     diff.update_view("full")
@@ -356,14 +356,14 @@ def test_vcf_difference():
     diff = vcf.difference(g1)
     assert isinstance(diff, gumpy.VCFDifference)
     #Checking the variant masks
-    assert numpy.all(diff.calls == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'ins_2', 'del_1', 'a', 'ins_1', 'ins_2', 'ins_1'])
+    assert numpy.all(diff.variants == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'ins_2', 'del_1', 'a', 'ins_1', 'ins_2', 'ins_1'])
     assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 40, 64, 73]))
     assert numpy.all(diff.is_snp == [False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, True, False, False, False])
     assert numpy.all(diff.is_het == [False, False, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, False, False, False])
     assert numpy.all(diff.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True])
     assert numpy.all(diff.is_null == [True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False])
 
-    full_variants = {
+    full_metadata = {
         'GT': numpy.array([
             (None, None), (None, None), (None, None), (None, None), (1, 1), (2, 2), (1, 1), (1, 1), (1, 2), (0, 2), (1, 2),
             (1, 2), (1, 3), (1, 3), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1)
@@ -389,7 +389,7 @@ def test_vcf_difference():
             ('aa', 't', 'a'), ('ttt',), ('t',), ('tag',), ('tag',), ('cagg',), ('ta', 'at')
         ]),
     }
-    assert check_eq(diff.variants, full_variants, True)
+    assert check_eq(diff.metadata, full_metadata, True)
 
     with pytest.warns(UserWarning):
         assert check_eq(diff.variants_by_index(0), {}, True)
@@ -414,11 +414,11 @@ def test_vcf_difference():
         pass
     finally:
         if not check:
-            assert False, "Code did not throw expected AssertationError"    
+            assert False, "Code did not throw expected AssertationError"
     assert check_eq(diff.variants_by_index(1), {}, True)
     #Check all indices
     for (idx, genome_index) in enumerate(diff.indices.tolist()):
-        assert check_eq(diff.variants_by_index(genome_index), {field: full_variants[field][idx] for field in full_variants.keys()}, True)
+        assert check_eq(diff.variants_by_index(genome_index), {field: full_metadata[field][idx] for field in full_metadata.keys()}, True)
 
     assert diff.snp_distance == 15
     assert check_eq(diff.snps, {
@@ -481,7 +481,7 @@ def test_vcf_difference():
         pass
     finally:
         if not check:
-            assert False, "Code did not throw expected AssertationError"    
+            assert False, "Code did not throw expected AssertationError"
 
     assert check_eq(g_diff[0].amino_acid_variants(1), {
         'ALTS': ([None], [('ggt', 'gta', 'ata')]),
@@ -511,7 +511,7 @@ def test_vcf_difference():
         pass
     finally:
         if not check:
-            assert False, "Code did not throw expected AssertationError"    
+            assert False, "Code did not throw expected AssertationError"
 
     #Testing an edge case with 2 different indels at the same position
     g2 = g1.apply_variant_file(gumpy.VariantFile("tests/test-cases/TEST-DNA-2.vcf"))
@@ -589,7 +589,7 @@ def test_valid_varaint():
             pass
         finally:
             if not check:
-                assert False, "Code did not throw expected AssertationError"    
+                assert False, "Code did not throw expected AssertationError"
 
     assert_throws(None)
     assert_throws(0)

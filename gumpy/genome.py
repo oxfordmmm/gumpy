@@ -370,7 +370,7 @@ class Genome(object):
             Args:
                 type_ (str): String of the type which the object should be
                 obj (object): Any input object
-                output (list/dict): Either a list or a dictionary used as an accumulator 
+                output (list/dict): Either a list or a dictionary used as an accumulator
             '''
             if type_ in [str(type(t)) for t in [bool(), int(), str(), float(), complex(), bytes(), bytearray(), None]]:
                 #Fundamental data types which need no conversions
@@ -818,10 +818,10 @@ class Genome(object):
         gene_variants = {}
         if self.variant_file:
             #If the variant_file has been set, check for variants within the gene
-            for index in self.variant_file.variants.keys():
+            for index in self.variant_file.calls.keys():
                 if mask[index-1]:
                     #The gene is present at this index so add to variants
-                    gene_variants[index] = self.variant_file.variants[index]
+                    gene_variants[index] = self.variant_file.calls[index]
 
         assert numpy.count_nonzero(mask)>0, "gene ("+gene+") not found in genome!"
         g = Gene(name=gene,
@@ -904,7 +904,7 @@ class Genome(object):
         Returns:
             gumpy.Genome: The resulting Genome object
         '''
-        assert max(vcf.variants.keys()) <= self.length, "The VCF file details changes outside of this genome!"
+        assert max(vcf.calls.keys()) <= self.length, "The VCF file details changes outside of this genome!"
         #Replicate this Genome object
         print("Copying the genome...")
         genome = copy.deepcopy(self)
@@ -922,31 +922,31 @@ class Genome(object):
         genome.original = dict()
         #Change the nucleotide indicies
         print("Updating the genome...")
-        for idx in tqdm(vcf.variants.keys()):
+        for idx in tqdm(vcf.calls.keys()):
 
             array_idx=idx-1
 
             genome.original[array_idx] = genome.nucleotide_sequence[array_idx]
 
-            if vcf.variants[idx]['type'] in ['snp','null','het']:
+            if vcf.calls[idx]['type'] in ['snp','null','het']:
 
                 #Only set values if the idx is to a single nucleotide
-                genome.nucleotide_sequence[array_idx] = vcf.variants[idx]['call']
+                genome.nucleotide_sequence[array_idx] = vcf.calls[idx]['call']
 
                 #Record the idxs in the format (old_base, new_base)
-                genome.variants[array_idx] = (genome.original[array_idx], vcf.variants[idx]['call'])
+                genome.variants[array_idx] = (genome.original[array_idx], vcf.calls[idx]['call'])
 
-            elif vcf.variants[idx]['type'] in ['indel']:
+            elif vcf.calls[idx]['type'] in ['indel']:
                 #It was an indel, so add the indel call to the indels dict
-                genome.indels[array_idx] = vcf.variants[idx]['call'][0]+"_"+str(vcf.variants[idx]['call'][1])
+                genome.indels[array_idx] = vcf.calls[idx]['call'][0]+"_"+str(vcf.calls[idx]['call'][1])
                 genome.is_indel[array_idx] = True
-                genome.indel_length[array_idx] = abs(vcf.variants[idx]['call'][1])
+                genome.indel_length[array_idx] = abs(vcf.calls[idx]['call'][1])
 
             else:
-                raise Exception('variant type not recognised!', vcf.variants[idx])
+                raise Exception('variant type not recognised!', vcf.calls[idx])
 
         #Save all of the calls in the format {arr_index: (n_reads, call)}
-        # genome.calls = {index: vcf.variants[index][1] for index in vcf.variants.keys()}
+        # genome.calls = {index: vcf.calls[index][1] for index in vcf.calls.keys()}
         genome.variant_file = vcf
         #The genome has been altered so not a reference genome
         genome.is_reference = False
