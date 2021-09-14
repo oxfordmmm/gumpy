@@ -27,7 +27,7 @@ class Genome(object):
             genbank_file (str) : The path to the genbank file
             show_progress_bar (bool, optional) : Boolean as whether to show a progress bar when building Gene objects. Defaults to True
             gene_subset (list, optional) : List of gene names used to extract just a subset of genes. Defaults to None
-            default_promoter_length (int, optional) : Size of the default promoter. Defaults to 100
+            max_promoter_length (int, optional) : Size of the default promoter. Defaults to 100
             max_gene_name_length (int, optional) : Size of the longest gene name. Defaults to 20
             verbose (bool, optional) : Boolean as whether to give verbose statements. Defaults to False
             multithreaded (bool, optional) : Boolean as whether to multithread the building of Gene objects. Only Makes a change on Linux. Defaults to False
@@ -68,7 +68,7 @@ class Genome(object):
             #Set values for kwargs to defaults if not provided
             show_progress_bar = kwargs.get("show_progress_bar", True)
             gene_subset = kwargs.get("gene_subset")
-            default_promoter_length = kwargs.get("default_promoter_length", 100)
+            self.max_promoter_length = kwargs.get("max_promoter_length", 100)
             max_gene_name_length = kwargs.get("max_gene_name_length", 20)
             verbose = kwargs.get("verbose", False)
             self.multithreaded = kwargs.get("multithreaded", False)
@@ -76,7 +76,7 @@ class Genome(object):
             #Set the args value to the genbank file
             genbank_file = args[0]
 
-        assert isinstance(default_promoter_length,int) and default_promoter_length>=0, "the promoter length must be a positive integer!"
+        assert isinstance(self.max_promoter_length,int) and self.max_promoter_length>=0, "the promoter length must be a positive integer!"
 
         self.verbose=verbose
         self.gene_subset=gene_subset
@@ -103,8 +103,8 @@ class Genome(object):
             timings['define arrays'].append(time.time()-start_time)
             start_time=time.time()
 
-        if default_promoter_length>0:
-            self.__assign_promoter_regions(default_promoter_length)
+        if self.max_promoter_length>0:
+            self.__assign_promoter_regions()
 
         if verbose:
             timings['promoter'].append(time.time()-start_time)
@@ -714,15 +714,13 @@ class Genome(object):
 
         self.stacked_nucleotide_sequence=numpy.tile(self.nucleotide_sequence,(self.n_rows,1))
 
-    def __assign_promoter_regions(self,default_promoter_length):
+    def __assign_promoter_regions(self):
         '''
         Private function to assign promoter regions to genes
-        Args:
-            default_promoter_length (int) : The default length a promoter for a gene should be
         '''
-        assert isinstance(default_promoter_length,int), 'default_promoter_length must be an integer!'
+        assert isinstance(self.max_promoter_length,int), 'max_promoter_length must be an integer!'
 
-        assert default_promoter_length>0, 'default_promoter_length must be greater than zero'
+        assert self.max_promoter_length>0, 'max_promoter_length must be greater than zero'
 
         # labelling promoters is a difficult problem since
         #  (i)  it is arbitrary and
@@ -735,7 +733,7 @@ class Genome(object):
                                 "start": self.genes_lookup[gene_name]["start"],
                                 "end": self.genes_lookup[gene_name]["end"]}
                     for gene_name in self.genes_lookup}
-        for promoter in tqdm(range(1,default_promoter_length+1)):
+        for promoter in tqdm(range(1,self.max_promoter_length+1)):
 
             #Replacement `start_end` because dictionaries can't be changed during iteration
             new_start_end = dict()

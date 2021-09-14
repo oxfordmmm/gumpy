@@ -247,7 +247,7 @@ def test_instanciate_genes_rna():
     assert gene.name == "A"
     assert gene.feature_type == "GENE"
     assert numpy.all(gene.nucleotide_sequence == nucleotide_sequence[full_gene_name[0] == "A"])
-    assert numpy.all(gene.index == nucleotide_index[full_gene_name[0] == "A"])
+    assert numpy.all(gene.nucleotide_index == nucleotide_index[full_gene_name[0] == "A"])
     assert numpy.all(gene.nucleotide_number == numpy.array([-3, -2, -1]+list(range(1, 28))+[-6, -5, -4]))
     assert numpy.all(gene.is_cds == numpy.array([False, False, False]+[True for i in range(27)]+[False, False, False]))
     assert numpy.all(gene.is_promoter == numpy.array([True, True, True]+[False for i in range(27)]+[True, True, True]))
@@ -268,7 +268,11 @@ def test_instanciate_genome_dna():
     assert len(genome) == 99
     assert genome.name == "TEST_DNA"
     assert genome.id == "TEST_DNA.1"
+    assert genome.description == "TEST_DNA, complete genome"
+    assert not genome.is_reference
+    assert genome.max_promoter_length == 100
     assert list(genome.genes_lookup.keys()) == list("ABC")
+    assert genome.genes_lookup['C']['reverse_complement']
 
     #Testing annotations parsed correctly
     assert genome.annotations['organism'] == "TEST_DNA_ORGANISM"
@@ -391,7 +395,7 @@ def test_instanciate_genes_dna():
     assert gene.name == "A"
     assert gene.feature_type == "GENE"
     assert numpy.all(gene.nucleotide_sequence == nucleotide_sequence[full_gene_name[0] == "A"])
-    assert numpy.all(gene.index == nucleotide_index[full_gene_name[0] == "A"])
+    assert numpy.all(gene.nucleotide_index == nucleotide_index[full_gene_name[0] == "A"])
     assert numpy.all(gene.nucleotide_number == numpy.array([-3, -2, -1]+list(range(1, 28))))
     assert numpy.all(gene.is_cds == numpy.array([False, False, False]+[True for i in range(27)]))
     assert numpy.all(gene.is_promoter == numpy.array([True, True, True]+[False for i in range(27)]))
@@ -413,7 +417,7 @@ def test_instanciate_genes_dna():
     assert gene.feature_type == "GENE"
     assert gene.reverse_complement == True
     assert numpy.all(gene.nucleotide_sequence == [complementary_bases[n] for n in nucleotide_sequence[full_gene_name[0] == "C"]])
-    assert numpy.all(gene.index == nucleotide_index[full_gene_name[0] == "C"][::-1])
+    assert numpy.all(gene.nucleotide_index == nucleotide_index[full_gene_name[0] == "C"][::-1])
     assert numpy.all(gene.nucleotide_number == numpy.array((list(range(1, 7))[::-1]+[-1, -2, -3])[::-1]))
     assert numpy.all(gene.is_cds == numpy.array([False, False, False]+[True for i in range(6)]))
     assert numpy.all(gene.is_promoter == numpy.array([True, True, True]+[False for i in range(6)]))
@@ -431,7 +435,7 @@ def test_instanciate_vcf():
                             ignore_filter=True,formats_min_thresholds={'GT_CONF':0})
 
     #Testing some populated items for the object
-    assert vcf.VCF_VERSION == (4, 2)
+    assert vcf.vcf_version == (4, 2)
     assert vcf.contig_lengths == {"TEST_DNA": 99}
     assert vcf.formats == {
         "COV": {

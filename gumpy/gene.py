@@ -85,7 +85,7 @@ class Gene(object):
         assert numpy.count_nonzero(numpy.isin(nucleotide_sequence,['a','t','c','g','x','z','o']))==len(nucleotide_sequence), name+": sequence can only contain a,t,c,g,z,x"
 
         self.nucleotide_sequence=nucleotide_sequence
-        self.index=index
+        self.nucleotide_index=index
         self.nucleotide_number=nucleotide_number
         self.is_cds=is_cds
         self.is_promoter=is_promoter
@@ -97,7 +97,7 @@ class Gene(object):
             self.__duplicate(shift)
         if self.reverse_complement:
             self.nucleotide_sequence=self._complement(self.nucleotide_sequence[::-1])
-            self.index=self.index[::-1]
+            self.nucleotide_index=self.nucleotide_index[::-1]
             self.nucleotide_number=self.nucleotide_number[::-1]
             self.is_cds=self.is_cds[::-1]
             self.is_promoter=self.is_promoter[::-1]
@@ -122,7 +122,7 @@ class Gene(object):
             self._translate_sequence()
 
     def __duplicate(self, index):
-        '''Duplicate all indcides of important arrays to add the ribosomal shift
+        '''Duplicate all indices of important arrays to add the ribosomal shift
 
         Args:
             index (int): Gene index to duplicate in all arrays
@@ -140,7 +140,7 @@ class Gene(object):
         self.nucleotide_number = numpy.array(first_half + [self.nucleotide_number[index]] + second_half)
         #Update all
         self.nucleotide_sequence = self.__duplicate_index(index, self.nucleotide_sequence)
-        self.index = self.__duplicate_index(index, self.index)
+        self.nucleotide_index = self.__duplicate_index(index, self.nucleotide_index)
         self.is_cds = self.__duplicate_index(index, self.is_cds)
         self.is_promoter = self.__duplicate_index(index, self.is_promoter)
         self.is_indel = self.__duplicate_index(index, self.is_indel)
@@ -175,7 +175,7 @@ class Gene(object):
         #Check all fields
         check = check and self.name == other.name
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
-        check = check and numpy.all(self.index == other.index)
+        check = check and numpy.all(self.nucleotide_index == other.nucleotide_index)
         check = check and numpy.all(self.nucleotide_number == other.nucleotide_number)
         check = check and numpy.all(self.is_cds == other.is_cds)
         check = check and numpy.all(self.is_promoter == other.is_promoter)
@@ -193,7 +193,7 @@ class Gene(object):
         #     print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
         #     print(self.nucleotide_sequence, self.nucleotide_sequence.shape)
         #     print(other.nucleotide_sequence, other.nucleotide_sequence.shape)
-        #     print("index", numpy.all(self.index == other.index))
+        #     print("index", numpy.all(self.nucleotide_index == other.index))
         #     print("NN", numpy.all(self.nucleotide_number == other.nucleotide_number))
         #     print("is_cds", numpy.all(self.is_cds == other.is_cds))
         #     print("is_promoter", numpy.all(self.is_promoter == other.is_promoter))
@@ -343,210 +343,6 @@ class Gene(object):
 
         return(mutations)
 
-
-
-    # def table_mutations_wrt(self,other):
-    #
-    #     assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
-    #     assert self.name==other.name, "both genes must be identical!"
-    #     assert self.codes_protein==other.codes_protein, "both genes must be identical!"
-    #
-    #     MUTATIONS_dict={}
-    #     MUTATIONS_columns=['GENE','MUTATION','REF','ALT','POSITION','AMINO_ACID_NUMBER','GENOME_INDEX','NUCLEOTIDE_NUMBER','IS_SNP','IS_INDEL','IS_NULL','IS_FILTER_PASS','IN_CDS','IN_PROMOTER','ELEMENT_TYPE','MUTATION_TYPE','INDEL_LENGTH','INDEL_1','INDEL_2']
-    #     for cols in MUTATIONS_columns:
-    #         MUTATIONS_dict[cols]=[]
-    #
-    #     if self.codes_protein:
-    #
-    #         # deal first with the coding sequence, which we will view at the amino acid level
-    #         # using codons rather than amino acids will detect synonymous mutations as well
-    #         mask=(self.codons!=other.codons)
-    #         pos=self.amino_acid_numbering[mask]
-    #         ref=other.amino_acid_sequence[mask]
-    #         alt=self.amino_acid_sequence[mask]
-    #         ref_codon=other.codons[mask]
-    #         alt_codon=self.codons[mask]
-    #
-    #         for (r,p,a,rc,ac) in zip(ref,pos,alt,ref_codon,alt_codon):
-    #             mut=r+str(int(p))+a
-    #             MUTATIONS_dict['GENE'].append(self.name)
-    #             MUTATIONS_dict['MUTATION'].append(mut)
-    #             MUTATIONS_dict['REF'].append(rc)
-    #             MUTATIONS_dict['ALT'].append(ac)
-    #             MUTATIONS_dict['POSITION'].append(p)
-    #             MUTATIONS_dict['AMINO_ACID_NUMBER'].append(p)
-    #             MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(0)
-    #             MUTATIONS_dict['GENOME_INDEX'].append(0)
-    #             MUTATIONS_dict['IS_SNP'].append(True)
-    #             MUTATIONS_dict['IS_INDEL'].append(False)
-    #             if a=='X':
-    #                 MUTATIONS_dict['IS_NULL'].append(True)
-    #             else:
-    #                 MUTATIONS_dict['IS_NULL'].append(False)
-    #             if a=='O':
-    #                 MUTATIONS_dict['IS_FILTER_PASS'].append(False)
-    #             else:
-    #                 MUTATIONS_dict['IS_FILTER_PASS'].append(True)
-    #             MUTATIONS_dict['IN_CDS'].append(True)
-    #             MUTATIONS_dict['IN_PROMOTER'].append(False)
-    #             MUTATIONS_dict['INDEL_LENGTH'].append(0)
-    #             MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
-    #             MUTATIONS_dict['MUTATION_TYPE'].append('AAM')
-    #             MUTATIONS_dict['INDEL_1'].append('')
-    #             MUTATIONS_dict['INDEL_2'].append('')
-    #
-    #         mask=(self.sequence!=other.sequence) & self.is_promoter
-    #         pos=self.numbering[mask]
-    #         ref=other.sequence[mask]
-    #         alt=self.sequence[mask]
-    #         idx=self.index[mask]
-    #         for (r,p,a,i) in zip(ref,pos,alt,idx):
-    #             mut=r+str(int(p))+a
-    #             MUTATIONS_dict['GENE'].append(self.name)
-    #             MUTATIONS_dict['MUTATION'].append(mut)
-    #             MUTATIONS_dict['REF'].append(r)
-    #             MUTATIONS_dict['ALT'].append(a)
-    #             MUTATIONS_dict['POSITION'].append(p)
-    #             MUTATIONS_dict['AMINO_ACID_NUMBER'].append(0)
-    #             MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
-    #             MUTATIONS_dict['GENOME_INDEX'].append(i)
-    #             MUTATIONS_dict['IS_SNP'].append(True)
-    #             MUTATIONS_dict['IS_INDEL'].append(False)
-    #             if a=='x':
-    #                 MUTATIONS_dict['IS_NULL'].append(True)
-    #             else:
-    #                 MUTATIONS_dict['IS_NULL'].append(False)
-    #             if a=='o':
-    #                 MUTATIONS_dict['IS_FILTER_PASS'].append(False)
-    #             else:
-    #                 MUTATIONS_dict['IS_FILTER_PASS'].append(True)
-    #             MUTATIONS_dict['IN_CDS'].append(False)
-    #             MUTATIONS_dict['IN_PROMOTER'].append(True)
-    #             MUTATIONS_dict['INDEL_LENGTH'].append(0)
-    #             MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
-    #             MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
-    #             MUTATIONS_dict['INDEL_1'].append('')
-    #             MUTATIONS_dict['INDEL_2'].append('')
-    #
-    #     else:
-    #         mask=self.sequence!=other.sequence
-    #         pos=self.positions[mask]
-    #         ref=other.sequence[mask]
-    #         alt=self.sequence[mask]
-    #         idx=self.index[mask]
-    #         # filter_fail=self.is_filter_fail[mask]
-    #         for (r,p,a,i) in zip(ref,pos,alt,idx):
-    #             if p<0:
-    #                 is_promoter=True
-    #                 is_cds=False
-    #             else:
-    #                 is_promoter=False
-    #                 is_cds=True
-    #             mut=r+str(int(p))+a
-    #             MUTATIONS_dict['GENE'].append(self.name)
-    #             MUTATIONS_dict['MUTATION'].append(mut)
-    #             MUTATIONS_dict['REF'].append(r)
-    #             MUTATIONS_dict['ALT'].append(a)
-    #             MUTATIONS_dict['POSITION'].append(p)
-    #             MUTATIONS_dict['AMINO_ACID_NUMBER'].append(0)
-    #             MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
-    #             MUTATIONS_dict['GENOME_INDEX'].append(i)
-    #             MUTATIONS_dict['IS_SNP'].append(True)
-    #             MUTATIONS_dict['IS_INDEL'].append(False)
-    #             if a=='x':
-    #                 MUTATIONS_dict['IS_NULL'].append(True)
-    #             else:
-    #                 MUTATIONS_dict['IS_NULL'].append(False)
-    #             if a=='o':
-    #                 MUTATIONS_dict['IS_FILTER_PASS'].append(False)
-    #             else:
-    #                 MUTATIONS_dict['IS_FILTER_PASS'].append(True)
-    #             MUTATIONS_dict['IN_CDS'].append(is_cds)
-    #             MUTATIONS_dict['IN_PROMOTER'].append(is_promoter)
-    #             MUTATIONS_dict['INDEL_LENGTH'].append(0)
-    #             MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
-    #             MUTATIONS_dict['MUTATION_TYPE'].append('SNP')
-    #             MUTATIONS_dict['INDEL_1'].append('')
-    #             MUTATIONS_dict['INDEL_2'].append('')
-    #
-    #
-    #     mask=self.is_indel
-    #     pos=list(self.positions[mask])
-    #     num=list(self.numbering[mask])
-    #     length=list(self.indel_length[mask])
-    #     idx=self.index[mask]
-    #     for (p,l,n,i) in zip(pos,length,num,idx):
-    #         if p<0:
-    #             is_promoter=True
-    #             is_cds=False
-    #             n=None
-    #         else:
-    #             is_promoter=False
-    #             is_cds=True
-    #         mut0=str(int(p))+"_indel"
-    #         if l>0:
-    #             mut1=str(int(p))+"_ins"
-    #             mut2=mut1+"_"+str(l)
-    #         else:
-    #             mut1=str(int(p))+"_del"
-    #             mut2=mut1+"_"+str(-1*l)
-    #         MUTATIONS_dict['GENE'].append(self.name)
-    #         MUTATIONS_dict['MUTATION'].append(mut0)
-    #         MUTATIONS_dict['REF'].append('')
-    #         MUTATIONS_dict['ALT'].append('')
-    #         MUTATIONS_dict['POSITION'].append(p)
-    #         MUTATIONS_dict['AMINO_ACID_NUMBER'].append(n)
-    #         MUTATIONS_dict['NUCLEOTIDE_NUMBER'].append(p)
-    #         MUTATIONS_dict['GENOME_INDEX'].append(i)
-    #         MUTATIONS_dict['IS_SNP'].append(False)
-    #         MUTATIONS_dict['IS_INDEL'].append(True)
-    #         MUTATIONS_dict['IS_NULL'].append(False)
-    #         MUTATIONS_dict['IS_FILTER_PASS'].append(True)
-    #         MUTATIONS_dict['IN_CDS'].append(is_cds)
-    #         MUTATIONS_dict['IN_PROMOTER'].append(is_promoter)
-    #         MUTATIONS_dict['INDEL_LENGTH'].append(l)
-    #         MUTATIONS_dict['ELEMENT_TYPE'].append(self.gene_type)
-    #         MUTATIONS_dict['MUTATION_TYPE'].append('INDEL')
-    #         MUTATIONS_dict['INDEL_1'].append(mut1)
-    #         MUTATIONS_dict['INDEL_2'].append(mut2)
-    #
-    #     if len(MUTATIONS_dict['POSITION'])>0:
-    #
-    #         MUTATIONS_table=pandas.DataFrame(data=MUTATIONS_dict)
-    #
-    #         MUTATIONS_table=MUTATIONS_table[MUTATIONS_columns]
-    #
-    #         MUTATIONS_table=MUTATIONS_table.astype({'GENE':'category',\
-    #                                                 'MUTATION':'str',\
-    #                                                 'REF':'str',\
-    #                                                 'ALT':'str',\
-    #                                                 'POSITION':'float',\
-    #                                                 'AMINO_ACID_NUMBER':'float',\
-    #                                                 'NUCLEOTIDE_NUMBER':'float',\
-    #                                                 'GENOME_INDEX':'float',\
-    #                                                 'IS_SNP':'bool',\
-    #                                                 'IS_INDEL':'bool',\
-    #                                                 'IS_NULL':'bool',\
-    #                                                 'IS_FILTER_PASS':'bool',\
-    #                                                 'IN_CDS':'bool',\
-    #                                                 'IN_PROMOTER':'bool',\
-    #                                                 'INDEL_LENGTH':'float',\
-    #                                                 'ELEMENT_TYPE':'category',\
-    #                                                 'MUTATION_TYPE':'category',\
-    #                                                 'INDEL_1':'str',\
-    #                                                 'INDEL_2':'str'})
-    #
-    #         MUTATIONS_table=MUTATIONS_table.replace({   'POSITION':0,\
-    #                                                     'NUCLEOTIDE_NUMBER':0,\
-    #                                                     'AMINO_ACID_NUMBER':0,\
-    #                                                     'GENOME_INDEX':0,\
-    #                                                     'INDEL_LENGTH':0  }, numpy.nan)
-    #
-    #         return(MUTATIONS_table)
-    #
-    #     else:
-    #
-    #         return(None)
 
     def __sub__(self,other):
 

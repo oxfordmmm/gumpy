@@ -616,8 +616,8 @@ class GeneDifference(Difference):
             warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.gene1.nucleotide_number)},{max(self.gene1.nucleotide_number)}).", UserWarning)
             return {}
         #Convert gene index to genome index for use as Gene.variants key
-        index1 = self.gene1.index[self.gene1.nucleotide_number == index].tolist()[0]
-        index2 = self.gene2.index[self.gene2.nucleotide_number == index].tolist()[0]
+        index1 = self.gene1.nucleotide_index[self.gene1.nucleotide_number == index].tolist()[0]
+        index2 = self.gene2.nucleotide_index[self.gene2.nucleotide_number == index].tolist()[0]
         variants = {}
         d1 = collapse_inner_dict(self.gene1.variants.get(index1, {}))
         d2 = collapse_inner_dict(self.gene2.variants.get(index2, {}))
@@ -649,8 +649,8 @@ class GeneDifference(Difference):
             return {}
         #Convert amino acid index to genome index for use as Gene.variants key
         #This should produce 3 indices
-        index1 = set(self.gene1.index[self.gene1.is_cds][self.gene1.triplet_number == index])
-        index2 = set(self.gene2.index[self.gene2.is_cds][self.gene2.triplet_number == index])
+        index1 = set(self.gene1.nucleotide_index[self.gene1.is_cds][self.gene1.triplet_number == index])
+        index2 = set(self.gene2.nucleotide_index[self.gene2.is_cds][self.gene2.triplet_number == index])
         indices = index1.union(index2)
 
         #Use dicts mapping field->values as an intermediary step

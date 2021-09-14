@@ -27,7 +27,7 @@ def test_ribosomal_slippage():
     a = g.genes["A"]
     assert numpy.all(a.nucleotide_sequence == list("aaaaaaaaaacccccccccccggggggggggttccc"))
     assert numpy.all(a.nucleotide_number == numpy.array([-3, -2, -1]+list(range(1,31))+[-6, -5, -4]))
-    assert numpy.all(a.index == numpy.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,97,98,99]))
+    assert numpy.all(a.nucleotide_index == numpy.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,97,98,99]))
     assert numpy.all(a.is_cds == numpy.array([False, False, False]+[True for i in range(1,31)]+[False, False, False]))
     assert numpy.all(a.is_promoter == numpy.array([True, True, True]+[False for i in range(1,31)]+[True, True, True]))
     assert numpy.all(a.is_indel == numpy.array([False for i in range(36)]))
@@ -60,7 +60,7 @@ def test_ribosomal_slippage2():
     c = g.genes["C"]
     assert numpy.all(c.nucleotide_sequence == list("ggggggggggttttttttttaaaaaaaaaaccccccccc"))
     assert numpy.all(c.nucleotide_number == numpy.array([-i for i in range(1, 31)][::-1] + list(range(1, 10))))
-    assert numpy.all(c.index == numpy.array(list(range(61, 95))+[94, 95, 96, 97, 98] ))
+    assert numpy.all(c.nucleotide_index == numpy.array(list(range(61, 95))+[94, 95, 96, 97, 98] ))
     assert numpy.all(c.is_cds == numpy.array([False for i in range(61, 91)]+[True for i in range(1, 10)]))
     assert numpy.all(c.is_promoter == numpy.array([True for i in range(61, 91)]+[False for i in range(1, 10)]))
     assert numpy.all(c.is_indel == numpy.array([False for i in range(61, 100)]))
@@ -73,7 +73,7 @@ def test_ribosomal_slippage2():
     a = g.genes["A"]
     assert numpy.all(a.nucleotide_sequence == list("aaaaaaaaaaccccccccccggggggggggc"))
     assert numpy.all(a.nucleotide_number == numpy.array([-3, -2, -1]+list(range(1, 28))+[-4]))
-    assert numpy.all(a.index == list(range(1, 31))+[99])
+    assert numpy.all(a.nucleotide_index == list(range(1, 31))+[99])
     assert numpy.all(a.is_cds == [False, False, False]+[True for i in range(1, 28)]+[False])
     assert numpy.all(a.is_promoter == [True, True, True]+[False for i in range(1, 28)]+[True])
     assert numpy.all(a.is_indel == [False for i in range(1, 32)])
@@ -82,4 +82,3 @@ def test_ribosomal_slippage2():
     assert numpy.all(a.codons == [''.join(seq[i*3:i*3+3]) for i in range(9)])
     assert numpy.all(a.amino_acid_sequence == list("KKTPPPGGG"))
     assert numpy.all(a.triplet_number == [i//3 for i in range(3,30)])
-

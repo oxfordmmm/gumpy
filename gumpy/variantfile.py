@@ -128,7 +128,7 @@ class VariantFile(object):
     Class to instanciate a variant file (VCF)
     Used to apply a VCF file to a genome
     Instance variables:
-        `VCF_VERSION` (tuple(int)): Tuple of ints to show the VCF version of the file. e.g 3.2 would be (3, 2).
+        `vcf_version` (tuple(int)): Tuple of ints to show the VCF version of the file. e.g 3.2 would be (3, 2).
         `contig_lengths` (dict): Dictionary mapping contig_name->length for all defined contigs.
         `formats` (dict): Dictionary mapping format_name->dict(description, id, type).
         `records` (list(VCFRecord)): List of VCFRecord objects for each record within the file.
@@ -143,7 +143,7 @@ class VariantFile(object):
         if len(args) != 1:
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
-            allowed_kwargs = ['VCF_VERSION', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'formats_min_thresholds', 'bypass_reference_calls']
+            allowed_kwargs = ['vcf_version', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'formats_min_thresholds', 'bypass_reference_calls']
             seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
@@ -159,12 +159,13 @@ class VariantFile(object):
         self.ignore_filter=kwargs.get('ignore_filter',False)
         self.bypass_reference_calls=kwargs.get('bypass_reference_calls',False)
         self.formats_min_thresholds=kwargs.get('formats_min_thresholds',None)
+        self.filename=filename
 
         #Use pysam to parse the VCF
-        vcf = pysam.VariantFile(filename)
+        vcf = pysam.VariantFile(self.filename)
 
         #Get some basic metadata
-        self.VCF_VERSION = vcf.version
+        self.vcf_version = vcf.version
 
         #Get the contig lengths from the header
         self.contig_lengths = {}
@@ -196,6 +197,20 @@ class VariantFile(object):
         assert len(self.records) == len(set([record.pos for record in self.records])), "There must only be 1 record per position!"
 
         self.__find_calls()
+
+    def __repr__(self):
+
+       output='VCF variant file, version '+''.join(str(i)+"." for i in self.vcf_version)[:-1]+'\n'
+       output+=self.filename+'\n'
+       output+=str(len(self.records))+' records'+'\n'
+       output+='FORMAT columns: '+', '.join(i for i in self.formats.keys())+'\n'+'\n'
+       if len(self.records)>3:
+           output+=self.records[0].__repr__()
+           output+=self.records[1].__repr__()
+           output+=self.records[2].__repr__()
+           output+="..."+'\n'
+           output+=self.records[-1].__repr__()
+       return(output)
 
     def __find_calls(self):
         '''Function to find changes within the genome based on the variant file
@@ -260,7 +275,7 @@ class VariantFile(object):
                         self.calls[index+counter]=metadata
 
             else:
-                mutations = self.indel( record.ref, variant)
+                mutations = self.simplify_call(record.ref, variant)
                 for (p, type_, bases) in mutations:
                     # p = max(p - 1, 0)
                     if type_ in ["ins", "del"]:
@@ -291,7 +306,7 @@ class VariantFile(object):
                         metadata['original_vcf_row'] = vcf_info
                         self.calls[index+p] = metadata
 
-    def indel(self, ref, alt):
+    def simplify_call(self, ref, alt):
         '''Find where in the sequence the indel was, and the values.
         Based on finding the indel position at which there is the least SNPs
 
@@ -374,7 +389,7 @@ class VariantFile(object):
             pandas.DataFrame: DataFrame containing all of the information from the VCF file
         '''
         meta_data = {
-            "VCF_VERSION": self.VCF_VERSION,
+            "vcf_version": self.vcf_version,
             "contig_lengths": self.contig_lengths,
             "formats": self.formats
         }

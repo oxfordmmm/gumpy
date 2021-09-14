@@ -175,7 +175,7 @@ def test_apply_vcf():
     for key in g2.genes.keys():
         gene_changes.append(g2.genes[key]!=g1.genes[key])
         nucleotide_changes.append(numpy.any(g2.genes[key].nucleotide_sequence != g1.genes[key].nucleotide_sequence))
-        index_changes.append(numpy.all(g1.genes[key].index == g2.genes[key].index))
+        index_changes.append(numpy.all(g1.genes[key].nucleotide_index == g2.genes[key].nucleotide_index))
     assert numpy.any(gene_changes)
     assert numpy.any(nucleotide_changes)
     assert numpy.all(index_changes)
@@ -605,7 +605,7 @@ def test_vcf_to_df():
 
     df = vcf.to_df()
     assert df.attrs == {
-        "VCF_VERSION": (4, 2),
+        "vcf_version": (4, 2),
         "contig_lengths": {"TEST_DNA": 99},
         "formats": {
             "COV": {
@@ -707,11 +707,11 @@ def test_indels():
 
     #Not a static function, so a VariantFile must be instanciated
     vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
-    assert sorted(vcf.indel("ga", "c")) == sorted([(0, "snp", ("g", "c")), (1, "del", "a")])
-    assert vcf.indel("aaa", "a") == [(1, "del", "aa")]
-    assert sorted(vcf.indel("acgtaa", "cgt")) == sorted(
+    assert sorted(vcf.simplify_call("ga", "c")) == sorted([(0, "snp", ("g", "c")), (1, "del", "a")])
+    assert vcf.simplify_call("aaa", "a") == [(1, "del", "aa")]
+    assert sorted(vcf.simplify_call("acgtaa", "cgt")) == sorted(
                                                         [
                                                             (0, "snp", ("a", "c")), (1, "snp", ("c", "g")),
                                                             (2, "snp", ("g", "t")), (3, "del", "taa")
                                                         ])
-    assert sorted(vcf.indel("a", "gga")) == [(-1, "ins", "gg")]
+    assert sorted(vcf.simplify_call("a", "gga")) == [(-1, "ins", "gg")]
