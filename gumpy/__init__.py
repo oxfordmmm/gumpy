@@ -22,8 +22,8 @@ Classes:
     GeneDifference
     VCFDifference
 '''
-
-__version__="0.2"
+#Use of semantic versioning, MAJOR.MINOR.MAINTAINANCE where MAJOR is not backwards compatible, but MINOR and MAINTAINANCE are
+__version__="1.0.0"
 
 from .difference import GenomeDifference, VCFDifference, GeneDifference
 from .gene import Gene
