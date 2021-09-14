@@ -28,7 +28,7 @@ class Gene(object):
         '''
         #Set the kwargs
         #UPDATE THIS AS REQUIRED
-        allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter',
+        allowed_kwargs = ['name', 'nucleotide_sequence', 'nucleotide_index', 'nucleotide_number', 'is_cds', 'is_promoter',
                         'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type',
                         'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number',
                         'codons', 'amino_acid_sequence', 'ribosomal_shifts', 'variants']

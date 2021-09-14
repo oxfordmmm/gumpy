@@ -199,33 +199,34 @@ class VariantFile(object):
         self.__find_calls()
 
     def __repr__(self):
+        '''Pretty print the VCF file
 
-       output='VCF variant file, version '+''.join(str(i)+"." for i in self.vcf_version)[:-1]+'\n'
-       output+=self.filename+'\n'
-       output+=str(len(self.records))+' records'+'\n'
-       output+='FORMAT columns: '+', '.join(i for i in self.formats.keys())+'\n'+'\n'
-       if len(self.records)>3:
-           output+=self.records[0].__repr__()
-           output+=self.records[1].__repr__()
-           output+=self.records[2].__repr__()
-           output+="..."+'\n'
-           output+=self.records[-1].__repr__()
-       return(output)
+        Returns:
+            str: String summarising the VCF file
+        '''        
+        output='VCF variant file, version '+''.join(str(i)+"." for i in self.vcf_version)[:-1]+'\n'
+        output+=self.filename+'\n'
+        output+=str(len(self.records))+' records'+'\n'
+        output+='FORMAT columns: '+', '.join(i for i in sorted(list(self.formats.keys())))+'\n'+'\n'
+        if len(self.records)>3:
+            output += str(self.records[0])
+            output += str(self.records[1])
+            output += str(self.records[2])
+            output += "...\n"
+            output += str(self.records[-1])
+        else:
+            for record in self.records:
+                output += str(record)+'\n'
+        return output
 
     def __find_calls(self):
         '''Function to find changes within the genome based on the variant file
         '''
-        #Use a dict to store the changes with keys as indicies
-        #{index: (base, {calls: base}) ...} where a base of * represents wildtype
-        #Where index is 0 indexed for array access
         self.calls = {}
-        # i = 0
         for record in self.records:
 
             # VCF files are 1 indexed but keep for now
             index = copy.deepcopy(record.pos)
-            ref = record.ref
-            alts = record.alts
 
             # if we've asked, bypass (for speed) if this is a ref call
             if self.bypass_reference_calls and record.is_reference:
@@ -314,7 +315,7 @@ class VariantFile(object):
             ref (str): Reference bases. Should match reference bases at this point
             alt (str): Alt bases.
         Returns:
-            (int, str, str): Returns tuple of (indel pos, one of ['ins','del','snp'], indel bases)
+            [(int, str, str)]: Returns a list of tuples of (pos, one of ['ins','del','snp'], indel_bases or (ref, alt) for SNPs)
         '''
         def snp_number(ref, alt):
             '''Count the number of SNPs between 2 sequences

@@ -311,7 +311,6 @@ def test_instanciate_genome_dna():
             ])
     assert numpy.all(
         genome.stacked_gene_name == full_gene_name)
-    #No rev-comp as DNA only has a single strand
     assert numpy.all(
         genome.stacked_is_reverse_complement == numpy.array([[False for i in range(90)]+[True for i in range(9)], [False for i in range(99)]])
     )
@@ -595,3 +594,15 @@ def test_instanciate_vcf():
 
     #Quick test for VCFRecord.__repr__()
     assert vcf.records[0].__repr__() == "TEST_DNA\t2\ta\t('g',)\tNone\tPASS\tGT:DP:COV:GT_CONF\t(None, None):2:(1, 1):2.05\n"
+
+    #Quick test for vcf.__repr__()
+    rep = [line.replace("\n","") for line in str(vcf).split("\n") if line.replace("\n","").strip() != ""]
+    assert rep[0] == 'VCF variant file, version 4.2'
+    assert rep[1] == 'tests/test-cases/TEST-DNA.vcf'
+    assert rep[2] == "16 records"
+    assert rep[3] == "FORMAT columns: COV, DP, GT, GT_CONF"
+    assert rep[4] == str(vcf.records[0]).strip()
+    assert rep[5] == str(vcf.records[1]).strip()
+    assert rep[6] == str(vcf.records[2]).strip()
+    assert rep[7] == "..."
+    assert rep[8] == str(vcf.records[-1]).strip()
