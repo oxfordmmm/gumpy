@@ -225,7 +225,7 @@ def test_genome_difference():
     diff = g2.difference(g1)
     #Default view
     assert diff.snp_distance == 15
-    assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
+    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z','z', 'a']))
     assert numpy.all(diff.indel_indices == numpy.array([33, 37, 40, 64, 73]))
     assert numpy.all(diff.indels == numpy.array(['ins_2', 'del_1', 'ins_1', 'ins_2', 'ins_1']))
@@ -357,7 +357,7 @@ def test_vcf_difference():
     assert isinstance(diff, gumpy.VCFDifference)
     #Checking the variant masks
     assert numpy.all(diff.variants == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'ins_2', 'del_1', 'a', 'ins_1', 'ins_2', 'ins_1'])
-    assert numpy.all(diff.indices == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 40, 64, 73]))
+    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 40, 64, 73]))
     assert numpy.all(diff.is_snp == [False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, True, False, False, False])
     assert numpy.all(diff.is_het == [False, False, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, False, False, False])
     assert numpy.all(diff.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True])
@@ -417,7 +417,7 @@ def test_vcf_difference():
             assert False, "Code did not throw expected AssertationError"
     assert check_eq(diff.variants_by_index(1), {}, True)
     #Check all indices
-    for (idx, genome_index) in enumerate(diff.indices.tolist()):
+    for (idx, genome_index) in enumerate(diff.nucleotide_index.tolist()):
         assert check_eq(diff.variants_by_index(genome_index), {field: full_metadata[field][idx] for field in full_metadata.keys()}, True)
 
     assert diff.snp_distance == 15

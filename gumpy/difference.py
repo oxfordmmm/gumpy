@@ -106,7 +106,7 @@ class Difference(ABC):
             numpy.array: Array of values from object1
         '''
         if len(array) > 0:
-            array = numpy.array([item1 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
+            array = numpy.array([item2 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
         else:
             return numpy.array([])
         #Check for all None values
@@ -154,7 +154,7 @@ class GenomeDifference(Difference):
         Where applicable, the `full` diference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
         '''
         #Calculate differences
-        self.indices = self.__indices()
+        self.nucleotide_index = self.__indices()
         self._nucleotides_full = self.__nucleotides()
 
         #These are only valid when a VCF has been applied to at least 1 of the genomes
@@ -314,7 +314,7 @@ class VCFDifference(object):
     Instance variables:
         genome (gumpy.Genome): Reference genome object
         vcf (gumpy.VariantFile): VCF object
-        indices (numpy.array): Numpy array of genome indices which are affected by the VCF
+        nucleotide_index (numpy.array): Numpy array of genome indices which are affected by the VCF
         calls (numpy.array): Array of calls which corresponds to `indices`, i.e indices[3] <-> calls[3]
         is_snp (numpy.array): Array to act as a mask for `indices` to show which are SNPs
         is_het (numpy.array): Array to act as a mask for `indices` to show which are heterozygous calls
@@ -344,7 +344,7 @@ class VCFDifference(object):
 
         self.indels = self.__indels()
 
-        self.genes= genome.stacked_gene_name[numpy.isin(genome.stacked_nucleotide_index,(self.indices))]
+        self.genes= genome.stacked_gene_name[numpy.isin(genome.stacked_nucleotide_index,(self.nucleotide_index))]
 
     def __get_variants(self):
         '''Pull the variants out of the VariantFile object. Builds arrays
@@ -398,12 +398,12 @@ class VCFDifference(object):
                 metadata[key].append(self.vcf.calls[index]['original_vcf_row'][key])
         #Convert to numpy arrays for neat indexing
         self.variants = numpy.array(variants)
-        self.indices = numpy.array(indices)
+        self.nucleotide_index = numpy.array(indices)
         self.is_indel = numpy.array(is_indel)
         self.is_snp = numpy.array(is_snp)
         self.is_het = numpy.array(is_het)
         self.is_null = numpy.array(is_null)
-        self.ref=numpy.array(refs)
+        self.ref_nucleotides=numpy.array(refs)
         self.pos=numpy.array(positions)
         self.metadata = dict()
         for key in metadata:
@@ -421,7 +421,7 @@ class VCFDifference(object):
                             numpy.logical_or(self.is_snp, self.is_het),
                             self.is_null)
         #Get dict mapping genome_index->snp_call
-        _snps = dict(zip(self.indices[mask],self.variants[mask]))
+        _snps = dict(zip(self.nucleotide_index[mask],self.variants[mask]))
 
         #Convert to GARC mutation nomenclature of ref>call
         snps = {}
@@ -435,7 +435,7 @@ class VCFDifference(object):
         Returns:
             dict: Dictionary mapping genome_index->indel
         '''
-        indels = dict(zip(self.indices[self.is_indel], self.variants[self.is_indel]))
+        indels = dict(zip(self.nucleotide_index[self.is_indel], self.variants[self.is_indel]))
         return indels
 
     def variants_by_index(self, index):
