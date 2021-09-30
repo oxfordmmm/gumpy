@@ -24,7 +24,7 @@ def test_ribosomal_slippage():
             assert g.genes[gene_name] == ref.genes[gene_name]
 
     #Checking for correct handling of -1 PRF
-    a = g.genes["A"]
+    a = g.build_gene("A")
     assert numpy.all(a.nucleotide_sequence == list("aaaaaaaaaacccccccccccggggggggggttccc"))
     assert numpy.all(a.nucleotide_number == numpy.array([-3, -2, -1]+list(range(1,31))+[-6, -5, -4]))
     assert numpy.all(a.nucleotide_index == numpy.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,97,98,99]))
@@ -57,7 +57,7 @@ def test_ribosomal_slippage2():
             assert g.genes[gene_name] == ref.genes[gene_name]
 
     #Checking for correct handling of -1 PRF
-    c = g.genes["C"]
+    c = g.build_gene("C")
     assert numpy.all(c.nucleotide_sequence == list("ggggggggggttttttttttaaaaaaaaaaccccccccc"))
     assert numpy.all(c.nucleotide_number == numpy.array([-i for i in range(1, 31)][::-1] + list(range(1, 10))))
     assert numpy.all(c.nucleotide_index == numpy.array(list(range(61, 95))+[94, 95, 96, 97, 98] ))
@@ -70,7 +70,7 @@ def test_ribosomal_slippage2():
     assert numpy.all(c.codon_number == numpy.array([1, 1, 1, 2, 2, 2, 3, 3, 3]))
 
     #Checking for appropriate changes to A based on changes in promoter region
-    a = g.genes["A"]
+    a = g.build_gene("A")
     assert numpy.all(a.nucleotide_sequence == list("aaaaaaaaaaccccccccccggggggggggc"))
     assert numpy.all(a.nucleotide_number == numpy.array([-3, -2, -1]+list(range(1, 28))+[-4]))
     assert numpy.all(a.nucleotide_index == list(range(1, 31))+[99])

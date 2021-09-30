@@ -38,13 +38,16 @@ class Difference(ABC):
         assert method in ['diff', 'full'], "Invalid method: "+method
 
         if method == "full":
-            self.nucleotides = self._nucleotides_full
             # self.indels = self._indels_full
             # if object_type=='gene' and self.codes_protein:
-            if isinstance(self, GeneDifference) and self.codes_protein:
-                #Gene specific attributes
-                # self.codons = self._codons_full
-                self.amino_acid_sequence = self._amino_acids_full
+            if isinstance(self, GeneDifference):
+                if self.codes_protein:
+                    self.amino_acid_sequence = self._amino_acids_full
+                else:
+                    self.nucleotides=self._nucleotides_full
+            else:
+                self.nucleotides=self._nucleotides_full
+
         if method == "diff":
             #Convert the full arrays into diff arrays
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)

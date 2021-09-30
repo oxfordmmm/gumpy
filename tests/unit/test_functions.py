@@ -305,21 +305,20 @@ def test_gene_difference():
     #Test the Gene.difference() method and GeneDifference() objects
     genome1 = gumpy.Genome("config/TEST-DNA.gbk")
     genome2 = genome1+gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
-    g1 = genome1.genes["A"]
-    g2 = genome2.genes["A"]
-    diff = g1.difference(g2)
+    g1 = genome1.build_gene("A")
+    g2 = genome2.build_gene("A")
+    diff = g1-g2
 
     assert isinstance(diff, gumpy.GeneDifference)
-    assert numpy.all(diff.nucleotides == ['a', 'a', 'a', 'a', 'c', 'c', 'c', 'c', 'g', 'g', 'g', 'g', 'g', 'g'])
-    assert numpy.all(diff.mutations == sorted(['A@a-2x', 'A@K1X', 'A@K2X', 'A@3=', 'A@P4R', 'A@P5C', 'A@G7Z', 'A@G8Z', 'A@G9Z']))
-    assert diff.indel_indices.tolist() == []
-    assert numpy.all(diff.codons == ['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg'])
-    assert numpy.all(diff.amino_acids == ['K', 'K' ,'P' ,'P' ,'G' ,'G' ,'G'])
+    assert numpy.all(diff.nucleotides == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z'])
+    assert numpy.all(diff.mutations == ['K1X', 'K2X', 'T3T', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x'])
+    assert numpy.all(diff.ref_nucleotides == ['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a'])
+    assert numpy.all(diff.amino_acid_number == [1, 2, 3, 4, 5, 7, 8, 9, None])
 
-def test_valid_varaint():
+def test_valid_variant():
     #Test if the Gene.valid_variant() works
     genome = gumpy.Genome("config/TEST-DNA.gbk")
-    gene = genome.genes["A"]
+    gene = genome.build_gene("A")
 
     #Some normal valid varaints
     assert gene.valid_variant("K2X")
@@ -417,20 +416,8 @@ def test_vcf_to_df():
     data = {
         "CHROM": ["TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA","TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA", "TEST_DNA"],
         "POS": [2, 4, 6, 12, 14, 16, 22, 24, 26, 28, 33, 36, 39, 65, 69, 73],
-        "REF": ['a', 'a', 'aaa', 'c', 'c', 'ccc', 'g', 'g', 'gg', 'gg', 't', 'tt', 'tc', 'gg', 'gg', 't'],
-        "ALTS": [('g',),
-                 ('g', 't'),
-                 ('ggt', 'gta', 'ata'),
-                 ('t',),
-                 ('t', 'g'),
-                 ('tgc', 'gtg'),
-                 ('t', 'c', 'a'),
-                 ('t', 'c', 'a'),
-                 ('aa', 'ct', 'at'),
-                 ('aa', 't', 'a'),
-                 ('ttt',),
-                 ('t',), ('tag',),
-                 ('cagg',), ('gg',), ('ta', 'at')],
+        "REF": ['a', 'a', 'aaa', 'c', 'c', 'ccc', 'g', 'g', 'gg', 'gg', 't', 'tt', 'tt', 'gg', 'gg', 't'],
+        "ALTS": [('g',), ('g', 't'), ('ggt', 'gta', 'ata'), ('t',), ('t', 'g'), ('tgc', 'gtg'), ('t', 'c', 'a'), ('t', 'c', 'a'),  ('aa', 'ct', 'at'), ('aa', 't', 'a'), ('ttt',), ('t',), ('agt',), ('cagg',), ('gg',), ('ta', 'at')],
         "QUAL": [None, None, None, None, None, None,None, None, None, None, None, None, None, None, None, None],
         "INFO": [{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15},{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {'KMER': 15}, {'KMER': 15}, {'KMER': 15}, {'KMER': 15}],
         "GT": [(None, None),
@@ -497,4 +484,5 @@ def test_indels():
                                                             (0, "snp", ("a", "c")), (1, "snp", ("c", "g")),
                                                             (2, "snp", ("g", "t")), (3, "del", "taa")
                                                         ])
-    assert sorted(vcf.simplify_call("a", "gga")) == [(-1, "ins", "gg")]
+    # assert sorted(vcf.simplify_call("a", "gga")) == [(-1, "ins", "gg")]
+    assert sorted(vcf.simplify_call("a", "gga")) == [(0, "ins", "gg")]
