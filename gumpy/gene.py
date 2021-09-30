@@ -360,6 +360,12 @@ class Gene(object):
 
         return(mutations)
 
+    def __len__(self):
+
+        # return the number of bases in the coding region to avoid ambuiguity about whether or not it codes protein
+        # and how long the promoter is
+
+        return(len(self.nucleotide_sequence[self.is_cds]))
 
     # def __sub__(self,other):
     #

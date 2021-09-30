@@ -43,7 +43,7 @@ class Genome(object):
                             'description', 'length', 'nucleotide_index', 'stacked_gene_name', 'stacked_is_cds', 'stacked_is_promoter',
                             'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations',
                             'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes',
-                            'multithreaded', 'indels', 'changes', 'original', 'calls', 'variant_file', 'is_reference']
+                            'multithreaded',  'is_reference']
             seen = set()
             for key in kwargs.keys():
                 '''
@@ -105,12 +105,12 @@ class Genome(object):
             timings['promoter'].append(time.time()-start_time)
             start_time=time.time()
 
-        self.__recreate_genes(show_progress_bar=show_progress_bar)
-
-        if verbose:
-            timings['create genes'].append(time.time()-start_time)
-            for i in timings:
-                print("%20s %6.3f s" % (i, numpy.sum(timings[i])))
+        # self.__recreate_genes(show_progress_bar=show_progress_bar)
+        #
+        # if verbose:
+        #     timings['create genes'].append(time.time()-start_time)
+        #     for i in timings:
+        #         print("%20s %6.3f s" % (i, numpy.sum(timings[i])))
 
         self.__convert_references()
 
@@ -208,8 +208,6 @@ class Genome(object):
         # print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
         check = check and numpy.all(self.nucleotide_index == other.nucleotide_index)
         # print("NI", numpy.all(self.nucleotide_index == other.nucleotide_index))
-        check = check and self.genes_lookup == other.genes_lookup
-        # print("gene lookup", self.genes_lookup == other.genes_lookup)
         check = check and self.length == other.length
         # print("len", self.length == other.length)
         check = check and numpy.all(self.stacked_gene_name.tolist() == other.stacked_gene_name.tolist())
@@ -241,7 +239,7 @@ class Genome(object):
         assert type(gene_name) == str, "Gene name must be string. Gene name provided was of type: "+str(type(gene_name))
         #Use of dict.get(obj) returns an object or None if obj does not exist in dict
         #bool(None) = False, bool(obj) = True
-        return bool(self.genes_lookup.get(gene_name))
+        return bool(self.genes.get(gene_name))
 
 
     def at_index(self,index):
@@ -535,7 +533,7 @@ class Genome(object):
         for i in reference_genome.annotations.keys():
             self.annotations[i]=reference_genome.annotations[i]
 
-        self.genes_lookup={}
+        self.genes={}
 
         # loop through the features listed in the GenBank File
         for record in tqdm(reference_genome.features):
@@ -567,11 +565,11 @@ class Genome(object):
             if gene_name is None or (gene_subset is not None and gene_name not in gene_subset):
                 continue
 
-            if gene_name in self.genes_lookup.keys():
+            if gene_name in self.genes.keys():
                 print(gene_name)
 
             # sigh, you can't assume that a gene_name is unique in a GenBank file
-            gene_name+="_2" if gene_name in self.genes_lookup.keys() else ''
+            gene_name+="_2" if gene_name in self.genes.keys() else ''
 
             # since we've defined the feature_name array to be 20 chars, check the gene_name will fit
             assert len(gene_name)<=self.max_gene_name_length, "Gene "+gene_name+" is too long at "+str(len(gene_name))+" chars; need to change numpy.zeros definiton U20 to match"
@@ -590,7 +588,7 @@ class Genome(object):
                 shifts.append(positions[1][0] - gene_start + 1)
 
             # record feature metadata in a dict
-            self.genes_lookup[gene_name]={  'reverse_complement':rev_comp,\
+            self.genes[gene_name]={  'reverse_complement':rev_comp,\
                                         'type':type,\
                                         'codes_protein':codes_protein,\
                                         'start':gene_start,\
@@ -667,11 +665,11 @@ class Genome(object):
         genes_mask = numpy.array([numpy.array([False for x in range(self.length)])]) #Boolean mask to show gene presence at indicies
         genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length)) #Gene names
         self.gene_rows = dict()#Dict to pull out row indicies for each gene in the stacked arrays
-        for gene_name in tqdm(self.genes_lookup):
+        for gene_name in tqdm(self.genes):
             #Get the start/end/rev_comp values
-            start = self.genes_lookup[gene_name]["start"]
-            end = self.genes_lookup[gene_name]["end"]
-            rev_comp=self.genes_lookup[gene_name]['reverse_complement']
+            start = self.genes[gene_name]["start"]
+            end = self.genes[gene_name]["end"]
+            rev_comp=self.genes[gene_name]['reverse_complement']
 
             #Determine the boolean mask for this gene
             if end<start:
@@ -722,9 +720,9 @@ class Genome(object):
 
         #Populate a dictionary to store the starts/ends of genes as they grow with promoters
         start_end = {gene_name : {
-                                "start": self.genes_lookup[gene_name]["start"],
-                                "end": self.genes_lookup[gene_name]["end"]}
-                    for gene_name in self.genes_lookup}
+                                "start": self.genes[gene_name]["start"],
+                                "end": self.genes[gene_name]["end"]}
+                    for gene_name in self.genes}
         for promoter in tqdm(range(1,self.max_promoter_length+1)):
 
             #Replacement `start_end` because dictionaries can't be changed during iteration
@@ -733,7 +731,7 @@ class Genome(object):
                 #Get the associated start/end
                 start = start_end[gene_name]["start"]
                 end = start_end[gene_name]["end"]
-                rev_comp = self.genes_lookup[gene_name]["reverse_complement"]
+                rev_comp = self.genes[gene_name]["reverse_complement"]
                 #Check if the region which the gene would grow into is empty
                 if rev_comp:
                     #Indexing is weird so stacked_array[i][end-2] is the end of the gene
@@ -802,14 +800,6 @@ class Genome(object):
         #The mask for singular arrays (1-dim) by collapsing stacked mask to 1-dim
         mask=numpy.any(stacked_mask,axis=0)
 
-        #Check for variants
-        gene_variants = {}
-        if self.variant_file:
-            #If the variant_file has been set, check for variants within the gene
-            for index in self.variant_file.calls.keys():
-                if mask[index-1]:
-                    #The gene is present at this index so add to variants
-                    gene_variants[index] = self.variant_file.calls[index]
 
         assert numpy.count_nonzero(mask)>0, "gene ("+gene+") not found in genome!"
         g = Gene(name=gene,
@@ -821,70 +811,68 @@ class Genome(object):
                     is_indel=self.is_indel[mask],
                     indel_length=self.indel_length[mask],
                     indel_nucleotides=self.indel_nucleotides[mask],
-                    codes_protein=self.genes_lookup[gene]['codes_protein'],
-                    reverse_complement=self.genes_lookup[gene]['reverse_complement'],
-                    feature_type=self.genes_lookup[gene]['type'],
-                    ribosomal_shifts=self.genes_lookup[gene]['ribosomal_shifts'],
-                    variants=gene_variants
-                )
+                    codes_protein=self.genes[gene]['codes_protein'],
+                    reverse_complement=self.genes[gene]['reverse_complement'],
+                    feature_type=self.genes[gene]['type'],
+                    ribosomal_shifts=self.genes[gene]['ribosomal_shifts'] )
         if conn:
             conn.send(g)
         else:
             return g
 
-    def __recreate_genes(self,show_progress_bar=False):
-        """
-        Private method to re-instantiate the passed list Genes.
+    # def __recreate_genes(self,show_progress_bar=False):
+    #     """
+    #     Private method to re-instantiate the passed list Genes.
+    #
+    #     This translates the nucleotide sequence into amino acids (if the gene codes protein) and is
+    #     hence necessary after applying a vcf file, albeit only for those genes whose sequence has been altered.
+    #
+    #     Args:
+    #         show_progress_bar (bool, optional):  Whether to show the (tqdm) progress bar. Defaults to False
+    #     """
+    #     list_of_genes = list(self.genes_lookup.keys())
+    #
+    #     self.genes={}
+    #
+    #     #Limit of how many processes can be open at once
+    #     limit = 10 #On Linux this works at 25-50 but Windows has weird issues so 10 is the max for 16BG RAM
+    #
+    #     #As there is some overhead for multithreading, there are cases where this is actually slower
+    #     #So add a check to use a single thread if the number of required iterations is less than the limit
+    #     #Due to several other cross-platform issues, it is also worth restricting multithreading to Linux as this is the
+    #     #   only tested platform with speedup from it. Also included is a switch to enable/disable
+    #     if len(list_of_genes) <= limit or sys.platform!="linux" or self.multithreaded==False:
+    #         #Single threaded
+    #         for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
+    #             self.genes[gene] = self.build_gene(gene, conn=None)
+    #         return
+    #
+    #     #Multithreading
+    #     for thread_index in tqdm(range(0, math.ceil(len(list_of_genes)/limit)),disable=not(show_progress_bar)):
+    #         #Get the communication pipes required
+    #         pipes = [multiprocessing.Pipe() for i in range(limit)]
+    #         #Get some threads
+    #         threads = [(multiprocessing.Process(target=self.build_gene, args=(gene, child)), gene, parent)
+    #                     for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], pipes)]
+    #         #Start some threads
+    #         for i in range(limit):
+    #             if i < len(threads):
+    #                 threads[i][0].start()
+    #         #Wait for the threads to finish
+    #         for i in range(limit):
+    #             if i < len(threads):
+    #                 #Get data from the pipe
+    #                 recieved = threads[i][2].recv()
+    #                 if recieved is None:
+    #                     continue
+    #                 #Rejoin the main thread
+    #                 threads[i][0].join()
+    #                 #Set the appropriate value in the genes dict
+    #                 self.genes[threads[i][1]] = recieved
+    #                 #Close the threads and connections
+    #                 threads[i][0].close()
 
-        This translates the nucleotide sequence into amino acids (if the gene codes protein) and is
-        hence necessary after applying a vcf file, albeit only for those genes whose sequence has been altered.
-
-        Args:
-            show_progress_bar (bool, optional):  Whether to show the (tqdm) progress bar. Defaults to False
-        """
-        list_of_genes = list(self.genes_lookup.keys())
-
-        self.genes={}
-
-        #Limit of how many processes can be open at once
-        limit = 10 #On Linux this works at 25-50 but Windows has weird issues so 10 is the max for 16BG RAM
-
-        #As there is some overhead for multithreading, there are cases where this is actually slower
-        #So add a check to use a single thread if the number of required iterations is less than the limit
-        #Due to several other cross-platform issues, it is also worth restricting multithreading to Linux as this is the
-        #   only tested platform with speedup from it. Also included is a switch to enable/disable
-        if len(list_of_genes) <= limit or sys.platform!="linux" or self.multithreaded==False:
-            #Single threaded
-            for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
-                self.genes[gene] = self.build_gene(gene, conn=None)
-            return
-
-        #Multithreading
-        for thread_index in tqdm(range(0, math.ceil(len(list_of_genes)/limit)),disable=not(show_progress_bar)):
-            #Get the communication pipes required
-            pipes = [multiprocessing.Pipe() for i in range(limit)]
-            #Get some threads
-            threads = [(multiprocessing.Process(target=self.build_gene, args=(gene, child)), gene, parent)
-                        for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], pipes)]
-            #Start some threads
-            for i in range(limit):
-                if i < len(threads):
-                    threads[i][0].start()
-            #Wait for the threads to finish
-            for i in range(limit):
-                if i < len(threads):
-                    #Get data from the pipe
-                    recieved = threads[i][2].recv()
-                    if recieved is None:
-                        continue
-                    #Rejoin the main thread
-                    threads[i][0].join()
-                    #Set the appropriate value in the genes dict
-                    self.genes[threads[i][1]] = recieved
-                    #Close the threads and connections
-                    threads[i][0].close()
-
-    def apply_variant_file(self, vcf):
+    def __add__(self, vcf):
         '''Function to apply a variant file to the genome  - producing a replica genome with the specified changes
 
         Args:
@@ -936,7 +924,7 @@ class Genome(object):
         genome.is_reference = False
 
         #Rebuild the genes with this new information
-        print("Rebuilding the Gene objects with the updated genome...")
-        genome.__recreate_genes(show_progress_bar=True)
+        # print("Rebuilding the Gene objects with the updated genome...")
+        # genome.__recreate_genes(show_progress_bar=True)
 
         return genome

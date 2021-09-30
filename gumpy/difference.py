@@ -38,21 +38,21 @@ class Difference(ABC):
         assert method in ['diff', 'full'], "Invalid method: "+method
 
         if method == "full":
-            self.nucleotide_sequence = self._nucleotides_full
-            self.indels = self._indels_full
+            self.nucleotides = self._nucleotides_full
+            # self.indels = self._indels_full
             # if object_type=='gene' and self.codes_protein:
             if isinstance(self, GeneDifference) and self.codes_protein:
                 #Gene specific attributes
-                self.codons = self._codons_full
+                # self.codons = self._codons_full
                 self.amino_acid_sequence = self._amino_acids_full
         if method == "diff":
             #Convert the full arrays into diff arrays
-            self.nucleotide_sequence = self.__full_to_diff(self._nucleotides_full)
-            self.indels = self.__full_to_diff(self._indels_full)
+            self.nucleotides = self.__full_to_diff(self._nucleotides_full)
+            # self.indels = self.__full_to_diff(self._indels_full)
             # if object_type=='gene' and  self.codes_protein:
             if isinstance(self, GeneDifference) and self.codes_protein:
                 #Gene specific attributes
-                self.codons = self.__full_to_diff(self._codons_full)
+                # self.codons = self.__full_to_diff(self._codons_full)
                 self.amino_acid_sequence = self.__full_to_diff(self._amino_acids_full)
         self._view_method = method
 
@@ -162,7 +162,7 @@ class GenomeDifference(Difference):
         self._nucleotides_full = self.__nucleotides()
 
         #These are only valid when a VCF has been applied to at least 1 of the genomes
-        self._indels_full = self.__indels()
+        # self._indels_full = self.__indels()
 
         #Checking for the same genes, give a warning is the genes are different
         if self.genome1.genes.keys() != self.genome2.genes.keys():
@@ -532,7 +532,7 @@ class VCFDifference(object):
             numpy.array: Array of GeneDifference objects
         '''
         #Build the genome with the VCF applied
-        genome_ = self.genome.apply_variant_file(self.vcf)
+        genome_ = self.genome+self.vcf
         return numpy.array([
             GeneDifference(
                 self.genome.genes[gene], genome_.genes[gene]
@@ -590,8 +590,6 @@ class GeneDifference(Difference):
         # self.mutations = self.__mutations()
         self.__get_mutations()
 
-        self.indel_indices = self.__indel_indices()
-        self._indels_full = self.__indels()
         self._codons_full = self.__codons()
         self._amino_acids_full = self.__amino_acids()
 
