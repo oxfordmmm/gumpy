@@ -30,7 +30,7 @@ class Gene(object):
         #UPDATE THIS AS REQUIRED
         allowed_kwargs = ['name', 'nucleotide_sequence', 'nucleotide_index', 'nucleotide_number', 'is_cds', 'is_promoter',
                         'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type',
-                        'triplet_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number',
+                        'codon_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number',
                         'codons', 'amino_acid_sequence', 'ribosomal_shifts', 'variants']
         #If reloading a Gene, just set the attributes and return
         if "reloading" in kwargs.keys():
@@ -54,6 +54,7 @@ class Gene(object):
         is_promoter = kwargs.get("is_promoter")
         is_indel = kwargs.get("is_indel")
         indel_length = kwargs.get("indel_length")
+        indel_nucleotides = kwargs.get("indel_nucleotides")
         reverse_complement = kwargs.get("reverse_complement", False)
         codes_protein = kwargs.get("codes_protein", True)
         feature_type = kwargs.get("feature_type")
@@ -90,7 +91,9 @@ class Gene(object):
         self.is_cds=is_cds
         self.is_promoter=is_promoter
         self.is_indel=is_indel
+        self.indel_nucleotides=indel_nucleotides
         self.indel_length=indel_length
+
 
         #Make appropriate changes to the arrays to encorporate the frame shift
         for shift in ribosomal_shifts:
@@ -104,14 +107,14 @@ class Gene(object):
             self.is_indel=self.is_indel[::-1]
             self.indel_length=self.indel_length[::-1]
             if self.codes_protein:
-                self.triplet_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
-                self.gene_position=numpy.concatenate((self.nucleotide_number[self.nucleotide_number<0], self.triplet_number))
+                self.codon_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
+                self.gene_position=numpy.concatenate((self.nucleotide_number[self.nucleotide_number<0], self.codon_number))
             else:
                 self.gene_position=self.nucleotide_number
         else:
             if self.codes_protein:
-                self.triplet_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
-                self.gene_position=numpy.concatenate((self.nucleotide_number[self.nucleotide_number<0], self.triplet_number))
+                self.codon_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
+                self.gene_position=numpy.concatenate((self.nucleotide_number[self.nucleotide_number<0], self.codon_number))
             else:
                 self.gene_position=self.nucleotide_number
 
@@ -224,7 +227,7 @@ class Gene(object):
 
     def _translate_sequence(self):
         # this will ensure that only amino acids with all three bases present
-        unique,counts=numpy.unique(self.triplet_number,return_counts=True)
+        unique,counts=numpy.unique(self.codon_number,return_counts=True)
         self.amino_acid_number=unique[counts==3]
         self.amino_acid_number=self.amino_acid_number.astype(int)
 
@@ -330,6 +333,20 @@ class Gene(object):
         mask=self.is_indel
         pos=list(self.nucleotide_number[mask])
         length=list(self.indel_length[mask])
+
+        for (p,l) in zip(pos,length):
+            if not l:
+                mutations.append(str(int(p))+"_indel_"+str(l))
+            elif l > 0:
+                mutations.append(str(p)+"_ins_"+str(l))
+            else:
+                mutations.append(str(p)+"_del_"+str(l))
+
+
+        mask=other.is_indel
+        pos=list(other.nucleotide_number[mask])
+        length=list(other.indel_length[mask])
+
         for (p,l) in zip(pos,length):
             if not l:
                 mutations.append(str(int(p))+"_indel_"+str(l))
@@ -344,39 +361,39 @@ class Gene(object):
         return(mutations)
 
 
-    def __sub__(self,other):
+    # def __sub__(self,other):
+    #
+    #     """
+    #     Overload the subtraction operator so it returns a tuple of the differences between the two genes.
+    #     Differences are given in the form of an array of gene indices where the two Genes differ.
+    #
+    #     Args:
+    #         other (gumpy.Gene): Other gene object
+    #     Raises:
+    #         AssertationErrors: Raises errors if the Genes are not the same gene (same length, name and codes_protein are required)
+    #     Returns:
+    #         numpy.array: Numpy array of gene indices where the Genes are different.
+    #     """
+    #
+    #     assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
+    #     assert self.name==other.name, "both genes must be identical!"
+    #     assert self.codes_protein==other.codes_protein, "both genes must be identical!"
+    #
+    #     positions=[]
+    #
+    #     mask=self.nucleotide_sequence!=other.nucleotide_sequence
+    #     positions=list(self.nucleotide_number[mask])
+    #
+    #     mask=self.is_indel
+    #     positions+=list(self.nucleotide_number[mask])
+    #
+    #
+    #     if not positions:
+    #         return None
+    #
+    #     return(numpy.array(positions))
 
-        """
-        Overload the subtraction operator so it returns a tuple of the differences between the two genes.
-        Differences are given in the form of an array of gene indices where the two Genes differ.
-
-        Args:
-            other (gumpy.Gene): Other gene object
-        Raises:
-            AssertationErrors: Raises errors if the Genes are not the same gene (same length, name and codes_protein are required)
-        Returns:
-            numpy.array: Numpy array of gene indices where the Genes are different.
-        """
-
-        assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
-        assert self.name==other.name, "both genes must be identical!"
-        assert self.codes_protein==other.codes_protein, "both genes must be identical!"
-
-        positions=[]
-
-        mask=self.nucleotide_sequence!=other.nucleotide_sequence
-        positions=list(self.nucleotide_number[mask])
-
-        mask=self.is_indel
-        positions+=list(self.nucleotide_number[mask])
-
-
-        if not positions:
-            return None
-
-        return(numpy.array(positions))
-
-    def difference(self, other):
+    def __sub__(self, other):
         '''Return a more detailed difference between two genes. The Gene objects should be referring to the same
             gene (same name and protein coding), but must have the same length.
 

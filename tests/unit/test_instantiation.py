@@ -255,7 +255,7 @@ def test_instanciate_genes_rna():
     assert numpy.all(gene.indel_length == numpy.array([0 for i in range(33)]))
 
     #Test attributes set during object instanciation
-    assert numpy.all(gene.triplet_number == numpy.array([math.ceil(i/3) for i in range(1, 28)]))
+    assert numpy.all(gene.codon_number == numpy.array([math.ceil(i/3) for i in range(1, 28)]))
     assert numpy.all(gene.amino_acid_number == numpy.array(range(1,10)))
     assert numpy.all(gene.codons == numpy.array(["aaa", "aaa", "acc", "ccc", "ccc", "ccg", "ggg", "ggg", "ggg"]))
     assert numpy.all(gene.amino_acid_sequence == numpy.array(list("KKTPPPGGG")))
@@ -402,7 +402,7 @@ def test_instanciate_genes_dna():
     assert numpy.all(gene.indel_length == numpy.array([0 for i in range(30)]))
 
     #Test attributes set during object instanciation
-    assert numpy.all(gene.triplet_number == numpy.array([math.ceil(i/3) for i in range(1, 28)]))
+    assert numpy.all(gene.codon_number == numpy.array([math.ceil(i/3) for i in range(1, 28)]))
     assert numpy.all(gene.amino_acid_number == numpy.array(range(1,10)))
     assert numpy.all(gene.codons == numpy.array(["aaa", "aaa", "acc", "ccc", "ccc", "ccg", "ggg", "ggg", "ggg"]))
     assert numpy.all(gene.amino_acid_sequence == numpy.array(list("KKTPPPGGG")))
@@ -424,7 +424,7 @@ def test_instanciate_genes_dna():
     assert numpy.all(gene.indel_length == numpy.array([0 for i in range(9)]))
 
     #Test attributes set during object instanciation
-    assert numpy.all(gene.triplet_number == numpy.array([math.ceil(i/3) for i in range(1, 7)]))
+    assert numpy.all(gene.codon_number == numpy.array([math.ceil(i/3) for i in range(1, 7)]))
     assert numpy.all(gene.amino_acid_number == numpy.array(range(1,3)))
     assert numpy.all(gene.codons == numpy.array(["ggg", "ggg"]))
     assert numpy.all(gene.amino_acid_sequence == numpy.array(list("GG")))

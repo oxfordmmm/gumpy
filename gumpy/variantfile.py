@@ -203,7 +203,7 @@ class VariantFile(object):
 
         Returns:
             str: String summarising the VCF file
-        '''        
+        '''
         output='VCF variant file, version '+''.join(str(i)+"." for i in self.vcf_version)[:-1]+'\n'
         output+=self.filename+'\n'
         output+=str(len(self.records))+' records'+'\n'
@@ -285,7 +285,8 @@ class VariantFile(object):
                         #     indel_length *= -1
                         metadata = {}
                         metadata['type'] = 'indel'
-                        metadata['call'] = (type_, indel_length)
+                        metadata['call'] = (type_,bases)
+                        # metadata['call'] = (type_, indel_length)
                         metadata['ref']=record.ref[0]
                         metadata['pos']=p
                         vcf_info={}
@@ -364,15 +365,16 @@ class VariantFile(object):
                 start = i
         seq = [x[i] for i in range(len(current)) if current[i] is None]
         #Add the indel
-        if indel == "ins":
+        # if indel == "ins":
             #Ins after index, del at index so adjust ins
-            start -= 1
+            # start -= 1
         mutations.append((start, indel, ''.join(seq)))
         #Check for SNPs and add those
         for (i, (a, b)) in enumerate(zip(x, current)):
             if a is not None and b is not None and a != b:
                 if indel == "ins":
-                    mutations.append((i-1, "snp", (b, a)))
+                    # PWF was (i-1) but corrected, prob
+                    mutations.append((i, "snp", (b, a)))
                 else:
                     mutations.append((i, "snp", (a, b)))
         return mutations

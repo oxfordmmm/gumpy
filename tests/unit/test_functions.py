@@ -135,38 +135,17 @@ def test_apply_vcf():
     assert numpy.all(g2.nucleotide_sequence ==  numpy.array(
                     list('axaaaxxxaactcgctgcccgzgzgzzzzgttttttttataaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc')
     ))
-    assert numpy.all(g2 - g1 == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39]))
-    assert g2.variant_file == vcf
-    assert g2.original == {1: 'a',
-         5: 'a',
-         6: 'a',
-         7: 'a',
-         11: 'c',
-         13: 'c',
-         15: 'c',
-         16: 'c',
-         21: 'g',
-         23: 'g',
-         25: 'g',
-         26: 'g',
-         27: 'g',
-         28: 'g',
-         32: 't',
-         36: 't',
-         38: 't',
-         39: 't',
-         63: 'g',
-         72: 't'
-    }
-    assert g2.indels == {32: 'ins_2', 36: 'del_1', 39: 'ins_1', 63: 'ins_2', 72: 'ins_1'}
-    calls = {
-        1: [(0, '-'), (68, 'g')],
-        15: [(0, '-'), (68, 't')],
-        27: [(1, '-'), (99, 't'), (100, 'c')],
-        71: [(0, '-'), (68, numpy.array(['g', 'c', 'c']))],
-        77: [(0, '-'), (48, numpy.array(['g', 't', 't'])), (20, 'g')],
-        89: [(0, '-'), (68, 'x')]
-    }
+    diff=g2-g1
+    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g','22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a','34_ins_tt', '37_del_t', '40_ins_g', '65_ins_ca', '74_ins_a']))
+
+    assert numpy.all(diff.nucleotide_index==numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 34, 37,40, 65, 74]))
+
+    assert numpy.all(diff.
+    assert numpy.all(diff.
+    assert numpy.all(diff.
+    assert numpy.all(diff.indel_length==numpy.array([ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2, -1, 1,  2,  1])))
+
+
 
     #Check for gene level changes
     gene_changes = []

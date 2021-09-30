@@ -26,7 +26,7 @@ class Difference(ABC):
         '''If this class is instantiated, crash
         '''
         assert False, "This class should not be instantiated!"
-    def update_view(self, method):
+    def update_view(self, method, object_type):
         '''Update the viewing method. Can either be `diff` or `full`:
         `diff`: Where applicable, variables return arrays of values from object1 where they are not equal to object 2
         `full`: Where applicable, variables return arrays of tuples showing (object1_val, object2_val) where values are not equal between objects.
@@ -38,20 +38,22 @@ class Difference(ABC):
         assert method in ['diff', 'full'], "Invalid method: "+method
 
         if method == "full":
-            self.nucleotides = self._nucleotides_full
+            self.nucleotide_sequence = self._nucleotides_full
             self.indels = self._indels_full
-            if isinstance(self, GeneDifference) and self._codes_protein:
+            # if object_type=='gene' and self.codes_protein:
+            if isinstance(self, GeneDifference) and self.codes_protein:
                 #Gene specific attributes
                 self.codons = self._codons_full
-                self.amino_acids = self._amino_acids_full
+                self.amino_acid_sequence = self._amino_acids_full
         if method == "diff":
             #Convert the full arrays into diff arrays
-            self.nucleotides = self.__full_to_diff(self._nucleotides_full)
+            self.nucleotide_sequence = self.__full_to_diff(self._nucleotides_full)
             self.indels = self.__full_to_diff(self._indels_full)
-            if isinstance(self, GeneDifference) and self._codes_protein:
+            # if object_type=='gene' and  self.codes_protein:
+            if isinstance(self, GeneDifference) and self.codes_protein:
                 #Gene specific attributes
                 self.codons = self.__full_to_diff(self._codons_full)
-                self.amino_acids = self.__full_to_diff(self._amino_acids_full)
+                self.amino_acid_sequence = self.__full_to_diff(self._amino_acids_full)
         self._view_method = method
 
     def __check_none(self, arr, check):
@@ -153,19 +155,20 @@ class GenomeDifference(Difference):
         '''
         Where applicable, the `full` diference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
         '''
+
+        self.__get_variants()
+
         #Calculate differences
-        self.nucleotide_index = self.__indices()
         self._nucleotides_full = self.__nucleotides()
 
         #These are only valid when a VCF has been applied to at least 1 of the genomes
-        self.indel_indices = self.__indel_indices()
         self._indels_full = self.__indels()
 
         #Checking for the same genes, give a warning is the genes are different
         if self.genome1.genes.keys() != self.genome2.genes.keys():
             self.__raise_mutations_warning(self.genome1, self.genome2)
 
-        self.update_view(self._view_method)
+        self.update_view(self._view_method,'gene')
 
     def __snp_distance(self):
         '''Calculates the SNP distance between the two genomes
@@ -173,17 +176,96 @@ class GenomeDifference(Difference):
         Returns:
             int: The SNP distance between the two genomes
         '''
-        #Counts differences of `z` and `x` as SNPs - FIXME if required
-        return sum([1 for (base1, base2) in zip(self.genome1.nucleotide_sequence, self.genome2.nucleotide_sequence) if base1 != base2])
+        # Ignores `z` and `x`
+        return sum([1 for (base1, base2) in zip(self.genome1.nucleotide_sequence, self.genome2.nucleotide_sequence) if base1 != base2 and base1 in ['a','t','c','g'] and base2 in ['a','t','c','g']])
 
-    def __indices(self):
-        '''Calculates the indices where the two genomes differ in nucleotide sequence
+    def __get_variants(self):
 
-        Returns:
-            numpy.array: Numpy array for the difference in nucleotide sequence
-        '''
+        variants=[]
+        indices=[]
+        is_snp=[]
+        is_het=[]
+        is_null=[]
+        is_indel=[]
+        indel_length=[]
+        refs=[]
+        alts=[]
+
+        # first do the SNPs, HETs and NULLs
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
-        return self.genome1.nucleotide_index[mask]
+
+        # for now we simply allow the ref and alt to be different e.g. can have a SNP on a NULL (x>t)
+        for (r,idx,a) in zip(self.genome1.nucleotide_sequence[mask], self.genome1.nucleotide_index[mask], self.genome2.nucleotide_sequence[mask]):
+
+            variants.append(str(idx)+r+'>'+a)
+            refs.append(r)
+            alts.append(a)
+            indices.append(idx)
+            is_indel.append(False)
+            indel_length.append(0)
+            if a=='z':
+                is_het.append(True)
+                is_snp.append(False)
+                is_null.append(False)
+            elif a=='x':
+                is_het.append(False)
+                is_snp.append(False)
+                is_null.append(True)
+            elif a in ['a','t','c','g']:
+                is_het.append(False)
+                is_snp.append(True)
+                is_null.append(False)
+
+        # INDELs are trickier: we have to deal with the case where both genomes have an indel at the same position
+        # if they are different we catch fire since that is too difficult to parse right now
+        # if they are the same, then there is no difference
+        # the other cases are the usual one of there being an indel on the RHS and then an indel on the LHS (but not the RHS)
+        # for the latter we 'reverse' the indel e.g. 1000_ins_at - None becomes 1000_del_at
+        # subtraction becomes "how do we go from the LHS to the RHS in a-b?"
+
+        # for indels catch fire if both genomes have different indels at the same position
+        assert numpy.sum(self.genome1.is_indel & self.genome2.is_indel & (self.genome1.indel_nucleotides!=self.genome2.indel_nucleotides))==0, 'both genomes have indels of different lengths at one or more of the same positions -- this cannot be easily resolved!'
+
+        # the other case is where there is an identical indel at a position but this leads to a difference of zero!
+
+        # if the indel is on the RHS, then it is unchanged
+        mask = self.genome2.is_indel & (self.genome1.indel_nucleotides!=self.genome2.indel_nucleotides)
+
+        for (idx,length,alt,r,a) in zip(self.genome1.nucleotide_index[mask],self.genome2.indel_length[mask], self.genome2.indel_nucleotides[mask],self.genome1.nucleotide_sequence, self.genome2.nucleotide_sequence):
+            indices.append(idx)
+            is_indel.append(True)
+            is_het.append(False)
+            is_snp.append(False)
+            is_null.append(False)
+            indel_length.append(length)
+            if length>0:
+                variants.append(str(idx)+'_ins_'+str(alt))
+            else:
+                variants.append(str(idx)+'_del_'+str(alt))
+
+        # if the indel is on the LHS, then it is unchanged, then it needs 'reversing' since we are returning how to get to the RHS from the LHS hence we delete an insertion etc
+        mask = self.genome1.is_indel & (self.genome1.indel_nucleotides!=self.genome2.indel_nucleotides)
+
+        for (idx,length,alt,r,a) in zip(self.genome1.nucleotide_index[mask],self.genome1.indel_length[mask], self.genome1.indel_nucleotides[mask],self.genome1.nucleotide_sequence, self.genome2.nucleotide_sequence):
+            indices.append(idx)
+            is_indel.append(True)
+            is_het.append(False)
+            is_snp.append(False)
+            is_null.append(False)
+            length*=-1
+            indel_length.append(length)
+            if length>0:
+                variants.append(str(idx)+'_ins_'+str(alt))
+            else:
+                variants.append(str(idx)+'_del_'+str(alt))
+
+        self.variants=numpy.array(variants)
+        self.nucleotide_index=numpy.array(indices)
+        self.is_indel=numpy.array(is_indel)
+        self.indel_length=numpy.array(indel_length)
+        self.is_snp=numpy.array(is_snp)
+        self.is_het=numpy.array(is_het)
+        self.is_null=numpy.array(is_null)
 
     def __nucleotides(self):
         '''Calculate the difference in nucleotides
@@ -271,38 +353,38 @@ class GenomeDifference(Difference):
             genes = self.genome1.genes.keys()
         return numpy.array([GeneDifference(self.genome1.genes[gene], self.genome2.genes[gene]) for gene in genes])
 
-    def variants(self, index):
-        '''Get the VCF fields such as COV and GT at a given genome index
-
-        Args:
-            index (int): Genome index to find the variance at.
-
-        Returns:
-            dict: Dictionary mapping vcf_field->(genome1_val, genome2_val)
-        '''
-        assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
-        if (index not in range(min(self.genome1.nucleotide_index),max(self.genome1.nucleotide_index)+1)
-            or index not in range(min(self.genome2.nucleotide_index),max(self.genome2.nucleotide_index)+1)
-            or index == 0):
-            warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.genome1.nucleotide_index)},{max(self.genome1.nucleotide_index)}).", UserWarning)
-            return {}
-        variants = {}
-        if self.genome1.variant_file:
-            d1 = collapse_inner_dict(self.genome1.variant_file.calls.get(index, {}))
-        else:
-            warnings.warn(f"There is no variants for genome1 {self.genome1.name}", UserWarning)
-            d1 = {}
-        if self.genome2.variant_file:
-            d2 = collapse_inner_dict(self.genome2.variant_file.calls.get(index, {}))
-        else:
-            warnings.warn(f"There is no variants for genome2 {self.genome2.name}", UserWarning)
-            d2 = {}
-        for field in set(d1.keys()).union(set(d2.keys())):
-            #Pull out the values if they exist
-            genome1_val = d1.get(field, None)
-            genome2_val = d2.get(field, None)
-            variants[field] = (genome1_val, genome2_val)
-        return variants
+    # def variants(self, index):
+    #     '''Get the VCF fields such as COV and GT at a given genome index
+    #
+    #     Args:
+    #         index (int): Genome index to find the variance at.
+    #
+    #     Returns:
+    #         dict: Dictionary mapping vcf_field->(genome1_val, genome2_val)
+    #     '''
+    #     assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
+    #     if (index not in range(min(self.genome1.nucleotide_index),max(self.genome1.nucleotide_index)+1)
+    #         or index not in range(min(self.genome2.nucleotide_index),max(self.genome2.nucleotide_index)+1)
+    #         or index == 0):
+    #         warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.genome1.nucleotide_index)},{max(self.genome1.nucleotide_index)}).", UserWarning)
+    #         return {}
+    #     variants = {}
+    #     if self.genome1.variant_file:
+    #         d1 = collapse_inner_dict(self.genome1.variant_file.calls.get(index, {}))
+    #     else:
+    #         warnings.warn(f"There is no variants for genome1 {self.genome1.name}", UserWarning)
+    #         d1 = {}
+    #     if self.genome2.variant_file:
+    #         d2 = collapse_inner_dict(self.genome2.variant_file.calls.get(index, {}))
+    #     else:
+    #         warnings.warn(f"There is no variants for genome2 {self.genome2.name}", UserWarning)
+    #         d2 = {}
+    #     for field in set(d1.keys()).union(set(d2.keys())):
+    #         #Pull out the values if they exist
+    #         genome1_val = d1.get(field, None)
+    #         genome2_val = d2.get(field, None)
+    #         variants[field] = (genome1_val, genome2_val)
+    #     return variants
 
 
 class VCFDifference(object):
@@ -339,10 +421,7 @@ class VCFDifference(object):
         self.vcf = vcf
 
         self.__get_variants()
-        self.snps = self.__snps()
-        self.snp_distance = len(self.snps)
-
-        self.indels = self.__indels()
+        self.snp_distance = numpy.sum(self.is_snp)
 
         self.genes= genome.stacked_gene_name[numpy.isin(genome.stacked_nucleotide_index,(self.nucleotide_index))]
 
@@ -352,6 +431,7 @@ class VCFDifference(object):
             masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
             i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
         '''
+        alts=[]
         variants = []
         indices = []
         refs=[]
@@ -360,46 +440,62 @@ class VCFDifference(object):
         is_het = []
         is_null = []
         is_indel = []
+        indel_length = []
         metadata = defaultdict(list)
 
         for index in sorted(list(self.vcf.calls.keys())):
             indices.append(index)
             call = self.vcf.calls[index]['call']
+            alt=call
             ref = self.vcf.calls[index]['ref']
+            assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
             refs.append(ref)
             pos = self.vcf.calls[index]['pos']
             positions.append(pos)
             #Update the masks with the appropriate types
             if self.vcf.calls[index]["type"] == 'indel':
                 #Convert to ins_x or del_x rather than tuple
-                call = call[0]+"_"+str(call[1])
+                variant = str(index)+"_"+call[0]+"_"+str(call[1])
+                alt=call[1]
                 is_indel.append(True)
+                if call[1]=='ins':
+                    indel_length.append(len(call[1]))
+                else:
+                    indel_length.append(-1*len(call[1]))
                 is_snp.append(False)
                 is_het.append(False)
                 is_null.append(False)
             elif self.vcf.calls[index]["type"] == "snp":
-                # call = str(index)
+                variant = str(index)+ref+'>'+call
                 is_indel.append(False)
+                indel_length.append(0)
                 is_snp.append(True)
                 is_het.append(False)
                 is_null.append(False)
             elif self.vcf.calls[index]['type'] == 'het':
+                variant = str(index)+ref+'>'+alt
                 is_indel.append(False)
+                indel_length.append(0)
                 is_snp.append(False)
                 is_het.append(True)
                 is_null.append(False)
             elif self.vcf.calls[index]['type'] == 'null':
+                variant = str(index)+ref+'>'+alt
                 is_indel.append(False)
+                indel_length.append(0)
                 is_snp.append(False)
                 is_het.append(False)
                 is_null.append(True)
-            variants.append(call)
+            alts.append(alt)
+            variants.append(variant)
             for key in self.vcf.calls[index]['original_vcf_row']:
                 metadata[key].append(self.vcf.calls[index]['original_vcf_row'][key])
         #Convert to numpy arrays for neat indexing
+        self.alt_nucleotides=numpy.array(alts)
         self.variants = numpy.array(variants)
         self.nucleotide_index = numpy.array(indices)
         self.is_indel = numpy.array(is_indel)
+        self.indel_length=numpy.array(indel_length)
         self.is_snp = numpy.array(is_snp)
         self.is_het = numpy.array(is_het)
         self.is_null = numpy.array(is_null)
@@ -409,34 +505,6 @@ class VCFDifference(object):
         for key in metadata:
             self.metadata[key] = numpy.array(metadata[key], dtype=object)
 
-    def __snps(self):
-        '''Find the SNPs positions caused by this VCF. Het and null calls are included in SNPs.
-
-        Returns:
-            dict: Dictionary mapping genome_index->snp_call
-        '''
-        #Utilise the masks to determine SNP positions
-        #Include HET and NULL calls in SNPs too
-        mask = numpy.logical_or(
-                            numpy.logical_or(self.is_snp, self.is_het),
-                            self.is_null)
-        #Get dict mapping genome_index->snp_call
-        _snps = dict(zip(self.nucleotide_index[mask],self.variants[mask]))
-
-        #Convert to GARC mutation nomenclature of ref>call
-        snps = {}
-        for index in _snps.keys():
-            snps[index] = self.genome.nucleotide_sequence[index-1]+">"+_snps[index]
-        return snps
-
-    def __indels(self):
-        '''Find the difference in the indels and the positions which it varies at.
-
-        Returns:
-            dict: Dictionary mapping genome_index->indel
-        '''
-        indels = dict(zip(self.nucleotide_index[self.is_indel], self.variants[self.is_indel]))
-        return indels
 
     def variants_by_index(self, index):
         '''Get original vcf row from the variants by genome index
@@ -487,7 +555,7 @@ class GeneDifference(Difference):
         indel_indices (numpy.array): Array of nucleotide numbers where the indel lengths in the two genes differ.
         indels (numpy.array): Array of indel lengths where the indel lengths differ. Format depends on the current view.
         codons (numpy.array): Array of codons where the two Gene objects have different codons. Format depends on the current view.
-        amino_acids (numpy.array): Array of amino acids where the two Gene objects have different amino acids. Format depends on the current view.
+        amino_acid_sequence (numpy.array): Array of amino acids where the two Gene objects have different amino acids. Format depends on the current view.
     Functions:
         amino_acid_variants(int) -> dict: Takes an amino acid index and returns a dictionary containing data from a vcf
                                             file (if applicable) for attributes such as calls, ref, and alt for all nucleotides
@@ -515,18 +583,19 @@ class GeneDifference(Difference):
             return None
         self.gene1 = gene1
         self.gene2 = gene2
-        self._codes_protein=gene1.codes_protein
+        self.codes_protein=gene1.codes_protein
         self._view_method = "diff"
 
         self._nucleotides_full = self.__nucleotides()
-        self.mutations = self.__mutations()
+        # self.mutations = self.__mutations()
+        self.__get_mutations()
 
         self.indel_indices = self.__indel_indices()
         self._indels_full = self.__indels()
         self._codons_full = self.__codons()
         self._amino_acids_full = self.__amino_acids()
 
-        self.update_view("diff") #Use inherited method to set the view
+        self.update_view("diff", 'gene') #Use inherited method to set the view
 
     def __nucleotides(self):
         '''Find the differences in nucleotides
@@ -540,6 +609,7 @@ class GeneDifference(Difference):
                 in zip(self.gene1.nucleotide_sequence, self.gene2.nucleotide_sequence)
                 if n1 != n2
             ])
+
     def __mutations(self):
         '''Generate the list of mutations between the two genes
 
@@ -552,6 +622,215 @@ class GeneDifference(Difference):
             for mutation in gene_mutation:
                 mutations.append(self.gene1.name+"@"+mutation)
         return numpy.array(sorted(mutations))
+
+    def __get_mutations(self):
+
+        mutations=[]
+        amino_acid_number=[]
+        nucleotide_number=[]
+        nucleotide_index=[]
+        gene_position=[]
+        is_cds=[]
+        is_indel=[]
+        is_promoter=[]
+        indel_length=[]
+        indel_nucleotides=[]
+        ref_nucleotides=[]
+        alt_nucleotides=[]
+        is_snp=[]
+        is_het=[]
+        is_null=[]
+
+        if self.codes_protein:
+
+            mask=self.gene1.codons!=self.gene2.codons
+            for (r,num,a,codon1,codon2) in zip( self.gene1.amino_acid_sequence[mask],\
+                                                self.gene1.amino_acid_number[mask],\
+                                                self.gene2.amino_acid_sequence[mask],\
+                                                self.gene1.codons[mask],\
+                                                self.gene2.codons[mask]):
+                # ref.append(r)
+                # alt.append(a)
+                mutations.append(r+str(num)+a)
+                if a == 'X':
+                    is_null.append(True)
+                    is_het.append(False)
+                    is_snp.append(False)
+                elif a=='Z':
+                    is_null.append(False)
+                    is_het.append(True)
+                    is_snp.append(False)
+                else:
+                    is_null.append(False)
+                    is_het.append(False)
+                    is_snp.append(True)
+                amino_acid_number.append(num)
+                nucleotide_number.append(None)
+                nucleotide_index.append(None)
+                gene_position.append(num)
+                is_cds.append(True)
+                is_indel.append(False)
+                is_promoter.append(False)
+                indel_length.append(None)
+                indel_nucleotides.append(None)
+                ref_nucleotides.append(codon1)
+                alt_nucleotides.append(codon2)
+
+            mask=(self.gene1.nucleotide_sequence!=self.gene2.nucleotide_sequence) & (self.gene1.is_promoter)
+
+            for (r,num,a,idx) in zip(   self.gene1.nucleotide_sequence[mask],\
+                                    self.gene1.nucleotide_number[mask],\
+                                    self.gene2.nucleotide_sequence[mask],\
+                                    self.gene1.nucleotide_index[mask]):
+
+                mutations.append(r+str(num)+a)
+                # ref.append(r)
+                # alt.append(a)
+                amino_acid_number.append(None)
+                nucleotide_number.append(num)
+                nucleotide_index.append(idx)
+                gene_position.append(num)
+                is_cds.append(False)
+                is_indel.append(False)
+                is_promoter.append(True)
+                indel_length.append(None)
+                indel_nucleotides.append(None)
+                ref_nucleotides.append(r)
+                alt_nucleotides.append(a)
+                if a == 'x':
+                    is_null.append(True)
+                    is_het.append(False)
+                    is_snp.append(False)
+                elif a=='z':
+                    is_null.append(False)
+                    is_het.append(True)
+                    is_snp.append(False)
+                else:
+                    is_null.append(False)
+                    is_het.append(False)
+                    is_snp.append(True)
+
+        else:
+
+            mask=(self.gene1.nucleotide_sequence!=self.gene2.nucleotide_sequence)
+
+            for (r,num,a,idx) in zip(   self.gene1.nucleotide_sequence[mask],\
+                                    self.gene1.nucleotide_number[mask],\
+                                    self.gene2.nucleotide_sequence[mask],\
+                                    self.gene1.nucleotide_index[mask]):
+                mutations.append(r+str(num)+a)
+                # ref.append(r)
+                # alt.append(a)
+                amino_acid_number.append(None)
+                nucleotide_number.append(num)
+                nucleotide_index.append(idx)
+                gene_position.append(num)
+                if num>0:
+                    is_cds.append(True)
+                    is_promoter.append(False)
+                else:
+                    is_cds.append(False)
+                    is_promoter.append(True)
+                is_indel.append(False)
+                indel_length.append(None)
+                indel_nucleotides.append(None)
+                ref_nucleotides.append(r)
+                alt_nucleotides.append(a)
+                if a == 'x':
+                    is_null.append(True)
+                    is_het.append(False)
+                    is_snp.append(False)
+                elif a=='z':
+                    is_null.append(False)
+                    is_het.append(True)
+                    is_snp.append(False)
+                else:
+                    is_null.append(False)
+                    is_het.append(False)
+                    is_snp.append(True)
+
+        # now let's do indels
+        assert numpy.sum((self.gene1.is_indel & self.gene2.is_indel) & (self.gene1.indel_nucleotides!=self.gene2.indel_nucleotides))==0, 'both genes have different indels at one or more of the same positions -- this cannot be easily be resolved!'
+
+        mask=self.gene2.is_indel & (self.gene1.indel_nucleotides!=self.gene2.indel_nucleotides)
+
+        for (num,length,alt,idx) in zip(    self.gene1.nucleotide_number[mask],\
+                                            self.gene2.indel_length[mask],\
+                                            self.gene2.indel_nucleotides[mask],\
+                                            self.gene1.nucleotide_index[mask]):
+            # ref.append(None)
+            # alt.append(None)
+            amino_acid_number.append(None)
+            nucleotide_number.append(num)
+            nucleotide_index.append(idx)
+            gene_position.append(num)
+            if length>0:
+                mutations.append(str(num)+'_ins_'+str(alt))
+            else:
+                mutations.append(str(num)+'_del_'+str(alt))
+            if num>0:
+                is_cds.append(True)
+                is_promoter.append(False)
+            else:
+                is_cds.append(False)
+                is_promoter.append(True)
+            is_indel.append(True)
+            indel_length.append(length)
+            indel_nucleotides.append(alt)
+            ref_nucleotides.append(None)
+            alt_nucleotides.append(None)
+            is_null.append(False)
+            is_het.append(False)
+            is_snp.append(False)
+
+        mask=self.gene1.is_indel & (self.gene1.indel_nucleotides!=self.gene2.indel_nucleotides)
+
+        for (num,length,alt,idx) in zip(    self.gene1.nucleotide_number[mask],\
+                                        self.gene1.indel_length[mask],\
+                                        self.gene1.indel_nucleotides[mask],\
+                                        self.gene1.nucleotide_index[mask]):
+            # ref.append(None)
+            # alt.append(None)
+            amino_acid_number.append(None)
+            nucleotide_number.append(num)
+            nucleotide_index.append(idx)
+            gene_position.append(num)
+            length*=-1
+            if length>0:
+                mutations.append(str(num)+'_ins_'+str(alt))
+            else:
+                mutations.append(str(num)+'_del_'+str(alt))
+            if num>0:
+                is_cds.append(True)
+                is_promoter.append(False)
+            else:
+                is_cds.append(False)
+                is_promoter.append(True)
+            is_indel.append(True)
+            indel_length.append(length)
+            indel_nucleotides.append(alt)
+            ref_nucleotides.append(None)
+            alt_nucleotides.append(None)
+            is_null.append(False)
+            is_het.append(False)
+            is_snp.append(False)
+
+        self.mutations=numpy.array(mutations)
+        self.amino_acid_number=numpy.array(amino_acid_number)
+        self.nucleotide_number=numpy.array(nucleotide_number)
+        self.nucleotide_index=numpy.array(nucleotide_index)
+        self.gene_position=numpy.array(gene_position)
+        self.is_cds=numpy.array(is_cds)
+        self.is_promoter=numpy.array(is_promoter)
+        self.is_indel=numpy.array(is_indel)
+        self.indel_length=numpy.array(indel_length)
+        self.indel_nucleotides=numpy.array(indel_nucleotides)
+        self.ref_nucleotides=numpy.array(ref_nucleotides)
+        self.alt_nucleotides=numpy.array(alt_nucleotides)
+        self.is_snp=numpy.array(is_snp)
+        self.is_het=numpy.array(is_het)
+        self.is_null=numpy.array(is_null)
+
     def __indel_indices(self):
         '''Find the positions at which the indels differ between the two genes
 
@@ -600,78 +879,78 @@ class GeneDifference(Difference):
                 aa_diff.append((aa1, aa2))
         return numpy.array(aa_diff)
 
-    def nucleotide_variants(self, index):
-        '''Get the VCF fields such as call and type at a given nucleotide index
-
-        Args:
-            index (int): Gene index to find the variance at.
-
-        Returns:
-            dict: Dictionary mapping vcf_field->(gene1_val, gene2_val)
-        '''
-        assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
-        if (index not in range(min(self.gene1.nucleotide_number),max(self.gene1.nucleotide_number)+1)
-            or index not in range(min(self.gene2.nucleotide_number),max(self.gene2.nucleotide_number)+1)
-            or index == 0):
-            warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.gene1.nucleotide_number)},{max(self.gene1.nucleotide_number)}).", UserWarning)
-            return {}
-        #Convert gene index to genome index for use as Gene.variants key
-        index1 = self.gene1.nucleotide_index[self.gene1.nucleotide_number == index].tolist()[0]
-        index2 = self.gene2.nucleotide_index[self.gene2.nucleotide_number == index].tolist()[0]
-        variants = {}
-        d1 = collapse_inner_dict(self.gene1.variants.get(index1, {}))
-        d2 = collapse_inner_dict(self.gene2.variants.get(index2, {}))
-        for field in set(d1.keys()).union(set(d2.keys())):
-            #Pull out the values if they exist
-            if field in ["call", 'REF', 'ALTS', 'type']:
-                gene1_val = d1.get(field, None)
-                gene2_val = d2.get(field, None)
-                variants[field] = (gene1_val, gene2_val)
-        return variants
-
-    def amino_acid_variants(self, index):
-        '''Get the VCF fields such as call and alts for variants which constitute the amino acid
-        at a given amino acid index
-
-        Args:
-            index (int): Amino acid index to find the variance at
-
-        Returns:
-            dict: Dictionary mapping vcf_field->((gene1_val1, ...), (gene2_val1, ...)) with up to 3 values per gene
-                    according to the possible 3 variants due to 3 nucleotides per amino acid
-        '''
-        assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
-        if not self.gene1.codes_protein:
-            warnings.warn("These genes do not code a protein so there are no amino acids...", UserWarning)
-            return {}
-        if index <= 0 or index > max(self.gene1.amino_acid_number) or index > max(self.gene2.amino_acid_number):
-            warnings.warn("The index is out of range of the amino acids in this gene.", UserWarning)
-            return {}
-        #Convert amino acid index to genome index for use as Gene.variants key
-        #This should produce 3 indices
-        index1 = set(self.gene1.nucleotide_index[self.gene1.is_cds][self.gene1.triplet_number == index])
-        index2 = set(self.gene2.nucleotide_index[self.gene2.is_cds][self.gene2.triplet_number == index])
-        indices = index1.union(index2)
-
-        #Use dicts mapping field->values as an intermediary step
-        variants1 = defaultdict(list)
-        variants2 = defaultdict(list)
-        for i in indices:
-            d1 = collapse_inner_dict(self.gene1.variants.get(i, {}))
-            d2 = collapse_inner_dict(self.gene2.variants.get(i, {}))
-            for field in set(d1.keys()).union(set(d2.keys())):
-                #Pull out the values if they exist
-                if field in ["call", 'REF', 'ALTS', 'type']:
-                    variants1[field].append(d1.get(field, None))
-                    variants2[field].append(d2.get(field, None))
-        #Convert to dict mapping field->([g1_val1, g1_val2..], [g2_val1, g2_val2..])
-        variants = {
-            field: (variants1[field], variants2[field])
-            for field in variants1.keys()
-            if variants1[field] is not None and variants2[field] if not None
-            }
-
-        return variants
+    # def nucleotide_variants(self, index):
+    #     '''Get the VCF fields such as call and type at a given nucleotide index
+    #
+    #     Args:
+    #         index (int): Gene index to find the variance at.
+    #
+    #     Returns:
+    #         dict: Dictionary mapping vcf_field->(gene1_val, gene2_val)
+    #     '''
+    #     assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
+    #     if (index not in range(min(self.gene1.nucleotide_number),max(self.gene1.nucleotide_number)+1)
+    #         or index not in range(min(self.gene2.nucleotide_number),max(self.gene2.nucleotide_number)+1)
+    #         or index == 0):
+    #         warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.gene1.nucleotide_number)},{max(self.gene1.nucleotide_number)}).", UserWarning)
+    #         return {}
+    #     #Convert gene index to genome index for use as Gene.variants key
+    #     index1 = self.gene1.nucleotide_index[self.gene1.nucleotide_number == index].tolist()[0]
+    #     index2 = self.gene2.nucleotide_index[self.gene2.nucleotide_number == index].tolist()[0]
+    #     variants = {}
+    #     d1 = collapse_inner_dict(self.gene1.variants.get(index1, {}))
+    #     d2 = collapse_inner_dict(self.gene2.variants.get(index2, {}))
+    #     for field in set(d1.keys()).union(set(d2.keys())):
+    #         #Pull out the values if they exist
+    #         if field in ["call", 'REF', 'ALTS', 'type']:
+    #             gene1_val = d1.get(field, None)
+    #             gene2_val = d2.get(field, None)
+    #             variants[field] = (gene1_val, gene2_val)
+    #     return variants
+#
+    # def amino_acid_variants(self, index):
+    #     '''Get the VCF fields such as call and alts for variants which constitute the amino acid
+    #     at a given amino acid index
+    #
+    #     Args:
+    #         index (int): Amino acid index to find the variance at
+    #
+    #     Returns:
+    #         dict: Dictionary mapping vcf_field->((gene1_val1, ...), (gene2_val1, ...)) with up to 3 values per gene
+    #                 according to the possible 3 variants due to 3 nucleotides per amino acid
+    #     '''
+    #     assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
+    #     if not self.gene1.codes_protein:
+    #         warnings.warn("These genes do not code a protein so there are no amino acids...", UserWarning)
+    #         return {}
+    #     if index <= 0 or index > max(self.gene1.amino_acid_number) or index > max(self.gene2.amino_acid_number):
+    #         warnings.warn("The index is out of range of the amino acids in this gene.", UserWarning)
+    #         return {}
+    #     #Convert amino acid index to genome index for use as Gene.variants key
+    #     #This should produce 3 indices
+    #     index1 = set(self.gene1.nucleotide_index[self.gene1.is_cds][self.gene1.codon_number == index])
+    #     index2 = set(self.gene2.nucleotide_index[self.gene2.is_cds][self.gene2.codon_number == index])
+    #     indices = index1.union(index2)
+    #
+    #     #Use dicts mapping field->values as an intermediary step
+    #     variants1 = defaultdict(list)
+    #     variants2 = defaultdict(list)
+    #     for i in indices:
+    #         d1 = collapse_inner_dict(self.gene1.variants.get(i, {}))
+    #         d2 = collapse_inner_dict(self.gene2.variants.get(i, {}))
+    #         for field in set(d1.keys()).union(set(d2.keys())):
+    #             #Pull out the values if they exist
+    #             if field in ["call", 'REF', 'ALTS', 'type']:
+    #                 variants1[field].append(d1.get(field, None))
+    #                 variants2[field].append(d2.get(field, None))
+    #     #Convert to dict mapping field->([g1_val1, g1_val2..], [g2_val1, g2_val2..])
+    #     variants = {
+    #         field: (variants1[field], variants2[field])
+    #         for field in variants1.keys()
+    #         if variants1[field] is not None and variants2[field] if not None
+    #         }
+    #
+    #     return variants
 
 '''
 Helper functions not specific to a class

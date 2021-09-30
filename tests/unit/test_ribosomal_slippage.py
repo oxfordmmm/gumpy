@@ -35,7 +35,7 @@ def test_ribosomal_slippage():
     seq = list("aaaaaaacccccccccccggggggggggtt")
     assert numpy.all(a.codons == numpy.array([''.join(seq[i*3:i*3+3]) for i in range(10)]))
     assert numpy.all(a.amino_acid_sequence == numpy.array(list("KKTPPPGGGV")))
-    assert numpy.all(a.triplet_number == numpy.array([i//3 for i in range(3,33)]))
+    assert numpy.all(a.codon_number == numpy.array([i//3 for i in range(3,33)]))
 
 def test_ribosomal_slippage2():
     #Open genome with PRF
@@ -67,7 +67,7 @@ def test_ribosomal_slippage2():
     assert numpy.all(c.indel_length == numpy.array([0 for i in range(61, 100)]))
     assert numpy.all(c.codons == numpy.array(['ccc', 'ccc', 'ccc']))
     assert numpy.all(c.amino_acid_sequence == numpy.array(list("PPP")))
-    assert numpy.all(c.triplet_number == numpy.array([1, 1, 1, 2, 2, 2, 3, 3, 3]))
+    assert numpy.all(c.codon_number == numpy.array([1, 1, 1, 2, 2, 2, 3, 3, 3]))
 
     #Checking for appropriate changes to A based on changes in promoter region
     a = g.genes["A"]
@@ -81,4 +81,4 @@ def test_ribosomal_slippage2():
     seq = list("aaaaaaaccccccccccgggggggggg")
     assert numpy.all(a.codons == [''.join(seq[i*3:i*3+3]) for i in range(9)])
     assert numpy.all(a.amino_acid_sequence == list("KKTPPPGGG"))
-    assert numpy.all(a.triplet_number == [i//3 for i in range(3,30)])
+    assert numpy.all(a.codon_number == [i//3 for i in range(3,30)])

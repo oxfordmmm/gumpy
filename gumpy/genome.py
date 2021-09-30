@@ -81,11 +81,6 @@ class Genome(object):
         self.verbose=verbose
         self.gene_subset=gene_subset
         self.max_gene_name_length=max_gene_name_length
-        #Set default attributes for items populated when a VCF is applied
-        self.indels = None
-        self.variants = None
-        self.original = None
-        self.variant_file = None
 
         if self.verbose:
             timings=defaultdict(list)
@@ -174,16 +169,22 @@ class Genome(object):
         return(output)
 
     def __sub__(self, other):
+        '''Generate a GenomeDifference object for a in-depth difference of the two Genomes
+
+        Args:
+            other (gumpy.Genome): The other Genome object to compare to
+                '''
+
 
         """
-        Overload the subtraction operator so it returns a tuple of the indices where there are differences between the two genomes
+        Overload the subtraction operator so it returns a GenomeDifference object for a in-depth difference of the two Genomes
         Args:
             other (gumpy.Genome) : The other genome used in the subtraction
         Returns:
-            numpy.array: Array of genome indices where the two genomes differ
+            GenomeDifference: object containing numpy arrays of the differences (variants)
         """
-        mask = self.nucleotide_sequence != other.nucleotide_sequence
-        return self.nucleotide_index[mask]
+
+        return(GenomeDifference(self,other))
 
     def __eq__(self, other):
         '''
@@ -226,17 +227,6 @@ class Genome(object):
             int : Length of the genome
         '''
         return self.length
-
-    def difference(self, other):
-        '''Generate a GenomeDifference object for a in-depth difference of the two Genomes
-
-        Args:
-            other (gumpy.Genome): The other Genome object to compare to
-        '''
-        assert self.length == other.length, "The two genomes must be the same length!"
-        if self == other:
-            return None
-        return GenomeDifference(self, other)
 
     def contains_gene(self,gene_name):
         '''
@@ -536,6 +526,8 @@ class Genome(object):
 
         self.is_indel=numpy.zeros(self.length,dtype=bool)
         self.indel_length=numpy.zeros(self.length,int)
+        self.indel_nucleotides=numpy.empty(self.length,dtype=object)
+
 
         assert len(reference_genome.annotations['accessions'])==1, 'only GenBank files with a single accessions currently allowed'
 
@@ -791,7 +783,7 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
 
-    def _build_gene(self, gene, conn=None):
+    def build_gene(self, gene, conn=None):
         '''
         Private function to build the gumpy.Gene object
         Should be private with leading `__` but a cross-platform bug means this causes crashes
@@ -828,6 +820,7 @@ class Genome(object):
                     is_promoter=self.stacked_is_promoter[stacked_mask],
                     is_indel=self.is_indel[mask],
                     indel_length=self.indel_length[mask],
+                    indel_nucleotides=self.indel_nucleotides[mask],
                     codes_protein=self.genes_lookup[gene]['codes_protein'],
                     reverse_complement=self.genes_lookup[gene]['reverse_complement'],
                     feature_type=self.genes_lookup[gene]['type'],
@@ -863,7 +856,7 @@ class Genome(object):
         if len(list_of_genes) <= limit or sys.platform!="linux" or self.multithreaded==False:
             #Single threaded
             for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
-                self.genes[gene] = self._build_gene(gene, conn=None)
+                self.genes[gene] = self.build_gene(gene, conn=None)
             return
 
         #Multithreading
@@ -871,7 +864,7 @@ class Genome(object):
             #Get the communication pipes required
             pipes = [multiprocessing.Pipe() for i in range(limit)]
             #Get some threads
-            threads = [(multiprocessing.Process(target=self._build_gene, args=(gene, child)), gene, parent)
+            threads = [(multiprocessing.Process(target=self.build_gene, args=(gene, child)), gene, parent)
                         for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], pipes)]
             #Start some threads
             for i in range(limit):
@@ -900,7 +893,9 @@ class Genome(object):
         Returns:
             gumpy.Genome: The resulting Genome object
         '''
+
         assert max(vcf.calls.keys()) <= self.length, "The VCF file details changes outside of this genome!"
+
         #Replicate this Genome object
         print("Copying the genome...")
         genome = copy.deepcopy(self)
@@ -913,37 +908,30 @@ class Genome(object):
             Applying a dictionary to the same array takes ~10^-4s
             ~0.1% True mask is a reasonable amount for this task as a VCF file is ~4000 entries
         '''
-        genome.indels = dict()
-        genome.variants = dict()
-        genome.original = dict()
+
         #Change the nucleotide indicies
         print("Updating the genome...")
         for idx in tqdm(vcf.calls.keys()):
 
-            array_idx=idx-1
-
-            genome.original[array_idx] = genome.nucleotide_sequence[array_idx]
-
             if vcf.calls[idx]['type'] in ['snp','null','het']:
 
                 #Only set values if the idx is to a single nucleotide
-                genome.nucleotide_sequence[array_idx] = vcf.calls[idx]['call']
-
-                #Record the idxs in the format (old_base, new_base)
-                genome.variants[array_idx] = (genome.original[array_idx], vcf.calls[idx]['call'])
+                genome.nucleotide_sequence[idx-1] = vcf.calls[idx]['call']
 
             elif vcf.calls[idx]['type'] in ['indel']:
-                #It was an indel, so add the indel call to the indels dict
-                genome.indels[array_idx] = vcf.calls[idx]['call'][0]+"_"+str(vcf.calls[idx]['call'][1])
-                genome.is_indel[array_idx] = True
-                genome.indel_length[array_idx] = abs(vcf.calls[idx]['call'][1])
+
+                genome.is_indel[idx-1] = True
+
+                genome.indel_nucleotides[idx-1] = vcf.calls[idx]['call'][1]
+
+                if vcf.calls[idx]['call'][0]=='ins':
+                    genome.indel_length[idx-1] = len(vcf.calls[idx]['call'][1])
+                else:
+                    genome.indel_length[idx-1] = -1*len(vcf.calls[idx]['call'][1])
 
             else:
                 raise Exception('variant type not recognised!', vcf.calls[idx])
 
-        #Save all of the calls in the format {arr_index: (n_reads, call)}
-        # genome.calls = {index: vcf.calls[index][1] for index in vcf.calls.keys()}
-        genome.variant_file = vcf
         #The genome has been altered so not a reference genome
         genome.is_reference = False
 
