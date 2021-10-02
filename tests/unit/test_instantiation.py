@@ -5,7 +5,7 @@ import numpy, gumpy, pytest, math
 #So ignore it to stop failing tests...
 pytestmark = pytest.mark.filterwarnings("ignore")
 
-
+@pytest.mark.tb
 def test_instanciate_genome_tb():
 
     tb_reference = gumpy.Genome('config/NC_000962.3.gbk',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
@@ -33,6 +33,7 @@ def test_instanciate_genome_tb():
     assert ''.join(i for i in tb_reference.nucleotide_sequence[:12]) == 'ttgaccgatgac'
     assert ''.join(i for i in tb_reference.nucleotide_sequence[-12:]) == 'ggagatacgtcg'
 
+@pytest.mark.tb
 def test_instanciate_genes_tb():
 
     tb_reference = gumpy.Genome('config/NC_000962.3.gbk',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
@@ -487,7 +488,7 @@ def test_instanciate_vcf():
         2: {'type': 'null','call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 2,'COV': (1,1),'GT_CONF': 2.05,'REF': 'a','ALTS': ('g',)}},
 
         4: {'type': 'null','call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 2, 2),'GT_CONF': 3.77,'REF': 'a','ALTS': ('g', 't')}},
-        
+
         6: {'type': 'null','call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
 
         7: {'type': 'null','call': 'x','ref': 'a','pos': 1,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
