@@ -1,9 +1,10 @@
 '''
 Classes used to parse and store VCF data
 '''
-import pysam, copy
+import pysam, copy, numpy
 import pandas as pd
-from gumpy import VCFDifference
+from gumpy import GeneticVariation
+from collections import defaultdict
 
 
 class VCFRecord(object):
@@ -143,7 +144,7 @@ class VariantFile(object):
         if len(args) != 1:
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
-            allowed_kwargs = ['vcf_version', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'formats_min_thresholds', 'bypass_reference_calls']
+            allowed_kwargs = ['vcf_version', 'contig_lengths', 'format_fields_metadata', 'records', 'changes', 'ignore_filter', 'format_fields_min_thresholds', 'bypass_reference_calls', 'genome']
             seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
@@ -158,7 +159,7 @@ class VariantFile(object):
 
         self.ignore_filter=kwargs.get('ignore_filter',False)
         self.bypass_reference_calls=kwargs.get('bypass_reference_calls',False)
-        self.formats_min_thresholds=kwargs.get('formats_min_thresholds',None)
+        self.format_fields_min_thresholds=kwargs.get('format_fields_min_thresholds',None)
         self.filename=filename
 
         #Use pysam to parse the VCF
@@ -173,19 +174,19 @@ class VariantFile(object):
             self.contig_lengths[name] = vcf.header.contigs[name].length
 
         #Get the formats
-        self.formats = {}
+        self.format_fields_metadata = {}
         for format in vcf.header.formats.keys():
             description = vcf.header.formats[format].description
             id = vcf.header.formats[format].id
             f_type = vcf.header.formats[format].type
-            self.formats[format] = {
+            self.format_fields_metadata[format] = {
                 "description" : description,
                 "id": id,
                 "type": f_type
             }
 
-        if isinstance(self.formats_min_thresholds,dict):
-            assert set(self.formats_min_thresholds.keys()).issubset(set(self.formats.keys())), "field to threshold on not found in the FORMAT column of the vcf!"
+        if isinstance(self.format_fields_min_thresholds,dict):
+            assert set(self.format_fields_min_thresholds.keys()).issubset(set(self.format_fields_metadata.keys())), "field to threshold on not found in the FORMAT column of the vcf!"
 
         #Get the records
         self.records = []
@@ -198,6 +199,10 @@ class VariantFile(object):
 
         self.__find_calls()
 
+        self.__get_variants()
+        self.snp_distance = numpy.sum(self.is_snp)
+
+
     def __repr__(self):
         '''Pretty print the VCF file
 
@@ -207,7 +212,7 @@ class VariantFile(object):
         output='VCF variant file, version '+''.join(str(i)+"." for i in self.vcf_version)[:-1]+'\n'
         output+=self.filename+'\n'
         output+=str(len(self.records))+' records'+'\n'
-        output+='FORMAT columns: '+', '.join(i for i in sorted(list(self.formats.keys())))+'\n'+'\n'
+        output+='FORMAT columns: '+', '.join(i for i in sorted(list(self.format_fields_metadata.keys())))+'\n'+'\n'
         if len(self.records)>3:
             output += str(self.records[0])
             output += str(self.records[1])
@@ -238,10 +243,10 @@ class VariantFile(object):
 
             # only proceed if a dictionary has been passed (otherwise defaults to None)
             proceed=True
-            if isinstance(self.formats_min_thresholds,dict):
+            if isinstance(self.format_fields_min_thresholds,dict):
                 # ok to just do since we've already check in the constructor that these fields exist in the VCF
-                for i in self.formats_min_thresholds:
-                    proceed = proceed and record.values[i] >= self.formats_min_thresholds[i]
+                for i in self.format_fields_min_thresholds:
+                    proceed = proceed and record.values[i] >= self.format_fields_min_thresholds[i]
             if not proceed:
                 continue
 
@@ -262,6 +267,7 @@ class VariantFile(object):
                 for counter,(before,after) in enumerate(zip(record.ref,variant)):
 
                     # only make a change if the ALT is different to the REF
+                    # this filters out reference calls!
                     if before!=after:
                         metadata={}
                         metadata['type']=variant_type
@@ -276,7 +282,7 @@ class VariantFile(object):
                         self.calls[index+counter]=metadata
 
             else:
-                mutations = self.simplify_call(record.ref, variant)
+                mutations = self._simplify_call(record.ref, variant)
                 for (p, type_, bases) in mutations:
                     # p = max(p - 1, 0)
                     if type_ in ["ins", "del"]:
@@ -308,7 +314,89 @@ class VariantFile(object):
                         metadata['original_vcf_row'] = vcf_info
                         self.calls[index+p] = metadata
 
-    def simplify_call(self, ref, alt):
+    def __get_variants(self):
+        '''Pull the variants out of the VariantFile object. Builds arrays
+            of the variant calls, and their respective genome indices, as well as
+            masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
+            i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
+        '''
+        alts=[]
+        variants = []
+        indices = []
+        refs=[]
+        positions=[]
+        is_snp = []
+        is_het = []
+        is_null = []
+        is_indel = []
+        indel_length = []
+        metadata = defaultdict(list)
+
+        for index in sorted(list(self.calls.keys())):
+            indices.append(index)
+            call = self.calls[index]['call']
+            alt=call
+            ref = self.calls[index]['ref']
+            if hasattr(self, 'genome'):
+            # if self.genome is not None:
+                assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
+            refs.append(ref)
+            pos = self.calls[index]['pos']
+            positions.append(pos)
+            #Update the masks with the appropriate types
+            if self.calls[index]["type"] == 'indel':
+                #Convert to ins_x or del_x rather than tuple
+                variant = str(index)+"_"+call[0]+"_"+str(call[1])
+                alt=call[1]
+                is_indel.append(True)
+                if call[1]=='ins':
+                    indel_length.append(len(call[1]))
+                else:
+                    indel_length.append(-1*len(call[1]))
+                is_snp.append(False)
+                is_het.append(False)
+                is_null.append(False)
+            elif self.calls[index]["type"] == "snp":
+                variant = str(index)+ref+'>'+call
+                is_indel.append(False)
+                indel_length.append(0)
+                is_snp.append(True)
+                is_het.append(False)
+                is_null.append(False)
+            elif self.calls[index]['type'] == 'het':
+                variant = str(index)+ref+'>'+alt
+                is_indel.append(False)
+                indel_length.append(0)
+                is_snp.append(False)
+                is_het.append(True)
+                is_null.append(False)
+            elif self.calls[index]['type'] == 'null':
+                variant = str(index)+ref+'>'+alt
+                is_indel.append(False)
+                indel_length.append(0)
+                is_snp.append(False)
+                is_het.append(False)
+                is_null.append(True)
+            alts.append(alt)
+            variants.append(variant)
+            for key in self.calls[index]['original_vcf_row']:
+                metadata[key].append(self.calls[index]['original_vcf_row'][key])
+        #Convert to numpy arrays for neat indexing
+        self.alt_nucleotides=numpy.array(alts)
+        self.variants = numpy.array(variants)
+        self.nucleotide_index = numpy.array(indices)
+        self.is_indel = numpy.array(is_indel)
+        self.indel_length=numpy.array(indel_length)
+        self.is_snp = numpy.array(is_snp)
+        self.is_het = numpy.array(is_het)
+        self.is_null = numpy.array(is_null)
+        self.ref_nucleotides=numpy.array(refs)
+        self.pos=numpy.array(positions)
+        self.metadata = dict()
+        for key in metadata:
+            self.metadata[key] = numpy.array(metadata[key], dtype=object)
+
+    def _simplify_call(self, ref, alt):
         '''Find where in the sequence the indel was, and the values.
         Based on finding the indel position at which there is the least SNPs
 
@@ -379,10 +467,6 @@ class VariantFile(object):
                     mutations.append((i, "snp", (a, b)))
         return mutations
 
-
-
-
-
     def to_df(self):
         '''Convert the VCFRecord to a pandas DataFrame.
         Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations
@@ -394,7 +478,7 @@ class VariantFile(object):
         meta_data = {
             "vcf_version": self.vcf_version,
             "contig_lengths": self.contig_lengths,
-            "formats": self.formats
+            "formats": self.format_fields_metadata
         }
 
         chroms = []
@@ -425,10 +509,10 @@ class VariantFile(object):
         df.attrs = meta_data
         return df
 
-    def difference(self, genome):
+    def interpret(self, genome=None):
         '''Takes in a Genome object, returning an object detailing the full differences caused by this VCF including amino acid differences
 
         Args:
             genome (gumpy.Genome): A reference Genome object
         '''
-        return VCFDifference(self, genome)
+        return GeneticVariation(self, genome)

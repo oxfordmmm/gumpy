@@ -87,11 +87,11 @@ print(diff.indels) #Array of indels in g2 where there are indels in either g1 or
 There is functionality to find the impact which a given VCF file has on a given genome.
 This includes changes in codons, amino acids as well as genes (although gene differences are computationally expensive)
 ```
-from gumpy import VariantFile, VCFDifference, GeneDifference, Genome
+from gumpy import VariantFile, GeneticVariation, GeneDifference, Genome
 vcf = VariantFile("filename.vcf")
 genome = Genome("filename.gbk", is_reference=True)
 
-diff = vcf.difference(genome) #Returns a VCFDifference object
+diff = vcf.difference(genome) #Returns a GeneticVariation object
 diff.variants.get('COV') #List of the coverages of all calls
 diff.snps #Dictionary mapping genome_index->snp_call
 
@@ -106,7 +106,7 @@ genes_diff = diff.gene_differences() #Array of GeneDifference objects
 ### Gene level comparisons
 When a Genome object is instanciated, it is populated with Gene objects for each gene detailed in the genbank file.
 These genes can also be compared.
-Gene differences can be found through direct comparison of Gene objects, or systematically through the `gene_differences()` method of both `GenomeDifference` and `VCFDifference`.
+Gene differences can be found through direct comparison of Gene objects, or systematically through the `gene_differences()` method of both `GenomeDifference` and `GeneticVariation`.
 ```
 from gumpy import Genome, Gene
 

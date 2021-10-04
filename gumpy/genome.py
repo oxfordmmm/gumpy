@@ -536,6 +536,7 @@ class Genome(object):
         self.genes={}
 
         # loop through the features listed in the GenBank File
+        print("Iterating through features in GenBank file...")
         for record in tqdm(reference_genome.features):
 
             # only parse coding sequences and rRNA features
@@ -662,6 +663,8 @@ class Genome(object):
         genes_mask = numpy.array([numpy.array([False for x in range(self.length)])]) #Boolean mask to show gene presence at indicies
         genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length)) #Gene names
         self.gene_rows = dict()#Dict to pull out row indicies for each gene in the stacked arrays
+
+        print("Finding overlaps...")
         for gene_name in tqdm(self.genes):
             #Get the start/end/rev_comp values
             start = self.genes[gene_name]["start"]
@@ -720,6 +723,7 @@ class Genome(object):
                                 "start": self.genes[gene_name]["start"],
                                 "end": self.genes[gene_name]["end"]}
                     for gene_name in self.genes}
+        print("Assigning promoters...")
         for promoter in tqdm(range(1,self.max_promoter_length+1)):
 
             #Replacement `start_end` because dictionaries can't be changed during iteration
