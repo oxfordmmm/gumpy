@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     #Get the GeneDifference objects to pull out mutations
     g = gumpy.Genome(genome_path)
-    testDNA = gumpy.VariantFile(vcf_path)
+    testDNA = gumpy.VCFFile(vcf_path)
     diff = testDNA.difference(g)
     gene_diffs = diff.gene_differences()
     #Get a single list of mutations by concatenating the mutations lists 

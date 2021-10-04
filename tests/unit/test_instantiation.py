@@ -453,7 +453,7 @@ def test_instanciate_genes_dna():
     assert numpy.all(gene.amino_acid_sequence == numpy.array(list("GG")))
 
 def test_instanciate_vcf():
-    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf",
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf",
                             ignore_filter=True,formats_min_thresholds={'GT_CONF':0})
 
     #Testing some populated items for the object

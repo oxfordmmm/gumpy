@@ -129,7 +129,7 @@ def test_gene_functions():
 def test_apply_vcf():
     #Will fail if the test_instanciate.py fails for test_instanciate_vcf()
     g1 = gumpy.Genome("config/TEST-DNA.gbk")
-    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
     g2 = g1+vcf
     assert g1 != g2
     assert numpy.all(g2.nucleotide_sequence ==  numpy.array(
@@ -197,7 +197,7 @@ def check_eq(arr1, arr2, check):
 
 def test_genome_difference():
     g1 = gumpy.Genome("config/TEST-DNA.gbk", is_reference=True)
-    g2 = g1+gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    g2 = g1+gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
     assert g1 != g2
 
     diff = g1-g2
@@ -226,9 +226,9 @@ def test_genome_difference():
 
 
 def test_vcf_difference():
-    #Testing the VariantFile objects' difference()
+    #Testing the VCFFile objects' difference()
     g1 = gumpy.Genome("config/TEST-DNA.gbk")
-    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
 
     #Get the difference
     diff = vcf.difference(g1)
@@ -297,14 +297,14 @@ def test_vcf_difference():
 
     #Testing an edge case with 2 different indels at the same position
     # this currently fails because the VCF modifies the genome and then the REF bases in the VCF are incorrect
-    # g2 = g1+gumpy.VariantFile("tests/test-cases/TEST-DNA-2.vcf")
+    # g2 = g1+gumpy.VCFFile("tests/test-cases/TEST-DNA-2.vcf")
     # diff = vcf.difference(g2)
     # assert check_eq(diff.indels, {33: 'ins_2', 37: 'del_1', 40: "ins_1", 64: 'ins_2', 73: 'ins_1'}, True)
 
 def test_gene_difference():
     #Test the Gene.difference() method and GeneDifference() objects
     genome1 = gumpy.Genome("config/TEST-DNA.gbk")
-    genome2 = genome1+gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    genome2 = genome1+gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
     g1 = genome1.build_gene("A")
     g2 = genome2.build_gene("A")
     diff = g1-g2
@@ -383,7 +383,7 @@ def test_valid_variant():
     assert_throws("@")
 
 def test_vcf_to_df():
-    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
 
     df = vcf.to_df()
     assert df.attrs == {
@@ -473,10 +473,10 @@ def test_vcf_to_df():
     assert df.equals(data)
 
 def test_indels():
-    #Tests the VariantFile.indel()
+    #Tests the VCFFile.indel()
 
-    #Not a static function, so a VariantFile must be instanciated
-    vcf = gumpy.VariantFile("tests/test-cases/TEST-DNA.vcf")
+    #Not a static function, so a VCFFile must be instanciated
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
     assert sorted(vcf.simplify_call("ga", "c")) == sorted([(0, "snp", ("g", "c")), (1, "del", "a")])
     assert vcf.simplify_call("aaa", "a") == [(1, "del", "aa")]
     assert sorted(vcf.simplify_call("acgtaa", "cgt")) == sorted(

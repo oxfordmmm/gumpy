@@ -3,7 +3,7 @@ Genome object
 '''
 import base64
 import copy
-from gumpy.variantfile import VCFRecord, VariantFile
+from gumpy.variantfile import VCFRecord, VCFFile
 import gzip
 import json
 import math
@@ -319,7 +319,7 @@ class Genome(object):
         elif type(obj) == dict:
             #Keys should be hashable so ignore them but convert the values
             to_return = {key: self.__save(obj[key], {}) for key in obj.keys()}
-        elif type(obj) in [Gene, Genome, VariantFile, VCFRecord]:
+        elif type(obj) in [Gene, Genome, VCFFile, VCFRecord]:
             #Convert items to dicts
             attributes = [(attr, getattr(obj, attr)) for attr in vars(obj)]
             to_return = {}
@@ -380,8 +380,8 @@ class Genome(object):
                 to_return = Gene(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
             elif type_ == str(Genome):
                 to_return = Genome(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
-            elif type_ == str(VariantFile):
-                to_return = VariantFile(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
+            elif type_ == str(VCFFile):
+                to_return = VCFFile(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
             elif type_ == str(VCFRecord):
                 to_return = VCFRecord(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
             elif type_ == "<class 'numpy.str_'>":
@@ -873,7 +873,7 @@ class Genome(object):
         '''Function to apply a variant file to the genome  - producing a replica genome with the specified changes
 
         Args:
-            vcf (gumpy.VariantFile): The VariantFile object for the VCF
+            vcf (gumpy.VCFFile): The VCFFile object for the VCF
 
         Returns:
             gumpy.Genome: The resulting Genome object

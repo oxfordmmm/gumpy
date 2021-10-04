@@ -398,7 +398,7 @@ class VCFDifference(object):
 
     Instance variables:
         genome (gumpy.Genome): Reference genome object
-        vcf (gumpy.VariantFile): VCF object
+        vcf (gumpy.VCFFile): VCF object
         nucleotide_index (numpy.array): Numpy array of genome indices which are affected by the VCF
         calls (numpy.array): Array of calls which corresponds to `indices`, i.e indices[3] <-> calls[3]
         is_snp (numpy.array): Array to act as a mask for `indices` to show which are SNPs
@@ -417,7 +417,7 @@ class VCFDifference(object):
         '''VCF difference object constructor.
 
         Args:
-            vcf (gumpy.VariantFile): VariantFile object
+            vcf (gumpy.VCFFile): VCFFile object
             genome (gumpy.Genome): Genome object
         '''
         self.genome = genome
@@ -429,7 +429,7 @@ class VCFDifference(object):
         self.genes= genome.stacked_gene_name[numpy.isin(genome.stacked_nucleotide_index,(self.nucleotide_index))]
 
     def __get_variants(self):
-        '''Pull the variants out of the VariantFile object. Builds arrays
+        '''Pull the variants out of the VCFFile object. Builds arrays
             of the variant calls, and their respective genome indices, as well as
             masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
             i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position

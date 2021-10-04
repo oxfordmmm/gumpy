@@ -46,11 +46,11 @@ g = Genome("filename.gbk", multithreaded=True)
 ```
 
 ### Parse a VCF file
-VariantFile objects can be created by passing a filename of a vcf file
+VCFFile objects can be created by passing a filename of a vcf file
 ```
-from gumpy import VariantFile
+from gumpy import VCFFile
 
-vcf = VariantFile("filename.vcf")
+vcf = VCFFile("filename.vcf")
 ```
 
 ### Apply a VCF file to a reference genome
@@ -58,10 +58,10 @@ The mutations defined in a vcf file can be applied to a reference genome to prod
 
 If a contig is set within the vcf, the length of the contig should match the length of the genome. Otherwise, if the vcf details changes within the genome range, they will be made.
 ```
-from gumpy import Genome, VariantFile
+from gumpy import Genome, VCFFile
 
 reference_genome = Genome("reference.gbk")
-vcf = VariantFile("filename.vcf")
+vcf = VCFFile("filename.vcf")
 
 resultant_genome = reference_genome.apply_variant_file(vcf)
 ```
@@ -87,8 +87,8 @@ print(diff.indels) #Array of indels in g2 where there are indels in either g1 or
 There is functionality to find the impact which a given VCF file has on a given genome.
 This includes changes in codons, amino acids as well as genes (although gene differences are computationally expensive)
 ```
-from gumpy import VariantFile, VCFDifference, GeneDifference, Genome
-vcf = VariantFile("filename.vcf")
+from gumpy import VCFFile, VCFDifference, GeneDifference, Genome
+vcf = VCFFile("filename.vcf")
 genome = Genome("filename.gbk", is_reference=True)
 
 diff = vcf.difference(genome) #Returns a VCFDifference object
