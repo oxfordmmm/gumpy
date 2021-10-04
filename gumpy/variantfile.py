@@ -1,10 +1,9 @@
 '''
 Classes used to parse and store VCF data
 '''
-import pysam, copy, numpy
+import pysam, copy
 import pandas as pd
 from gumpy import GeneticVariation
-from collections import defaultdict
 
 
 class VCFRecord(object):
@@ -124,7 +123,7 @@ class VCFRecord(object):
         s += "\n"
         return s
 
-class VariantFile(object):
+class VCFFile(object):
     '''
     Class to instanciate a variant file (VCF)
     Used to apply a VCF file to a genome
@@ -144,7 +143,7 @@ class VariantFile(object):
         if len(args) != 1:
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
-            allowed_kwargs = ['vcf_version', 'contig_lengths', 'format_fields_metadata', 'records', 'changes', 'ignore_filter', 'format_fields_min_thresholds', 'bypass_reference_calls', 'genome']
+            allowed_kwargs = ['vcf_version', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'format_fields_min_thresholds', 'bypass_reference_calls']
             seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
@@ -198,10 +197,6 @@ class VariantFile(object):
         assert len(self.records) == len(set([record.pos for record in self.records])), "There must only be 1 record per position!"
 
         self.__find_calls()
-
-        self.__get_variants()
-        self.snp_distance = numpy.sum(self.is_snp)
-
 
     def __repr__(self):
         '''Pretty print the VCF file
@@ -267,7 +262,6 @@ class VariantFile(object):
                 for counter,(before,after) in enumerate(zip(record.ref,variant)):
 
                     # only make a change if the ALT is different to the REF
-                    # this filters out reference calls!
                     if before!=after:
                         metadata={}
                         metadata['type']=variant_type
@@ -313,88 +307,6 @@ class VariantFile(object):
                         vcf_info['ALTS'] = record.alts
                         metadata['original_vcf_row'] = vcf_info
                         self.calls[index+p] = metadata
-
-    def __get_variants(self):
-        '''Pull the variants out of the VariantFile object. Builds arrays
-            of the variant calls, and their respective genome indices, as well as
-            masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
-            i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
-        '''
-        alts=[]
-        variants = []
-        indices = []
-        refs=[]
-        positions=[]
-        is_snp = []
-        is_het = []
-        is_null = []
-        is_indel = []
-        indel_length = []
-        metadata = defaultdict(list)
-
-        for index in sorted(list(self.calls.keys())):
-            indices.append(index)
-            call = self.calls[index]['call']
-            alt=call
-            ref = self.calls[index]['ref']
-            if hasattr(self, 'genome'):
-            # if self.genome is not None:
-                assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
-            refs.append(ref)
-            pos = self.calls[index]['pos']
-            positions.append(pos)
-            #Update the masks with the appropriate types
-            if self.calls[index]["type"] == 'indel':
-                #Convert to ins_x or del_x rather than tuple
-                variant = str(index)+"_"+call[0]+"_"+str(call[1])
-                alt=call[1]
-                is_indel.append(True)
-                if call[1]=='ins':
-                    indel_length.append(len(call[1]))
-                else:
-                    indel_length.append(-1*len(call[1]))
-                is_snp.append(False)
-                is_het.append(False)
-                is_null.append(False)
-            elif self.calls[index]["type"] == "snp":
-                variant = str(index)+ref+'>'+call
-                is_indel.append(False)
-                indel_length.append(0)
-                is_snp.append(True)
-                is_het.append(False)
-                is_null.append(False)
-            elif self.calls[index]['type'] == 'het':
-                variant = str(index)+ref+'>'+alt
-                is_indel.append(False)
-                indel_length.append(0)
-                is_snp.append(False)
-                is_het.append(True)
-                is_null.append(False)
-            elif self.calls[index]['type'] == 'null':
-                variant = str(index)+ref+'>'+alt
-                is_indel.append(False)
-                indel_length.append(0)
-                is_snp.append(False)
-                is_het.append(False)
-                is_null.append(True)
-            alts.append(alt)
-            variants.append(variant)
-            for key in self.calls[index]['original_vcf_row']:
-                metadata[key].append(self.calls[index]['original_vcf_row'][key])
-        #Convert to numpy arrays for neat indexing
-        self.alt_nucleotides=numpy.array(alts)
-        self.variants = numpy.array(variants)
-        self.nucleotide_index = numpy.array(indices)
-        self.is_indel = numpy.array(is_indel)
-        self.indel_length=numpy.array(indel_length)
-        self.is_snp = numpy.array(is_snp)
-        self.is_het = numpy.array(is_het)
-        self.is_null = numpy.array(is_null)
-        self.ref_nucleotides=numpy.array(refs)
-        self.pos=numpy.array(positions)
-        self.metadata = dict()
-        for key in metadata:
-            self.metadata[key] = numpy.array(metadata[key], dtype=object)
 
     def _simplify_call(self, ref, alt):
         '''Find where in the sequence the indel was, and the values.
@@ -467,6 +379,7 @@ class VariantFile(object):
                     mutations.append((i, "snp", (a, b)))
         return mutations
 
+
     def to_df(self):
         '''Convert the VCFRecord to a pandas DataFrame.
         Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations
@@ -509,7 +422,7 @@ class VariantFile(object):
         df.attrs = meta_data
         return df
 
-    def interpret(self, genome=None):
+    def interpret(self, genome):
         '''Takes in a Genome object, returning an object detailing the full differences caused by this VCF including amino acid differences
 
         Args:
