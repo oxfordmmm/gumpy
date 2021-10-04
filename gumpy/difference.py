@@ -6,7 +6,7 @@ Abstract classes:
 Classes:
     GenomeDifference
     GeneDifference
-    VCFDifference
+    GeneticVariation
 Functions:
     convert_nucleotides_codons(numpy.array) -> numpy.array: Converts an array of nucleotides to an array of codons.
     setup_codon_aa_dict() -> dict: Returns a dictionary mapping codon->amino_acid
@@ -390,7 +390,7 @@ class GenomeDifference(Difference):
     #     return variants
 
 
-class VCFDifference(object):
+class GeneticVariation(object):
     '''Object used to find the difference a VCF file makes to a given Genome.
     This includes differences within codons/amino acids, coverages and mutations.
     Reports the values of indel calls which differ in length from any indels within the genome.
@@ -414,7 +414,7 @@ class VCFDifference(object):
         gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects corresponding to each gene in the genome
     '''
     def __init__(self, vcf, genome):
-        '''VCF difference object constructor.
+        '''Genetic variation object constructor.
 
         Args:
             vcf (gumpy.VCFFile): VCFFile object
@@ -426,7 +426,7 @@ class VCFDifference(object):
         self.__get_variants()
         self.snp_distance = numpy.sum(self.is_snp)
 
-        self.genes= genome.stacked_gene_name[numpy.isin(genome.stacked_nucleotide_index,(self.nucleotide_index))]
+        # self.genes= genome.stacked_gene_name[numpy.isin(genome.stacked_nucleotide_index,(self.nucleotide_index))]
 
     def __get_variants(self):
         '''Pull the variants out of the VCFFile object. Builds arrays
@@ -451,7 +451,8 @@ class VCFDifference(object):
             call = self.vcf.calls[index]['call']
             alt=call
             ref = self.vcf.calls[index]['ref']
-            assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
+            if self.genome is not None:
+                assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
             refs.append(ref)
             pos = self.vcf.calls[index]['pos']
             positions.append(pos)
@@ -509,39 +510,40 @@ class VCFDifference(object):
             self.metadata[key] = numpy.array(metadata[key], dtype=object)
 
 
-    def variants_by_index(self, index):
-        '''Get original vcf row from the variants by genome index
+    # def variants_by_index(self, index):
+    #     '''Get original vcf row from the variants by genome index
+    #
+    #     Args:
+    #         index (int): Genome index to find variants at
+    #
+    #     Returns:
+    #         dict: Dictionary mapping field->value
+    #     '''
+    #     assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index must be an integer!"
+    #     if self.genome is not None:
+    #         if index not in range(min(self.genome.nucleotide_index), max(self.genome.nucleotide_index)+1) or index <= 0:
+    #             #If the index is out of range, don't crash, just give a warning
+    #             warnings.warn("Index out of range of nucleotide numbers for this genome!", UserWarning)
+    #     #Pull out the original vcf row if it exists
+    #     variants = self.vcf.calls.get(index, {}).get("original_vcf_row", {})
+    #     return variants
 
-        Args:
-            index (int): Genome index to find variants at
 
-        Returns:
-            dict: Dictionary mapping field->value
-        '''
-        assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index must be an integer!"
-        if index not in range(min(self.genome.nucleotide_index), max(self.genome.nucleotide_index)+1) or index <= 0:
-            #If the index is out of range, don't crash, just give a warning
-            warnings.warn("Index out of range of nucleotide numbers for this genome!", UserWarning)
-        #Pull out the original vcf row if it exists
-        variants = self.vcf.calls.get(index, {}).get("original_vcf_row", {})
-        return variants
-
-
-    def gene_differences(self):
-        '''Get the GeneDifference objects for each gene in the genome comparing existing genes with genes after VCF.
-        Must be explicitly called by the user as applying a VCF is computationally expensive
-
-        Returns:
-            numpy.array: Array of GeneDifference objects
-        '''
-        #Build the genome with the VCF applied
-        genome_ = self.genome+self.vcf
-        return numpy.array([
-            GeneDifference(
-                self.genome.genes[gene], genome_.genes[gene]
-            )
-            for gene in self.genome.genes.keys()
-        ])
+    # def gene_differences(self):
+    #     '''Get the GeneDifference objects for each gene in the genome comparing existing genes with genes after VCF.
+    #     Must be explicitly called by the user as applying a VCF is computationally expensive
+    #
+    #     Returns:
+    #         numpy.array: Array of GeneDifference objects
+    #     '''
+    #     #Build the genome with the VCF applied
+    #     genome_ = self.genome+self.vcf
+    #     return numpy.array([
+    #         GeneDifference(
+    #             self.genome.genes[gene], genome_.genes[gene]
+    #         )
+    #         for gene in self.genome.genes.keys()
+    #     ])
 
 
 class GeneDifference(Difference):

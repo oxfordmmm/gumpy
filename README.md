@@ -37,7 +37,7 @@ g = Genome("filename.gbk")
 
 #### Multithreaded parsing
 Due to the slow nature of some parts of instanciating a Genome object, part of it can be considerable sped up through multithreading.
-Because of how multithreading works in Python, this is only beneficial when using Linux - **and so is disabled on ALL other platforms** 
+Because of how multithreading works in Python, this is only beneficial when using Linux - **and so is disabled on ALL other platforms**
 To utilise mutlithreading on a Linux platform, use the `multithreaded` flag when instanciating a Genome:
 ```
 from gumpy import Genome
@@ -91,7 +91,7 @@ from gumpy import VCFFile, VCFDifference, GeneDifference, Genome
 vcf = VCFFile("filename.vcf")
 genome = Genome("filename.gbk", is_reference=True)
 
-diff = vcf.difference(genome) #Returns a VCFDifference object
+diff = vcf.difference(genome) #Returns a GeneticVariation object
 diff.variants.get('COV') #List of the coverages of all calls
 diff.snps #Dictionary mapping genome_index->snp_call
 
@@ -106,7 +106,7 @@ genes_diff = diff.gene_differences() #Array of GeneDifference objects
 ### Gene level comparisons
 When a Genome object is instanciated, it is populated with Gene objects for each gene detailed in the genbank file.
 These genes can also be compared.
-Gene differences can be found through direct comparison of Gene objects, or systematically through the `gene_differences()` method of both `GenomeDifference` and `VCFDifference`.
+Gene differences can be found through direct comparison of Gene objects, or systematically through the `gene_differences()` method of both `GenomeDifference` and `GeneticVariation`.
 ```
 from gumpy import Genome, Gene
 
@@ -138,4 +138,3 @@ g1 = Genome.load("output.json) #Reloads the object from the JSON
 
 g == g1 #True
 ```
-

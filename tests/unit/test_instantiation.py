@@ -459,7 +459,7 @@ def test_instanciate_vcf():
     #Testing some populated items for the object
     assert vcf.vcf_version == (4, 2)
     assert vcf.contig_lengths == {"TEST_DNA": 99}
-    assert vcf.formats == {
+    assert vcf.format_fields_metadata == {
         "COV": {
             "type":"Integer",
             "description":"Number of reads on ref and alt alleles",

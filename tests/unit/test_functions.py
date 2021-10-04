@@ -225,24 +225,24 @@ def test_genome_difference():
        ['t', 'a']]))
 
 
-def test_vcf_difference():
+def test_vcf_genetic_variation():
     #Testing the VCFFile objects' difference()
     g1 = gumpy.Genome("config/TEST-DNA.gbk")
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
 
     #Get the difference
-    diff = vcf.difference(g1)
-    assert isinstance(diff, gumpy.VCFDifference)
+    genetic_variation = vcf.interpret(g1)
+    assert isinstance(genetic_variation, gumpy.GeneticVariation)
     #Checking the variant masks
-    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g',
+    assert numpy.all(genetic_variation.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g',
        '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '34_ins_tt',
        '37_del_t', '39t>a', '40_ins_g', '65_ins_ca', '74_ins_a']))
-    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 34, 37, 39,
+    assert numpy.all(genetic_variation.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 34, 37, 39,
        40, 65, 74]))
-    assert numpy.all(diff.is_snp == [False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, True, False, False, False])
-    assert numpy.all(diff.is_het == [False, False, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, False, False, False])
-    assert numpy.all(diff.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True])
-    assert numpy.all(diff.is_null == [True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False])
+    assert numpy.all(genetic_variation.is_snp == [False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, True, False, False, False])
+    assert numpy.all(genetic_variation.is_het == [False, False, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, False, False, False])
+    assert numpy.all(genetic_variation.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True])
+    assert numpy.all(genetic_variation.is_null == [True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False])
 
     full_metadata = {
         'GT': numpy.array([
@@ -270,13 +270,13 @@ def test_vcf_difference():
     }
 
     for i in full_metadata.keys():
-        assert check_eq(diff.metadata[i], full_metadata[i], True)
+        assert check_eq(genetic_variation.metadata[i], full_metadata[i], True)
 
     #Check all indices
-    for (idx, genome_index) in enumerate(diff.nucleotide_index.tolist()):
-        assert check_eq(diff.variants_by_index(genome_index), {field: full_metadata[field][idx] for field in full_metadata.keys()}, True)
+    # for (idx, genome_index) in enumerate(genetic_variation.nucleotide_index.tolist()):
+    #     assert check_eq(genetic_variation.variants_by_index(genome_index), {field: full_metadata[field][idx] for field in full_metadata.keys()}, True)
 
-    assert diff.snp_distance == 5
+    assert genetic_variation.snp_distance == 5
 
     #Checking gene difference objects
     g2=g1+vcf
@@ -477,12 +477,12 @@ def test_indels():
 
     #Not a static function, so a VCFFile must be instanciated
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
-    assert sorted(vcf.simplify_call("ga", "c")) == sorted([(0, "snp", ("g", "c")), (1, "del", "a")])
-    assert vcf.simplify_call("aaa", "a") == [(1, "del", "aa")]
-    assert sorted(vcf.simplify_call("acgtaa", "cgt")) == sorted(
+    assert sorted(vcf._simplify_call("ga", "c")) == sorted([(0, "snp", ("g", "c")), (1, "del", "a")])
+    assert vcf._simplify_call("aaa", "a") == [(1, "del", "aa")]
+    assert sorted(vcf._simplify_call("acgtaa", "cgt")) == sorted(
                                                         [
                                                             (0, "snp", ("a", "c")), (1, "snp", ("c", "g")),
                                                             (2, "snp", ("g", "t")), (3, "del", "taa")
                                                         ])
-    # assert sorted(vcf.simplify_call("a", "gga")) == [(-1, "ins", "gg")]
-    assert sorted(vcf.simplify_call("a", "gga")) == [(0, "ins", "gg")]
+    # assert sorted(vcf._simplify_call("a", "gga")) == [(-1, "ins", "gg")]
+    assert sorted(vcf._simplify_call("a", "gga")) == [(0, "ins", "gg")]
