@@ -159,7 +159,7 @@ class Genome(object):
         output+="..."
         output+=''.join(i for i in self.nucleotide_sequence[-6:])+'\n'
         if self.gene_subset is None:
-            output+='all genes/loci have been included\n'
+            output+='metadata for all genes/loci have been included\n'
         elif len(self.gene_subset)<10:
             output+='the following '+str(len(self.gene_subset))+' genes have been included: '
             for i in self.gene_subset:
@@ -536,7 +536,8 @@ class Genome(object):
         self.genes={}
 
         # loop through the features listed in the GenBank File
-        print("Iterating through features in GenBank file...")
+        if self.verbose:
+            print("Iterating through features in GenBank file...")
         for record in tqdm(reference_genome.features):
 
             # only parse coding sequences and rRNA features
@@ -664,7 +665,8 @@ class Genome(object):
         genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length)) #Gene names
         self.gene_rows = dict()#Dict to pull out row indicies for each gene in the stacked arrays
 
-        print("Finding overlaps...")
+        if self.verbose:
+            print("Finding overlaps...")
         for gene_name in tqdm(self.genes):
             #Get the start/end/rev_comp values
             start = self.genes[gene_name]["start"]
@@ -723,7 +725,8 @@ class Genome(object):
                                 "start": self.genes[gene_name]["start"],
                                 "end": self.genes[gene_name]["end"]}
                     for gene_name in self.genes}
-        print("Assigning promoters...")
+        if self.verbose:
+            print("Assigning promoters...")
         for promoter in tqdm(range(1,self.max_promoter_length+1)):
 
             #Replacement `start_end` because dictionaries can't be changed during iteration
@@ -886,7 +889,8 @@ class Genome(object):
         assert max(vcf.calls.keys()) <= self.length, "The VCF file details changes outside of this genome!"
 
         #Replicate this Genome object
-        print("Copying the genome...")
+        if self.verbose:
+            print("Copying the genome...")
         genome = copy.deepcopy(self)
 
         '''
@@ -899,7 +903,8 @@ class Genome(object):
         '''
 
         #Change the nucleotide indicies
-        print("Updating the genome...")
+        if self.verbose:
+            print("Updating the genome...")
         for idx in tqdm(vcf.calls.keys()):
 
             if vcf.calls[idx]['type'] in ['snp','null','het']:
