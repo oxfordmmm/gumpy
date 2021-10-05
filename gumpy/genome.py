@@ -17,6 +17,8 @@ from gumpy import Gene, GenomeDifference
 
 class Genome(object):
 
+    """Genome object"""
+
     def __init__(self, *args, **kwargs):
         '''
         Constructor for the Genome object.

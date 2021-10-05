@@ -8,13 +8,15 @@ from gumpy import GeneDifference
 
 # FIXME: problems with rrs, mfpB
 class Gene(object):
+    
     """Gene object that uses underlying numpy arrays"""
+
     def __init__(self, *args, **kwargs):
         '''Constructor for the Gene object.
         Args:
             name (str, optional): Name of the gene. Defaults to None
             nucleotide_sequence (numpy.array, optional): Numpy array of the nucleotide sequence. Defaults to None
-            index (numpy.array, optional): Numpy array of the gene indices. Defaults to None
+            nucleotide_index (numpy.array, optional): Numpy array of the gene indices. Defaults to None
             nucleotide_number (numpy.array, optional): Numpy array of the gene numbering. Defaults to None
             is_cds (numpy.array, optional): Numpy array to act as a mask for whether given elements are codons. Defaults to None
             is_promoter (numpy.array, optional): Numpy array to act as a mask for whether given elements are promoters. Defaults to None
@@ -24,14 +26,15 @@ class Gene(object):
             codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
-            variants (dict(int:numpy.array), optional): Dictionary of VCF data. Defaults to {}
         '''
+
+
         #Set the kwargs
         #UPDATE THIS AS REQUIRED
-        allowed_kwargs = ['name', 'nucleotide_sequence', 'nucleotide_index', 'nucleotide_number', 'is_cds', 'is_promoter',
-                        'is_indel', 'indel_length', 'codes_protein', 'reverse_complement', 'feature_type',
+        allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter',
+                        'is_indel', 'indel_length', 'indel_nucleotides','codes_protein', 'reverse_complement', 'feature_type',
                         'codon_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number',
-                        'codons', 'amino_acid_sequence', 'ribosomal_shifts', 'variants']
+                        'codons', 'amino_acid_sequence', 'ribosomal_shifts']
         #If reloading a Gene, just set the attributes and return
         if "reloading" in kwargs.keys():
             seen = set()
@@ -60,11 +63,6 @@ class Gene(object):
         feature_type = kwargs.get("feature_type")
         ribosomal_shifts = kwargs.get("ribosomal_shifts", [])
         #VCF data which is accessed by GeneDifference. Has no direct references here...
-        self.variants = kwargs.get('variants', dict())
-        # print(name)
-        # print(*index.tolist(), sep="\t")
-        # print(*nucleotide_number.tolist(), sep="\t")
-        # assert False
 
         assert name is not None, "must provide a gene name!"
         self.name=name

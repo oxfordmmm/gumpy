@@ -356,39 +356,6 @@ class GenomeDifference(Difference):
             genes = self.genome1.genes.keys()
         return numpy.array([GeneDifference(self.genome1.genes[gene], self.genome2.genes[gene]) for gene in genes])
 
-    # def variants(self, index):
-    #     '''Get the VCF fields such as COV and GT at a given genome index
-    #
-    #     Args:
-    #         index (int): Genome index to find the variance at.
-    #
-    #     Returns:
-    #         dict: Dictionary mapping vcf_field->(genome1_val, genome2_val)
-    #     '''
-    #     assert type(index) == int or ("numpy" in str(type(index)) and type(index.item()) == int), "Index given should be an integer."
-    #     if (index not in range(min(self.genome1.nucleotide_index),max(self.genome1.nucleotide_index)+1)
-    #         or index not in range(min(self.genome2.nucleotide_index),max(self.genome2.nucleotide_index)+1)
-    #         or index == 0):
-    #         warnings.warn(f"The index ({index}) is out of range of nucleotide numbers, try ({min(self.genome1.nucleotide_index)},{max(self.genome1.nucleotide_index)}).", UserWarning)
-    #         return {}
-    #     variants = {}
-    #     if self.genome1.variant_file:
-    #         d1 = collapse_inner_dict(self.genome1.variant_file.calls.get(index, {}))
-    #     else:
-    #         warnings.warn(f"There is no variants for genome1 {self.genome1.name}", UserWarning)
-    #         d1 = {}
-    #     if self.genome2.variant_file:
-    #         d2 = collapse_inner_dict(self.genome2.variant_file.calls.get(index, {}))
-    #     else:
-    #         warnings.warn(f"There is no variants for genome2 {self.genome2.name}", UserWarning)
-    #         d2 = {}
-    #     for field in set(d1.keys()).union(set(d2.keys())):
-    #         #Pull out the values if they exist
-    #         genome1_val = d1.get(field, None)
-    #         genome2_val = d2.get(field, None)
-    #         variants[field] = (genome1_val, genome2_val)
-    #     return variants
-
 
 class GeneticVariation(object):
     '''Object used to find the difference a VCF file makes to a given Genome.

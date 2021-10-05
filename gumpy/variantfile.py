@@ -2,9 +2,10 @@
 Classes used to parse and store VCF data
 '''
 import pysam, copy
-import pandas as pd
-from gumpy import GeneticVariation
+import pandas, numpy
 
+from gumpy import GeneticVariation
+from collections import defaultdict
 
 class VCFRecord(object):
     '''
@@ -128,11 +129,25 @@ class VCFFile(object):
     Class to instanciate a variant file (VCF)
     Used to apply a VCF file to a genome
     Instance variables:
+        `filename` (str): path to the VCF file
         `vcf_version` (tuple(int)): Tuple of ints to show the VCF version of the file. e.g 3.2 would be (3, 2).
         `contig_lengths` (dict): Dictionary mapping contig_name->length for all defined contigs.
-        `formats` (dict): Dictionary mapping format_name->dict(description, id, type).
+        `format_fields_description` (dict): Dictionary mapping format_name->dict(description, id, type).
         `records` (list(VCFRecord)): List of VCFRecord objects for each record within the file.
-        `changes` (dict): Dictionary mapping array_index->(call, [(n_reads, alt_call)])
+        `genome` (gumpy.Genome): optional Genome object; if passed will be used to check the REF bases in the VCF file.
+        `calls` (dict): Dict of definite calls made in the VCF file, after any additional filtering has been applied
+        `ignore_filter` (bool): whether to ignore the FILTER in the VCF file
+        `format_fields_min_thresholds` (dict): dictionary specifying minimum thresholds to be applied to fields in the FORMAT field e.g. {'GTCONF':5}
+        `variants` (numpy.array): Numpy array of the detected variants in the VCF file
+        `nucleotide_index` (numpy.array): Array of genome indices which are affected by the VCF
+        `ref_nucleotides` (numpy.array): Array of REF bases
+        `alt_nucleotides` (numpy.array): Array of ALT bases
+        `indel_length` (numpy.array): Array of lengths of insertions (+ve) or deletions (-ve) at each site
+        `is_snp` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are SNPs
+        `is_het` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are heterozygous calls
+        `is_null` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are null calls
+        `is_indel` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are indel calls
+        `snp_distance` (int): SNP distance caused by the VCF
     '''
     def __init__(self, *args, **kwargs):
         '''
@@ -143,7 +158,7 @@ class VCFFile(object):
         if len(args) != 1:
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
-            allowed_kwargs = ['vcf_version', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'format_fields_min_thresholds', 'bypass_reference_calls']
+            allowed_kwargs = ['vcf_version', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'format_fields_min_thresholds', 'bypass_reference_calls', 'genome']
             seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
@@ -197,6 +212,10 @@ class VCFFile(object):
         assert len(self.records) == len(set([record.pos for record in self.records])), "There must only be 1 record per position!"
 
         self.__find_calls()
+
+        self.__get_variants()
+
+        self.snp_distance = numpy.sum(self.is_snp)
 
     def __repr__(self):
         '''Pretty print the VCF file
@@ -413,7 +432,7 @@ class VCFFile(object):
                     values[key] = [record.values[key]]
                 else:
                     values[key].append(record.values[key])
-        df = pd.DataFrame({
+        df = pandas.DataFrame({
             "CHROM": chroms, "POS": pos,
             "REF": refs, "ALTS": alts,
             "QUAL": qual, "INFO": infos,
@@ -422,10 +441,91 @@ class VCFFile(object):
         df.attrs = meta_data
         return df
 
-    def interpret(self, genome):
-        '''Takes in a Genome object, returning an object detailing the full differences caused by this VCF including amino acid differences
+    # def interpret(self, genome):
+    #     '''Takes in a Genome object, returning an object detailing the full differences caused by this VCF including amino acid differences
+    #
+    #     Args:
+    #         genome (gumpy.Genome): A reference Genome object
+    #     '''
+    #     return GeneticVariation(self, genome)
 
-        Args:
-            genome (gumpy.Genome): A reference Genome object
+    def __get_variants(self):
+        '''Pull the variants out of the VCFFile object. Builds arrays
+            of the variant calls, and their respective genome indices, as well as
+            masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
+            i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
         '''
-        return GeneticVariation(self, genome)
+        alts=[]
+        variants = []
+        indices = []
+        refs=[]
+        positions=[]
+        is_snp = []
+        is_het = []
+        is_null = []
+        is_indel = []
+        indel_length = []
+        metadata = defaultdict(list)
+
+        for index in sorted(list(self.calls.keys())):
+            indices.append(index)
+            call = self.calls[index]['call']
+            alt=call
+            ref = self.calls[index]['ref']
+            if hasattr(self, 'genome'):
+                assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
+            refs.append(ref)
+            pos = self.calls[index]['pos']
+            positions.append(pos)
+            #Update the masks with the appropriate types
+            if self.calls[index]["type"] == 'indel':
+                #Convert to ins_x or del_x rather than tuple
+                variant = str(index)+"_"+call[0]+"_"+str(call[1])
+                alt=call[1]
+                is_indel.append(True)
+                if call[1]=='ins':
+                    indel_length.append(len(call[1]))
+                else:
+                    indel_length.append(-1*len(call[1]))
+                is_snp.append(False)
+                is_het.append(False)
+                is_null.append(False)
+            elif self.calls[index]["type"] == "snp":
+                variant = str(index)+ref+'>'+call
+                is_indel.append(False)
+                indel_length.append(0)
+                is_snp.append(True)
+                is_het.append(False)
+                is_null.append(False)
+            elif self.calls[index]['type'] == 'het':
+                variant = str(index)+ref+'>'+alt
+                is_indel.append(False)
+                indel_length.append(0)
+                is_snp.append(False)
+                is_het.append(True)
+                is_null.append(False)
+            elif self.calls[index]['type'] == 'null':
+                variant = str(index)+ref+'>'+alt
+                is_indel.append(False)
+                indel_length.append(0)
+                is_snp.append(False)
+                is_het.append(False)
+                is_null.append(True)
+            alts.append(alt)
+            variants.append(variant)
+            for key in self.calls[index]['original_vcf_row']:
+                metadata[key].append(self.calls[index]['original_vcf_row'][key])
+        #Convert to numpy arrays for neat indexing
+        self.alt_nucleotides=numpy.array(alts)
+        self.variants = numpy.array(variants)
+        self.nucleotide_index = numpy.array(indices)
+        self.is_indel = numpy.array(is_indel)
+        self.indel_length=numpy.array(indel_length)
+        self.is_snp = numpy.array(is_snp)
+        self.is_het = numpy.array(is_het)
+        self.is_null = numpy.array(is_null)
+        self.ref_nucleotides=numpy.array(refs)
+        self.pos=numpy.array(positions)
+        self.metadata = dict()
+        for key in metadata:
+            self.metadata[key] = numpy.array(metadata[key], dtype=object)
