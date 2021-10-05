@@ -96,7 +96,7 @@ def test_genome_functions():
         "TEST_DNA, complete genome",
         "99 bases",
         "aaaaaa...cccccc",
-        "all genes/loci have been included"
+        "metadata for all genes/loci have been included"
     ]
 
 def test_gene_functions():

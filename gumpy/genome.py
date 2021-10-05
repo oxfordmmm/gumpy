@@ -6,9 +6,7 @@ import copy
 from gumpy.variantfile import VCFRecord, VCFFile
 import gzip
 import json
-import math
 import time
-import sys
 from collections import defaultdict
 
 import numpy
@@ -743,7 +741,8 @@ class Genome(object):
                     self.stacked_is_reverse_complement[row][pos] = rev_comp
                     self.stacked_is_promoter[row][pos] = True
                     self.genes_mask[pos] = True
-                    #Move the start/end values appropriately
+
+                    # move the start/end values appropriately
                     if rev_comp:
                         new_start_end[gene_name]["end"] = end + 1
                     else:
@@ -803,7 +802,7 @@ class Genome(object):
         return g
 
     def __add__(self, vcf):
-        '''Function to apply a variant file to the genome  - producing a replica genome with the specified changes
+        '''Function to apply a VCF file to the genome  - producing a replica genome with the specified changes
 
         Args:
             vcf (gumpy.VCFFile): The VCFFile object for the VCF
@@ -829,17 +828,20 @@ class Genome(object):
             ~0.1% True mask is a reasonable amount for this task as a VCF file is ~4000 entries
         '''
 
-        #Change the nucleotide indicies
+
         if self.verbose:
             print("Updating the genome...")
 
+        # use the calls dict to change the nucleotide indicies in the copy of the genome
         for idx in tqdm(vcf.calls.keys()):
 
+            # deal with changes at a single nucleotide site
             if vcf.calls[idx]['type'] in ['snp','null','het']:
 
-                #Only set values if the idx is to a single nucleotide
+                # only set values if the idx is to a single nucleotide
                 genome.nucleotide_sequence[idx-1] = vcf.calls[idx]['call']
 
+            # deal with insertions and deletions
             elif vcf.calls[idx]['type'] in ['indel']:
 
                 genome.is_indel[idx-1] = True
@@ -854,7 +856,7 @@ class Genome(object):
             else:
                 raise Exception('variant type not recognised!', vcf.calls[idx])
 
-        #The genome has been altered so not a reference genome
+        # the genome has been altered so not a reference genome
         genome.is_reference = False
 
         return genome
