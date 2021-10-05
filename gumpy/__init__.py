@@ -20,12 +20,11 @@ Classes:
     VCFRecord
     GenomeDifference
     GeneDifference
-    GeneticVariation
 '''
 #Use of semantic versioning, MAJOR.MINOR.MAINTAINANCE where MAJOR is not backwards compatible, but MINOR and MAINTAINANCE are
 __version__="1.0.0"
 
-from .difference import GenomeDifference, GeneticVariation, GeneDifference
+from .difference import GenomeDifference, GeneDifference
 from .gene import Gene
 from .variantfile import VCFFile
 from .genome import Genome

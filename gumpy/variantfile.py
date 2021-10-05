@@ -4,7 +4,6 @@ Classes used to parse and store VCF data
 import pysam, copy
 import pandas, numpy
 
-from gumpy import GeneticVariation
 from collections import defaultdict
 
 class VCFRecord(object):
@@ -209,7 +208,7 @@ class VCFFile(object):
                 self.records.append(VCFRecord(record, sample))
 
         #Ensure that only a single record exists for each position specified
-        assert len(self.records) == len(set([record.pos for record in self.records])), "There must only be 1 record per position!"
+        assert len(self.records) == len(set([record.pos for record in self.records])), "There must 1 and only 1 record per position! "
 
         self.__find_calls()
 
@@ -440,14 +439,6 @@ class VCFFile(object):
             })
         df.attrs = meta_data
         return df
-
-    # def interpret(self, genome):
-    #     '''Takes in a Genome object, returning an object detailing the full differences caused by this VCF including amino acid differences
-    #
-    #     Args:
-    #         genome (gumpy.Genome): A reference Genome object
-    #     '''
-    #     return GeneticVariation(self, genome)
 
     def __get_variants(self):
         '''Pull the variants out of the VCFFile object. Builds arrays
