@@ -129,9 +129,8 @@ def test_instanciate_genes_covid_ORF1ab():
 
 def test_instanciate_genome_rna():
     genome = gumpy.Genome("config/TEST-RNA.gbk")
-    g2 = gumpy.Genome("config/TEST-RNA.gbk", multithreaded=True)
+    g2 = gumpy.Genome("config/TEST-RNA.gbk")
     #Check that multithreading gives the same result.
-    #If not testing on Linux the multithreaded code will never be touched...
     assert genome == g2
 
     #Testing generic attributes such as name and length

@@ -7,7 +7,6 @@ from gumpy.variantfile import VCFRecord, VCFFile
 import gzip
 import json
 import math
-import multiprocessing
 import time
 import sys
 from collections import defaultdict
@@ -104,13 +103,6 @@ class Genome(object):
         if verbose:
             timings['promoter'].append(time.time()-start_time)
             start_time=time.time()
-
-        # self.__recreate_genes(show_progress_bar=show_progress_bar)
-        #
-        # if verbose:
-        #     timings['create genes'].append(time.time()-start_time)
-        #     for i in timings:
-        #         print("%20s %6.3f s" % (i, numpy.sum(timings[i])))
 
         self.__convert_references()
 
@@ -785,7 +777,7 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
 
-    def build_gene(self, gene, conn=None):
+    def build_gene(self, gene):
         '''
         Private function to build the gumpy.Gene object
         Should be private with leading `__` but a cross-platform bug means this causes crashes
@@ -793,10 +785,9 @@ class Genome(object):
         platforms, so this has to be made inheritable to be called from child thread
         Args:
             gene (str) : The name of the gene
-            conn (multiprocessing.connection=None) : Connection object from a multiprocessing.Pipe(), default to None
                                                         for cases where it is faster to single thread
         Returns:
-            gumpy.Gene : The instanciated gene object. Returns None in cases where a Connection object is passed.
+            gumpy.Gene : The instanciated gene object.
         '''
 
         #The mask for all stacked arrays (N-dim)
@@ -819,62 +810,8 @@ class Genome(object):
                     reverse_complement=self.genes[gene]['reverse_complement'],
                     feature_type=self.genes[gene]['type'],
                     ribosomal_shifts=self.genes[gene]['ribosomal_shifts'] )
-        if conn:
-            conn.send(g)
-        else:
-            return g
 
-    # def __recreate_genes(self,show_progress_bar=False):
-    #     """
-    #     Private method to re-instantiate the passed list Genes.
-    #
-    #     This translates the nucleotide sequence into amino acids (if the gene codes protein) and is
-    #     hence necessary after applying a vcf file, albeit only for those genes whose sequence has been altered.
-    #
-    #     Args:
-    #         show_progress_bar (bool, optional):  Whether to show the (tqdm) progress bar. Defaults to False
-    #     """
-    #     list_of_genes = list(self.genes_lookup.keys())
-    #
-    #     self.genes={}
-    #
-    #     #Limit of how many processes can be open at once
-    #     limit = 10 #On Linux this works at 25-50 but Windows has weird issues so 10 is the max for 16BG RAM
-    #
-    #     #As there is some overhead for multithreading, there are cases where this is actually slower
-    #     #So add a check to use a single thread if the number of required iterations is less than the limit
-    #     #Due to several other cross-platform issues, it is also worth restricting multithreading to Linux as this is the
-    #     #   only tested platform with speedup from it. Also included is a switch to enable/disable
-    #     if len(list_of_genes) <= limit or sys.platform!="linux" or self.multithreaded==False:
-    #         #Single threaded
-    #         for gene in tqdm(list_of_genes, disable=not(show_progress_bar)):
-    #             self.genes[gene] = self.build_gene(gene, conn=None)
-    #         return
-    #
-    #     #Multithreading
-    #     for thread_index in tqdm(range(0, math.ceil(len(list_of_genes)/limit)),disable=not(show_progress_bar)):
-    #         #Get the communication pipes required
-    #         pipes = [multiprocessing.Pipe() for i in range(limit)]
-    #         #Get some threads
-    #         threads = [(multiprocessing.Process(target=self.build_gene, args=(gene, child)), gene, parent)
-    #                     for (gene, (parent, child)) in zip(list_of_genes[thread_index*limit:thread_index*limit+limit], pipes)]
-    #         #Start some threads
-    #         for i in range(limit):
-    #             if i < len(threads):
-    #                 threads[i][0].start()
-    #         #Wait for the threads to finish
-    #         for i in range(limit):
-    #             if i < len(threads):
-    #                 #Get data from the pipe
-    #                 recieved = threads[i][2].recv()
-    #                 if recieved is None:
-    #                     continue
-    #                 #Rejoin the main thread
-    #                 threads[i][0].join()
-    #                 #Set the appropriate value in the genes dict
-    #                 self.genes[threads[i][1]] = recieved
-    #                 #Close the threads and connections
-    #                 threads[i][0].close()
+        return g
 
     def __add__(self, vcf):
         '''Function to apply a variant file to the genome  - producing a replica genome with the specified changes
@@ -928,9 +865,5 @@ class Genome(object):
 
         #The genome has been altered so not a reference genome
         genome.is_reference = False
-
-        #Rebuild the genes with this new information
-        # print("Rebuilding the Gene objects with the updated genome...")
-        # genome.__recreate_genes(show_progress_bar=True)
 
         return genome
