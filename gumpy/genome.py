@@ -187,24 +187,13 @@ class Genome(object):
         '''
         check = True
         check = check and self.genes == other.genes
-        # print("genes", self.genes == other.genes)
         check = check and self.name == other.name
-        # print("Name", self.name == other.name)
         check = check and self.id == other.id
-        # print("ID", self.id == other.id)
         check = check and self.description == other.description
-        # print("Desc", self.description == other.description)
         check = check and numpy.all(self.nucleotide_sequence == other.nucleotide_sequence)
-        # print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
         check = check and numpy.all(self.nucleotide_index == other.nucleotide_index)
-        # print("NI", numpy.all(self.nucleotide_index == other.nucleotide_index))
         check = check and self.length == other.length
-        # print("len", self.length == other.length)
         check = check and numpy.all(self.stacked_gene_name.tolist() == other.stacked_gene_name.tolist())
-        # print("SGN", numpy.all(self.stacked_gene_name.tolist() == other.stacked_gene_name.tolist()))
-        # print(self.stacked_gene_name, self.stacked_gene_name.shape)
-        # print(other.stacked_gene_name, other.stacked_gene_name.shape)
-        # print()
 
         return check
 
@@ -290,7 +279,6 @@ class Genome(object):
         Returns:
             dict/list/tuple: Either aggregated output or a single output depending on if aggregation was required
         '''
-        # print(obj)
         if type(obj) in [bool, int, str, float, complex, bytes, bytearray] or obj is None:
             #Fundamental data types which need no conversions
             to_return = obj
@@ -657,6 +645,7 @@ class Genome(object):
 
         if self.verbose:
             print("Finding overlaps...")
+
         for gene_name in tqdm(self.genes):
             #Get the start/end/rev_comp values
             start = self.genes[gene_name]["start"]
@@ -717,6 +706,7 @@ class Genome(object):
                     for gene_name in self.genes}
         if self.verbose:
             print("Assigning promoters...")
+
         for promoter in tqdm(range(1,self.max_promoter_length+1)):
 
             #Replacement `start_end` because dictionaries can't be changed during iteration
@@ -777,24 +767,25 @@ class Genome(object):
 
     def build_gene(self, gene):
         '''
-        Private function to build the gumpy.Gene object
-        Should be private with leading `__` but a cross-platform bug means this causes crashes
-        https://bugs.python.org/issue44675 - with multithreading, only inheritable items are included on non-linux
-        platforms, so this has to be made inheritable to be called from child thread
+        Public function to build the gumpy.Gene object
+
         Args:
             gene (str) : The name of the gene
-                                                        for cases where it is faster to single thread
+
         Returns:
             gumpy.Gene : The instanciated gene object.
         '''
 
-        #The mask for all stacked arrays (N-dim)
+        # The mask for all stacked arrays (N-dim)
         stacked_mask=self.stacked_gene_name==gene
-        #The mask for singular arrays (1-dim) by collapsing stacked mask to 1-dim
+
+        # The mask for singular arrays (1-dim) by collapsing stacked mask to 1-dim
         mask=numpy.any(stacked_mask,axis=0)
 
-
+        # check that the genome does contain the gene name
         assert numpy.count_nonzero(mask)>0, "gene ("+gene+") not found in genome!"
+
+        # instantiate a Gene object
         g = Gene(name=gene,
                     nucleotide_sequence=self.nucleotide_sequence[mask],
                     index=self.nucleotide_index[mask],
@@ -823,9 +814,10 @@ class Genome(object):
 
         assert max(vcf.calls.keys()) <= self.length, "The VCF file details changes outside of this genome!"
 
-        #Replicate this Genome object
         if self.verbose:
             print("Copying the genome...")
+
+        # Replicate this Genome object
         genome = copy.deepcopy(self)
 
         '''
@@ -840,6 +832,7 @@ class Genome(object):
         #Change the nucleotide indicies
         if self.verbose:
             print("Updating the genome...")
+
         for idx in tqdm(vcf.calls.keys()):
 
             if vcf.calls[idx]['type'] in ['snp','null','het']:
