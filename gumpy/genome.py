@@ -29,7 +29,6 @@ class Genome(object):
             max_promoter_length (int, optional) : Size of the default promoter. Defaults to 100
             max_gene_name_length (int, optional) : Size of the longest gene name. Defaults to 20
             verbose (bool, optional) : Boolean as whether to give verbose statements. Defaults to False
-            multithreaded (bool, optional) : Boolean as whether to multithread the building of Gene objects. Only Makes a change on Linux. Defaults to False
             is_reference (bool, optional) : Boolean showing whether this genome is a reference genome, i.e. mutations can be derrived from it. Defaults to False
         '''
         if len(args) != 1:
@@ -42,7 +41,7 @@ class Genome(object):
                             'description', 'length', 'nucleotide_index', 'stacked_gene_name', 'stacked_is_cds', 'stacked_is_promoter',
                             'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations',
                             'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes',
-                            'multithreaded',  'is_reference']
+                             'is_reference']
             seen = set()
             for key in kwargs.keys():
                 '''
@@ -70,7 +69,6 @@ class Genome(object):
             self.max_promoter_length = kwargs.get("max_promoter_length", 100)
             max_gene_name_length = kwargs.get("max_gene_name_length", 20)
             verbose = kwargs.get("verbose", False)
-            self.multithreaded = kwargs.get("multithreaded", False)
             self.is_reference = kwargs.get("is_reference", False)
             #Set the args value to the genbank file
             genbank_file = args[0]
