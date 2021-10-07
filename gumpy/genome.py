@@ -847,7 +847,6 @@ class Genome(object):
             elif vcf.calls[idx]['type'] in ['indel']:
 
                 genome.is_indel[idx-1] = True
-
                 genome.indel_nucleotides[idx-1] = vcf.calls[idx]['call'][1]
 
                 if vcf.calls[idx]['call'][0]=='ins':

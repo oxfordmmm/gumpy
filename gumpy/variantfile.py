@@ -383,16 +383,16 @@ class VCFFile(object):
                 start = i
         seq = [x[i] for i in range(len(current)) if current[i] is None]
         #Add the indel
-        # if indel == "ins":
+        if indel == "ins":
             #Ins after index, del at index so adjust ins
-            # start -= 1
+            start -= 1
         mutations.append((start, indel, ''.join(seq)))
         #Check for SNPs and add those
         for (i, (a, b)) in enumerate(zip(x, current)):
             if a is not None and b is not None and a != b:
                 if indel == "ins":
                     # PWF was (i-1) but corrected, prob
-                    mutations.append((i, "snp", (b, a)))
+                    mutations.append((i-1, "snp", (b, a)))
                 else:
                     mutations.append((i, "snp", (a, b)))
         return mutations

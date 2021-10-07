@@ -8,7 +8,7 @@ from gumpy import GeneDifference
 
 # FIXME: problems with rrs, mfpB
 class Gene(object):
-    
+
     """Gene object that uses underlying numpy arrays"""
 
     def __init__(self, *args, **kwargs):
@@ -92,7 +92,6 @@ class Gene(object):
         self.indel_nucleotides=indel_nucleotides
         self.indel_length=indel_length
 
-
         #Make appropriate changes to the arrays to encorporate the frame shift
         for shift in ribosomal_shifts:
             self.__duplicate(shift)
@@ -146,7 +145,7 @@ class Gene(object):
         self.is_promoter = self.__duplicate_index(index, self.is_promoter)
         self.is_indel = self.__duplicate_index(index, self.is_indel)
         self.indel_length = self.__duplicate_index(index, self.indel_length)
-
+        self.indel_nucleotides = self.__duplicate_index(index, self.indel_nucleotides)
 
 
     def __duplicate_index(self, index, array):
@@ -188,25 +187,7 @@ class Gene(object):
         if self.codes_protein:
             check = check and numpy.all(self.amino_acid_sequence == other.amino_acid_sequence)
             check = check and numpy.all(self.codons == other.codons)
-        # if not check:
-        #     print(self.name)
-        #     print("name", self.name == other.name)
-        #     print("NS", numpy.all(self.nucleotide_sequence == other.nucleotide_sequence))
-        #     print(self.nucleotide_sequence, self.nucleotide_sequence.shape)
-        #     print(other.nucleotide_sequence, other.nucleotide_sequence.shape)
-        #     print("index", numpy.all(self.nucleotide_index == other.index))
-        #     print("NN", numpy.all(self.nucleotide_number == other.nucleotide_number))
-        #     print("is_cds", numpy.all(self.is_cds == other.is_cds))
-        #     print("is_promoter", numpy.all(self.is_promoter == other.is_promoter))
-        #     print("is_indel", numpy.all(self.is_indel == other.is_indel))
-        #     print("indel_len", numpy.all(self.indel_length == other.indel_length))
-        #     print("rev_comp", numpy.all(self.reverse_complement == other.reverse_complement))
-        #     print("codes_protein", numpy.all(self.codes_protein == other.codes_protein))
-        #     print("feature_type", numpy.all(self.feature_type == other.feature_type))
-        #     if self.codes_protein:
-        #         print("AAS", numpy.all(self.amino_acid_sequence == other.amino_acid_sequence))
-        #         print("codons", numpy.all(self.codons == other.codons))
-        #     print()
+
         return check
 
     @staticmethod
