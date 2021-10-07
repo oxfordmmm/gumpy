@@ -479,8 +479,8 @@ class Genome(object):
         # VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','IS_SNP','IS_INDEL','INDEL_LENGTH','ELEMENT_TYPE','MUTATION_TYPE',"HET_VARIANT_0","HET_VARIANT_1","HET_COVERAGE_0","HET_COVERAGE_1","HET_INDEL_LENGTH_0","HET_INDEL_LENGTH_1","HET_REF","HET_ALT_0","HET_ALT_1"]
         VARIANTS_columns=['VARIANT','REF','ALT','GENOME_INDEX','GENE','ELEMENT_TYPE','POSITION','NUCLEOTIDE_NUMBER','AMINO_ACID_NUMBER','INDEL_LENGTH',"COVERAGE"]
         # print(self.genome_sequence_metadata)
-        # for field in self.genome_sequence_metadata:
-        #     VARIANTS_columns.append(field)
+        for field in self.genome_sequence_metadata:
+            VARIANTS_columns.append(field)
         for cols in VARIANTS_columns:
             VARIANTS_dict[cols]=[]
 
