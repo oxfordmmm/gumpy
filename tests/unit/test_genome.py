@@ -358,14 +358,14 @@ def test_Genome_apply_vcf():
     assert indices[0]==4687
     assert reference.genome_coding_strand[reference.genome_index==indices[0]]=='t'
     assert sample_01.genome_coding_strand[reference.genome_index==indices[0]]=='c'
-    assert sample_01.coverage[sample_01.genome_index==4687]==68
+    # assert sample_01.coverage[sample_01.genome_index==4687]==68
     assert sample_01.genome_sequence_metadata['GT_CONF'][sample_01.genome_index==4687][0]==pytest.approx(613.77)
 
 
     assert indices[1]==4725
     assert reference.genome_coding_strand[reference.genome_index==indices[1]]=='t'
     assert sample_01.genome_coding_strand[reference.genome_index==indices[1]]=='c'
-    assert sample_01.coverage[sample_01.genome_index==4725]==68
+    # assert sample_01.coverage[sample_01.genome_index==4725]==68
     assert sample_01.genome_sequence_metadata['GT_CONF'][sample_01.genome_index==4725][0]==pytest.approx(613.77)
 
 def test_Genome_list_variants_wrt():
