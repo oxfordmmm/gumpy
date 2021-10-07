@@ -506,8 +506,8 @@ class Genome(object):
         # VARIANTS_dict["HET_ALT_1"]=self.het_alt[mask][:,1]
         # VARIANTS_dict["HET_REF"]=self.het_ref[mask]
 
-        # for field in self.genome_sequence_metadata:
-        #     VARIANTS_dict[field]=self.genome_sequence_metadata[field][mask]
+        for field in self.genome_sequence_metadata:
+            VARIANTS_dict[field]=self.genome_sequence_metadata[field][mask]
 
         mask=self.is_indel
         VARIANTS_dict['REF']=numpy.append(VARIANTS_dict['REF'],self.indel_ref[mask])
@@ -532,8 +532,8 @@ class Genome(object):
         # VARIANTS_dict["HET_ALT_1"]=numpy.append(VARIANTS_dict["HET_ALT_1"],self.het_alt[mask][:,1])
         # VARIANTS_dict["HET_REF"]=numpy.append(VARIANTS_dict["HET_REF"],self.het_ref[mask])
 
-        # for field in self.genome_sequence_metadata:
-        #     VARIANTS_dict[field]=numpy.append(VARIANTS_dict[field],self.genome_sequence_metadata[field][mask])
+        for field in self.genome_sequence_metadata:
+            VARIANTS_dict[field]=numpy.append(VARIANTS_dict[field],self.genome_sequence_metadata[field][mask])
 
         if len(VARIANTS_dict['POSITION'])>0:
 
@@ -561,8 +561,8 @@ class Genome(object):
 
 
             # add on any other metadata gleaned from the VCF file
-            # for field in self.genome_sequence_metadata:
-            #     VARIANTS_columns.append(field)
+            for field in self.genome_sequence_metadata:
+                VARIANTS_columns.append(field)
 
             VARIANTS_table=VARIANTS_table.astype({  'VARIANT':'str',\
                                                     'REF':'str',\
