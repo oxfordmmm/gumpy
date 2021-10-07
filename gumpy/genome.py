@@ -1090,8 +1090,8 @@ class Genome(object):
 
         # since we are now applying a VCF file, it makes sense to create these numpy arrays
         self.coverage=numpy.zeros(self.genome_length,int)
-        self.indel_ref=numpy.zeros(self.genome_length,dtype='<U50')
-        self.indel_alt=numpy.zeros(self.genome_length,dtype='<U50')
+        self.indel_ref=numpy.zeros(self.genome_length,dtype='object')
+        self.indel_alt=numpy.zeros(self.genome_length,dtype='object')
 
         # create a set of mutually exclusive Boolean arrays that tell you what the 'single sequence' result is
         self.is_ref=numpy.zeros(self.genome_length,dtype=bool)
