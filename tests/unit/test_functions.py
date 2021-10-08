@@ -136,8 +136,8 @@ def test_apply_vcf():
                     list('axaaaxxxaactcgctgcccgzgzgzzzzgttttttttataaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc')
     ))
     diff=g1-g2
-    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g','22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a','34_ins_tt', '37_del_t', '40_ins_g', '65_ins_ca', '74_ins_a']))
-    assert numpy.all(diff.nucleotide_index==numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 34, 37,40, 65, 74]))
+    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g','22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a','33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
+    assert numpy.all(diff.nucleotide_index==numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 33, 37, 39, 64, 73]))
     assert numpy.all(diff.is_indel==numpy.array([False, False, False, False, False, False, False, False, False,False, False, False, False, False, False,  True,  True,  True,True,  True]))
     assert numpy.all(diff.is_snp==numpy.array([False, False, False, False,  True,  True,  True,  True, False,False, False, False, False, False,  True, False, False, False,False, False]))
     assert numpy.all(diff.indel_length==numpy.array([ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2, -1, 1,  2,  1]))
@@ -203,7 +203,7 @@ def test_genome_difference():
     diff = g1-g2
     #Default view
     assert diff.snp_distance == 5
-    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 34, 37, 40, 65, 74]))
+    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 33, 37, 39, 64, 73]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'a'], dtype=object))
 
     #Change the view and test all outputs
@@ -232,13 +232,12 @@ def test_vcf_genetic_variation():
 
     # checking the variant masks
     assert numpy.all(vcf.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g',
-       '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '35_ins_tt',
-       '37_del_t', '39t>a', '41_ins_g', '66_ins_ca', '75_ins_a']))
-    assert numpy.all(vcf.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 35, 37, 39,
-       39, 66, 75]))
-    assert numpy.all(vcf.is_snp == [False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, True, False, False, False])
+       '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '33_ins_tt',
+       '37_del_t', '39_ins_g', '39t>a', '64_ins_ca', '73_ins_a']))
+    assert numpy.all(vcf.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 39, 64, 73]))
+    assert numpy.all(vcf.is_snp == [False, False, False, False,  True,  True,  True,  True, False, False, False, False, False, False, False, False, False,  True, False, False])
     assert numpy.all(vcf.is_het == [False, False, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, False, False, False])
-    assert numpy.all(vcf.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True])
+    assert numpy.all(vcf.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False,  True,  True,  True, False, True,  True])
     assert numpy.all(vcf.is_null == [True, True, True, True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False])
 
     full_metadata = {
@@ -477,5 +476,4 @@ def test_indels():
                                                             (0, "snp", ("a", "c")), (1, "snp", ("c", "g")),
                                                             (2, "snp", ("g", "t")), (3, "del", "taa")
                                                         ])
-    # assert sorted(vcf._simplify_call("a", "gga")) == [(-1, "ins", "gg")]
-    assert sorted(vcf._simplify_call("a", "gga")) == [(0, "ins", "gg")]
+    assert sorted(vcf._simplify_call("a", "gga")) == [(-1, "ins", "gg")]

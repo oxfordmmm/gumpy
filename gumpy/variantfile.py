@@ -282,7 +282,6 @@ class VCFFile(object):
                     # only make a change if the ALT is different to the REF
                     if before!=after:
                         metadata={}
-                        # metadata['type']=variant_type
                         metadata['call']=after
                         metadata['ref']=before
                         metadata['pos']=counter
@@ -302,9 +301,7 @@ class VCFFile(object):
                         # if type_ == "del":
                         #     indel_length *= -1
                         metadata = {}
-                        metadata['type'] = 'indel'
                         metadata['call'] = (type_,bases)
-                        # metadata['call'] = (type_, indel_length)
                         metadata['ref']=record.ref[0]
                         metadata['pos']=p
                         vcf_info={}
@@ -315,7 +312,6 @@ class VCFFile(object):
                         self.calls[(index+p,'indel')]=metadata
                     else:
                         metadata = {}
-                        metadata['type'] = variant_type
                         metadata['call'] = bases[1]
                         metadata['ref'] = bases[0]
                         metadata['pos'] = p
@@ -506,7 +502,7 @@ class VCFFile(object):
             variants.append(variant)
             for key in self.calls[(index,type)]['original_vcf_row']:
                 metadata[key].append(self.calls[(index,type)]['original_vcf_row'][key])
-                
+
         #Convert to numpy arrays for neat indexing
         self.alt_nucleotides=numpy.array(alts)
         self.variants = numpy.array(variants)
