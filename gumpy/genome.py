@@ -64,7 +64,7 @@ class Genome(object):
             return
         else:
             #Set values for kwargs to defaults if not provided
-            show_progress_bar = kwargs.get("show_progress_bar", True)
+            self.show_progress_bar = kwargs.get("show_progress_bar", False)
             gene_subset = kwargs.get("gene_subset")
             self.max_promoter_length = kwargs.get("max_promoter_length", 100)
             max_gene_name_length = kwargs.get("max_gene_name_length", 20)
@@ -556,7 +556,7 @@ class Genome(object):
         # loop through the features listed in the GenBank File
         if self.verbose:
             print("Iterating through features in GenBank file...")
-        for record in tqdm(reference_genome.features):
+        for record in tqdm(reference_genome.features, disable=(not self.show_progress_bar)):
 
             # only parse coding sequences and rRNA features
             if record.type not in ['CDS','rRNA']:
@@ -686,7 +686,7 @@ class Genome(object):
         if self.verbose:
             print("Finding overlaps...")
 
-        for gene_name in tqdm(self.genes):
+        for gene_name in tqdm(self.genes, disable=(not self.show_progress_bar)):
             #Get the start/end/rev_comp values
             start = self.genes[gene_name]["start"]
             end = self.genes[gene_name]["end"]
@@ -747,7 +747,7 @@ class Genome(object):
         if self.verbose:
             print("Assigning promoters...")
 
-        for promoter in tqdm(range(1,self.max_promoter_length+1)):
+        for promoter in tqdm(range(1,self.max_promoter_length+1), disable=(not self.show_progress_bar)):
 
             #Replacement `start_end` because dictionaries can't be changed during iteration
             new_start_end = dict()
@@ -877,7 +877,7 @@ class Genome(object):
             print("Updating the genome...")
 
         # use the calls dict to change the nucleotide indicies in the copy of the genome
-        for (idx,type) in tqdm(vcf.calls.keys()):
+        for (idx,type) in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
 
             # deal with changes at a single nucleotide site
             if type in ['snp','null','het']:
