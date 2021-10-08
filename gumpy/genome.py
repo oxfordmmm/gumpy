@@ -813,7 +813,9 @@ class Genome(object):
             gumpy.Genome: The resulting Genome object
         '''
 
-        assert max(vcf.calls.keys()) <= self.length, "The VCF file details changes outside of this genome!"
+        indices=[i[0] for i in vcf.calls.keys()]
+
+        assert max(indices) <= self.length, "The VCF file details changes outside of this genome!"
 
         if self.verbose:
             print("Copying the genome...")
@@ -835,27 +837,27 @@ class Genome(object):
             print("Updating the genome...")
 
         # use the calls dict to change the nucleotide indicies in the copy of the genome
-        for idx in tqdm(vcf.calls.keys()):
+        for (idx,type) in tqdm(vcf.calls.keys()):
 
             # deal with changes at a single nucleotide site
-            if vcf.calls[idx]['type'] in ['snp','null','het']:
+            if type in ['snp','null','het']:
 
                 # only set values if the idx is to a single nucleotide
-                genome.nucleotide_sequence[idx-1] = vcf.calls[idx]['call']
+                genome.nucleotide_sequence[idx-1] = vcf.calls[(idx,type)]['call']
 
             # deal with insertions and deletions
-            elif vcf.calls[idx]['type'] in ['indel']:
+            elif type in ['indel']:
 
                 genome.is_indel[idx-1] = True
-                genome.indel_nucleotides[idx-1] = vcf.calls[idx]['call'][1]
+                genome.indel_nucleotides[idx-1] = vcf.calls[(idx,type)]['call'][1]
 
-                if vcf.calls[idx]['call'][0]=='ins':
-                    genome.indel_length[idx-1] = len(vcf.calls[idx]['call'][1])
+                if vcf.calls[(idx,type)]['call'][0]=='ins':
+                    genome.indel_length[idx-1] = len(vcf.calls[(idx,type)]['call'][1])
                 else:
-                    genome.indel_length[idx-1] = -1*len(vcf.calls[idx]['call'][1])
+                    genome.indel_length[idx-1] = -1*len(vcf.calls[(idx,type)]['call'][1])
 
             else:
-                raise Exception('variant type not recognised!', vcf.calls[idx])
+                raise Exception('variant type not recognised!', vcf.calls[(idx,type)])
 
         # the genome has been altered so not a reference genome
         genome.is_reference = False

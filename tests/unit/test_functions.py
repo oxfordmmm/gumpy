@@ -232,10 +232,10 @@ def test_vcf_genetic_variation():
 
     # checking the variant masks
     assert numpy.all(vcf.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g',
-       '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '34_ins_tt',
-       '37_del_t', '39t>a', '40_ins_g', '65_ins_ca', '74_ins_a']))
-    assert numpy.all(vcf.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 34, 37, 39,
-       40, 65, 74]))
+       '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '35_ins_tt',
+       '37_del_t', '39t>a', '41_ins_g', '66_ins_ca', '75_ins_a']))
+    assert numpy.all(vcf.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 35, 37, 39,
+       39, 66, 75]))
     assert numpy.all(vcf.is_snp == [False, False, False, False, True, True, True, True, False, False, False, False, False, False, False, False, True, False, False, False])
     assert numpy.all(vcf.is_het == [False, False, False, False, False, False, False, False, True, True, True, True, True, True, False, False, False, False, False, False])
     assert numpy.all(vcf.is_indel == [False, False, False, False, False, False, False, False, False, False, False, False, False, False, True, True, False, True, True, True])

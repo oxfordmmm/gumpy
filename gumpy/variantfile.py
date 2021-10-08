@@ -282,7 +282,7 @@ class VCFFile(object):
                     # only make a change if the ALT is different to the REF
                     if before!=after:
                         metadata={}
-                        metadata['type']=variant_type
+                        # metadata['type']=variant_type
                         metadata['call']=after
                         metadata['ref']=before
                         metadata['pos']=counter
@@ -291,7 +291,7 @@ class VCFFile(object):
                         vcf_info['REF']=record.ref
                         vcf_info['ALTS']=record.alts
                         metadata['original_vcf_row']=vcf_info
-                        self.calls[index+counter]=metadata
+                        self.calls[(index+counter,variant_type)]=metadata
 
             else:
                 mutations = self._simplify_call(record.ref, variant)
@@ -312,7 +312,7 @@ class VCFFile(object):
                         vcf_info['REF']=record.ref
                         vcf_info['ALTS']=record.alts
                         metadata['original_vcf_row']=vcf_info
-                        self.calls[index+p]=metadata
+                        self.calls[(index+p,'indel')]=metadata
                     else:
                         metadata = {}
                         metadata['type'] = variant_type
@@ -324,7 +324,7 @@ class VCFFile(object):
                         vcf_info['REF'] = record.ref
                         vcf_info['ALTS'] = record.alts
                         metadata['original_vcf_row'] = vcf_info
-                        self.calls[index+p] = metadata
+                        self.calls[(index+p,variant_type)] = metadata
 
     def _simplify_call(self, ref, alt):
         '''Find where in the sequence the indel was, and the values.
@@ -458,18 +458,18 @@ class VCFFile(object):
         indel_length = []
         metadata = defaultdict(list)
 
-        for index in sorted(list(self.calls.keys())):
+        for (index,type) in sorted(list(self.calls.keys())):
             indices.append(index)
-            call = self.calls[index]['call']
+            call = self.calls[(index,type)]['call']
             alt=call
-            ref = self.calls[index]['ref']
+            ref = self.calls[(index,type)]['ref']
             if hasattr(self, 'genome'):
                 assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
             refs.append(ref)
-            pos = self.calls[index]['pos']
+            pos = self.calls[(index,type)]['pos']
             positions.append(pos)
             #Update the masks with the appropriate types
-            if self.calls[index]["type"] == 'indel':
+            if type == 'indel':
                 #Convert to ins_x or del_x rather than tuple
                 variant = str(index)+"_"+call[0]+"_"+str(call[1])
                 alt=call[1]
@@ -481,21 +481,21 @@ class VCFFile(object):
                 is_snp.append(False)
                 is_het.append(False)
                 is_null.append(False)
-            elif self.calls[index]["type"] == "snp":
+            elif type == "snp":
                 variant = str(index)+ref+'>'+call
                 is_indel.append(False)
                 indel_length.append(0)
                 is_snp.append(True)
                 is_het.append(False)
                 is_null.append(False)
-            elif self.calls[index]['type'] == 'het':
+            elif type == 'het':
                 variant = str(index)+ref+'>'+alt
                 is_indel.append(False)
                 indel_length.append(0)
                 is_snp.append(False)
                 is_het.append(True)
                 is_null.append(False)
-            elif self.calls[index]['type'] == 'null':
+            elif type == 'null':
                 variant = str(index)+ref+'>'+alt
                 is_indel.append(False)
                 indel_length.append(0)
@@ -504,8 +504,9 @@ class VCFFile(object):
                 is_null.append(True)
             alts.append(alt)
             variants.append(variant)
-            for key in self.calls[index]['original_vcf_row']:
-                metadata[key].append(self.calls[index]['original_vcf_row'][key])
+            for key in self.calls[(index,type)]['original_vcf_row']:
+                metadata[key].append(self.calls[(index,type)]['original_vcf_row'][key])
+                
         #Convert to numpy arrays for neat indexing
         self.alt_nucleotides=numpy.array(alts)
         self.variants = numpy.array(variants)
