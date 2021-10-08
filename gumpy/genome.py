@@ -399,13 +399,14 @@ class Genome(object):
         '''
         numpy.savez_compressed(filename,sequence=self.nucleotide_sequence)
 
-    def save_fasta(self,filename,compression=False,compresslevel=2,chars_per_line=70,nucleotides_uppercase=True):
+    def save_fasta(self,filename,fixed_length=False,nucleotide_index_range=None,last_nucleotide=None,compression=False,compresslevel=2,chars_per_line=70,nucleotides_uppercase=True):
 
         '''
         Save the genome as a FASTA file.
 
         Args:
             filename (str): path of the output file
+            fixed_length (bool): If true, ignore indels and only output a genome the same length as the reference but with SNPs. This is useful for phylogeny analyses and relatedness. If false, a genome including indels is produced. Default is false.
             compression (bool): If True, save compressed using gzip. (bzip2 is too slow)
             compresslevel (0-9): the higher the number, the harder the algorithm tries to compress but it takes longer. Default is 2.
             chars_per_line (int): the number of characters per line. Default=70. Must be either a positive integer or None (i.e. no CRs)
@@ -414,6 +415,12 @@ class Genome(object):
         # check the arguments are well formed
         assert isinstance(compression,bool)
         assert isinstance(nucleotides_uppercase,bool)
+        if nucleotide_index_range is not None:
+            assert isinstance(nucleotide_index_range,tuple)
+            assert isinstance(nucleotide_index[0],int)
+            assert isinstance(nucleotide_index[1],int)
+            assert nucleotide_index[0]>=1, 'genomes are 1-based so the first base must be >=1'
+            assert nucleotide_index[1]<self.length, 'longer than the genome!'
         assert compresslevel in range(1,10), "compresslevel must be in range 1-9!"
         assert chars_per_line > 0, "number of characters per line in the FASTA file must be a positive integer!"
 
@@ -434,8 +441,34 @@ class Genome(object):
         header=header[:-1]
         header+="\n"
 
+        def build_genome_variable_length_string(indices):
+            genome_string=''
+            # work backwards as easier to deal with insertions/deletions when you've already gone past them
+            for i in indices[::-1]:
+                mask=self.nucleotide_index==i
+                base=self.nucleotide_sequence[mask][0]
+                genome_string=base+genome_string
+                if self.is_indel[mask]:
+                    indel_length=self.indel_length[mask][0]
+                    if indel_length>0:
+                        genome_string=self.indel_nucleotides[mask][0]+genome_string
+                    elif indel_length<0:
+                        genome_string=genome_string[abs(indel_length):]
+            return(genome_string)
+
         # create a string of the genome
-        genome_string=''.join(self.nucleotide_sequence)
+        if fixed_length:
+            if nucleotide_index_range is not None:
+                start,end=nucleotide_index_range
+                genome_string=''.join(self.nucleotide_sequence[start-1:end-1])
+            else:
+                genome_string=''.join(self.nucleotide_sequence)
+        else:
+            if nucleotide_index_range is not None:
+                start,end=nucleotide_index_range
+                genome_string=build_genome_variable_length_string(self.nucleotide_index[start-1:end-1])
+            else:
+                genome_string=build_genome_variable_length_string(self.nucleotide_index)
 
         # insert carriage returns so it looks pretty in the file...
         output_string=self.__insert_newlines(genome_string,every=chars_per_line)

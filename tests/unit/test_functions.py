@@ -40,7 +40,7 @@ def test_genome_functions():
     assert numpy.all(g1.nucleotide_sequence == s)
 
     #FASTA save
-    g1.save_fasta("tests/saves/TEST-DNA.fasta")
+    g1.save_fasta("tests/saves/TEST-DNA.fasta",fixed_length=True)
     #Reload FASTA
     with open("tests/saves/TEST-DNA.fasta") as f:
         data = [line.replace("\n", "") for line in f]
