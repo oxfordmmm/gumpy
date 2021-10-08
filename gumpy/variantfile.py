@@ -392,7 +392,7 @@ class VCFFile(object):
             if a is not None and b is not None and a != b:
                 if indel == "ins":
                     # PWF was (i-1) but corrected, prob
-                    mutations.append((i-1, "snp", (b, a)))
+                    mutations.append((i, "snp", (b, a)))
                 else:
                     mutations.append((i, "snp", (a, b)))
         return mutations
