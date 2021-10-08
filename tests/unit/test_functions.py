@@ -464,16 +464,27 @@ def test_vcf_to_df():
     df.attrs = {}
     assert df.equals(data)
 
-def test_indels():
-    #Tests the VCFFile.indel()
+def test_simplify_calls():
 
     #Not a static function, so a VCFFile must be instanciated
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
+
     assert sorted(vcf._simplify_call("ga", "c")) == sorted([(0, "snp", ("g", "c")), (1, "del", "a")])
+    assert sorted(vcf._simplify_call("c", "ga")) == sorted([(0, "snp", ("c", "g")), (0, "ins", "a")])
+
     assert vcf._simplify_call("aaa", "a") == [(1, "del", "aa")]
+    assert vcf._simplify_call("a", "aaa") == [(0, "ins", "aa")]
+
     assert sorted(vcf._simplify_call("acgtaa", "cgt")) == sorted(
                                                         [
                                                             (0, "snp", ("a", "c")), (1, "snp", ("c", "g")),
                                                             (2, "snp", ("g", "t")), (3, "del", "taa")
                                                         ])
+    assert sorted(vcf._simplify_call("cgt", "acgtaa")) == sorted(
+                                                        [
+                                                            (0, "snp", ("c", "a")), (1, "snp", ("g", "c")),
+                                                            (2, "snp", ("t", "g")), (2, "ins", "taa")
+                                                        ])
+
     assert sorted(vcf._simplify_call("a", "gga")) == [(-1, "ins", "gg")]
+    assert sorted(vcf._simplify_call("gga",'a')) == [(0, "del", "gg")]
