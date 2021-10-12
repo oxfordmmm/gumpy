@@ -414,6 +414,7 @@ class VCFFile(object):
         alts = []
         qual = []
         infos = []
+        filter = []
         values = {}
         for record in self.records:
             chroms.append(record.chrom)
@@ -422,6 +423,7 @@ class VCFFile(object):
             alts.append(record.alts)
             qual.append(record.qual)
             infos.append(record.info)
+            filter.append(record.filter)
             for key in record.values:
                 if values.get(key) is None:
                     values[key] = [record.values[key]]
@@ -430,7 +432,7 @@ class VCFFile(object):
         df = pandas.DataFrame({
             "CHROM": chroms, "POS": pos,
             "REF": refs, "ALTS": alts,
-            "QUAL": qual, "INFO": infos,
+            "QUAL": qual, "INFO": infos, "FILTER": filter,
             **values
             })
         df.attrs = meta_data
