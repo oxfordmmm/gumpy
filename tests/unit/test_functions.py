@@ -411,6 +411,7 @@ def test_vcf_to_df():
         "REF": ['a', 'a', 'aaa', 'c', 'c', 'ccc', 'g', 'g', 'gg', 'gg', 't', 'tt', 'tt', 'gg', 'gg', 't'],
         "ALTS": [('g',), ('g', 't'), ('ggt', 'gta', 'ata'), ('t',), ('t', 'g'), ('tgc', 'gtg'), ('t', 'c', 'a'), ('t', 'c', 'a'),  ('aa', 'ct', 'at'), ('aa', 't', 'a'), ('ttt',), ('t',), ('agt',), ('cagg',), ('gg',), ('ta', 'at')],
         "QUAL": [None, None, None, None, None, None,None, None, None, None, None, None, None, None, None, None],
+        'FILTER': ['PASS', 'MIN_GT','PASS','PASS','PASS','PASS','PASS','PASS','PASS','PASS','PASS','PASS','PASS','PASS','PASS','PASS'],
         "INFO": [{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15},{"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {"KMER": 15}, {'KMER': 15}, {'KMER': 15}, {'KMER': 15}, {'KMER': 15}],
         "GT": [(None, None),
              (None, None),
@@ -462,7 +463,9 @@ def test_vcf_to_df():
     data = pandas.DataFrame(data)
     data.attrs = {}
     df.attrs = {}
-    assert df.equals(data)
+    for i in df.columns:
+        assert numpy.all(data[i].equals(df[i])), 'failed on '+i
+    # assert df.equals(data)
 
 def test_simplify_calls():
 
