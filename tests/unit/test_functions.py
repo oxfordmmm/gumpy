@@ -194,7 +194,6 @@ def check_eq(arr1, arr2, check):
                     check = check and (e1 == e2)
     return check
 
-
 def test_genome_difference():
     g1 = gumpy.Genome("config/TEST-DNA.gbk", is_reference=True)
     g2 = g1+gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
@@ -223,7 +222,6 @@ def test_genome_difference():
        ['g', 'z'],
        ['g', 'z'],
        ['t', 'a']]))
-
 
 def test_vcf_genetic_variation():
     #Testing the VCFFile objects' difference()

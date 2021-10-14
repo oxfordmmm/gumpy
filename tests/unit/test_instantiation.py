@@ -45,6 +45,19 @@ def test_instanciate_genes_tb():
     truth_gene_sequence['Rv2042c']='MAPPNRDELLAAVERSPQAAAAHDRAGWVGLFTGDARVEDPVGSQPQVGHEAIGRFYDTFIGPRDITFHRDLDIVSGTVVLRDLELEVAMDSAVTVFIPAFLRYDLRPVTGEWQIAALRAYWELPAMMLQFLRTGSGATRPALQLSRALLGNQGLGGTAGFLTGFRRAGRRHKKLVETFLNAASRADKSAAYHALSRTATMTLGEDELLDIVELFEQLRGASWTKVTGAGSTVAVSLASDHRRGIMFADVPWRGNRINRIRYFPA!'
     truth_gene_sequence['rrs']='ttttgtttggagagtttgatcctggctcaggacgaacgctggcggcgtgcttaacacatgcaagtcgaacggaaaggtctcttcggagatactcgagtggcgaacgggtgagtaacacgtgggtgatctgccctgcacttcgggataagcctgggaaactgggtctaataccggataggaccacgggatgcatgtcttgtggtggaaagcgctttagcggtgtgggatgagcccgcggcctatcagcttgttggtggggtgacggcctaccaaggcgacgacgggtagccggcctgagagggtgtccggccacactgggactgagatacggcccagactcctacgggaggcagcagtggggaatattgcacaatgggcgcaagcctgatgcagcgacgccgcgtgggggatgacggccttcgggttgtaaacctctttcaccatcgacgaaggtccgggttctctcggattgacggtaggtggagaagaagcaccggccaactacgtgccagcagccgcggtaatacgtagggtgcgagcgttgtccggaattactgggcgtaaagagctcgtaggtggtttgtcgcgttgttcgtgaaatctcacggcttaactgtgagcgtgcgggcgatacgggcagactagagtactgcaggggagactggaattcctggtgtagcggtggaatgcgcagatatcaggaggaacaccggtggcgaaggcgggtctctgggcagtaactgacgctgaggagcgaaagcgtggggagcgaacaggattagataccctggtagtccacgccgtaaacggtgggtactaggtgtgggtttccttccttgggatccgtgccgtagctaacgcattaagtaccccgcctggggagtacggccgcaaggctaaaactcaaaggaattgacgggggcccgcacaagcggcggagcatgtggattaattcgatgcaacgcgaagaaccttacctgggtttgacatgcacaggacgcgtctagagataggcgttcccttgtggcctgtgtgcaggtggtgcatggctgtcgtcagctcgtgtcgtgagatgttgggttaagtcccgcaacgagcgcaacccttgtctcatgttgccagcacgtaatggtggggactcgtgagagactgccggggtcaactcggaggaaggtggggatgacgtcaagtcatcatgccccttatgtccagggcttcacacatgctacaatggccggtacaaagggctgcgatgccgcgaggttaagcgaatccttaaaagccggtctcagttcggatcggggtctgcaactcgaccccgtgaagtcggagtcgctagtaatcgcagatcagcaacgctgcggtgaatacgttcccgggccttgtacacaccgcccgtcacgtcatgaaagtcggtaacacccgaagccagtggcctaaccctcgggagggagctgtcgaaggtgggatcggcgattgggacgaagtcgtaacaaggtagccgtaccggaaggtgcggctggatcacctcctttct'
 
+    katG=tb_reference.build_gene('katG')
+    assert katG.codes_protein
+    assert katG.amino_acid_sequence[katG.amino_acid_number==315]=='S'
+
+    rpoB=tb_reference.build_gene('rpoB')
+    assert rpoB.codes_protein
+    assert rpoB.amino_acid_sequence[rpoB.amino_acid_number==450]=='S'
+    assert rpoB.amino_acid_sequence[rpoB.amino_acid_number==443]=='L'
+    assert rpoB.amino_acid_sequence[rpoB.amino_acid_number==491]=='I'
+
+    rrs=tb_reference.build_gene('rrs')
+    assert not rrs.codes_protein
+
     for gene_name in ['katG','rpoB','pncA','Rv2042c','rrs']:
 
         assert tb_reference.contains_gene(gene_name)
@@ -52,9 +65,11 @@ def test_instanciate_genes_tb():
         gene=tb_reference.build_gene(gene_name)
 
         if gene_name=='rrs':
+            assert gene.name == gene_name
             assert not gene.codes_protein, gene_name
             assert gene.feature_type=='RNA', gene_name
         elif gene_name=='Rv2042c':
+            assert gene.name == gene_name
             assert gene.codes_protein, gene_name
             assert gene.feature_type=='LOCUS', gene_name
         else:
@@ -86,13 +101,13 @@ def test_instanciate_genome_covid():
     assert set(reference.at_index(27758)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
     assert set(reference.at_index(27759)) == {'ORF7a','ORF7b'}, 'not correctly detecting that ORF7a and ORF7b both include 22756-27759 incl. in SARS-CoV_2'
 
-    #
+    # check that it finds the right genes
     assert reference.contains_gene('ORF1ab')
     assert reference.contains_gene('S')
     assert reference.contains_gene('ORF7a')
     assert not reference.contains_gene('Rv2042c')
 
-    # # check the first and last dozen bases of the whole sequence
+    # check the first and last dozen bases of the whole sequence
     assert ''.join(i for i in reference.nucleotide_sequence[:12]) == 'attaaaggttta'
     assert ''.join(i for i in reference.nucleotide_sequence[-12:]) == 'aaaaaaaaaaaa'
 
