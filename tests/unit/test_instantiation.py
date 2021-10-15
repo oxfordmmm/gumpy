@@ -8,7 +8,7 @@ pytestmark = pytest.mark.filterwarnings("ignore")
 @pytest.mark.tb
 def test_instanciate_genome_tb():
 
-    tb_reference = gumpy.Genome('config/NC_000962.3.gbk',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
+    tb_reference = gumpy.Genome('config/NC_000962.3.gbk.gz',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
 
     assert len(tb_reference)==4411532
     assert tb_reference.name=='NC_000962'
@@ -36,7 +36,7 @@ def test_instanciate_genome_tb():
 @pytest.mark.tb
 def test_instanciate_genes_tb():
 
-    tb_reference = gumpy.Genome('config/NC_000962.3.gbk',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
+    tb_reference = gumpy.Genome('config/NC_000962.3.gbk.gz',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
 
     truth_gene_sequence={}
     truth_gene_sequence['katG']='VPEQHPPITETTTGAASNGCPVVGHMKYPVEGGGNQDWWPNRLNLKVLHQNPAVADPMGAAFDYAAEVATIDVDALTRDIEEVMTTSQPWWPADYGHYGPLFIRMAWHAAGTYRIHDGRGGAGGGMQRFAPLNSWPDNASLDKARRLLWPVKKKYGKKLSWADLIVFAGNCALESMGFKTFGFGFGRVDQWEPDEVYWGKEATWLGDERYSGKRDLENPLAAVQMGLIYVNPEGPNGNPDPMAAAVDIRETFRRMAMNDVETAALIVGGHTFGKTHGAGPADLVGPEPEAAPLEQMGLGWKSSYGTGTGKDAITSGIEVVWTNTPTKWDNSFLEILYGYEWELTKSPAGAWQYTAKDGAGAGTIPDPFGGPGRSPTMLATDLSLRVDPIYERITRRWLEHPEELADEFAKAWYKLIHRDMGPVARYLGPLVPKQTLLWQDPVPAVSHDLVGEAEIASLKSQIRASGLTVSQLVSTAWAAASSFRGSDKRGGANGGRIRLQPQVGWEVNDPDGDLRKVIRTLEEIQESFNSAAPGNIKVSFADLVVLGGCAAIEKAAKAAGHNITVPFTPGRTDASQEQTDVESFAVLEPKADGFRNYLGKGNPLPAEYMLLDKANLLTLSAPEMTVLVGGLRVLGANYKRLPLGVFTEASESLTNDFFVNLLDMGITWEPSPADDGTYQGKDGSGKVKWTGSRVDLVFGSNSELRALVEVYGADDAQPKFVQDFVAAWDKVMNLDRFDVR!'
@@ -89,7 +89,7 @@ def test_instanciate_genes_tb():
 
 def test_instanciate_genome_covid():
 
-    reference = gumpy.Genome('config/NC_045512.2.gbk')
+    reference = gumpy.Genome('config/NC_045512.2.gbk.gz')
 
     assert len(reference)==29903
     assert reference.name=='NC_045512'
@@ -114,7 +114,7 @@ def test_instanciate_genome_covid():
 
 def test_instanciate_genes_covid():
 
-    reference = gumpy.Genome('config/NC_045512.2.gbk')
+    reference = gumpy.Genome('config/NC_045512.2.gbk.gz')
 
     assert reference.contains_gene('S')
     gene=reference.build_gene('S')
@@ -134,7 +134,7 @@ def test_instanciate_genes_covid():
 
 def test_instanciate_genes_covid_ORF1ab():
 
-    reference = gumpy.Genome('config/NC_045512.2.gbk')
+    reference = gumpy.Genome('config/NC_045512.2.gbk.gz')
 
     assert reference.contains_gene('ORF1ab')
 

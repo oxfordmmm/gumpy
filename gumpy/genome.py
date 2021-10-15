@@ -7,6 +7,7 @@ from gumpy.variantfile import VCFRecord, VCFFile
 import gzip
 import json
 import time
+import pathlib
 from collections import defaultdict
 
 import numpy
@@ -23,13 +24,13 @@ class Genome(object):
         '''
         Constructor for the Genome object.
         Args:
-            genbank_file (str) : The path to the genbank file
-            show_progress_bar (bool, optional) : Boolean as whether to show a progress bar when building Gene objects. Defaults to True
+            genbank_file (str) : The path to the genbank file.
+            show_progress_bar (bool, optional) : Boolean as whether to show a progress bar when building Gene objects. Defaults to False.
             gene_subset (list, optional) : List of gene names used to extract just a subset of genes. Defaults to None
             max_promoter_length (int, optional) : Size of the default promoter. Defaults to 100
             max_gene_name_length (int, optional) : Size of the longest gene name. Defaults to 20
             verbose (bool, optional) : Boolean as whether to give verbose statements. Defaults to False
-            is_reference (bool, optional) : Boolean showing whether this genome is a reference genome, i.e. mutations can be derrived from it. Defaults to False
+            is_reference (bool, optional) : Boolean showing whether this genome is a reference genome, i.e. mutations can be derived from it. Defaults to False
         '''
         if len(args) != 1:
             if "reloading" not in kwargs.keys():
@@ -37,11 +38,7 @@ class Genome(object):
                 print("No genbank file was given, setting up minimal detail for this Genome")
             #Setup the kwargs
             #UPDATE THIS AS REQUIRED
-            allowed_kwargs = ['verbose', 'gene_subset', 'max_gene_name_length', 'nucleotide_sequence', 'name', 'id',
-                            'description', 'length', 'nucleotide_index', 'stacked_gene_name', 'stacked_is_cds', 'stacked_is_promoter',
-                            'stacked_nucleotide_number', 'stacked_is_reverse_complement', 'is_indel', 'indel_length', 'annotations',
-                            'genes_lookup', 'gene_rows', 'genes_mask', 'n_rows', 'stacked_nucleotide_index', 'stacked_nucleotide_sequence', 'genes',
-                             'is_reference']
+            allowed_kwargs = ['show_progress_bar','verbose', 'gene_subset', 'max_gene_name_length', 'is_reference']
             seen = set()
             for key in kwargs.keys():
                 '''
@@ -65,40 +62,36 @@ class Genome(object):
         else:
             #Set values for kwargs to defaults if not provided
             self.show_progress_bar = kwargs.get("show_progress_bar", False)
-            gene_subset = kwargs.get("gene_subset")
+            self.gene_subset = kwargs.get("gene_subset")
             self.max_promoter_length = kwargs.get("max_promoter_length", 100)
-            max_gene_name_length = kwargs.get("max_gene_name_length", 20)
-            verbose = kwargs.get("verbose", False)
+            self.max_gene_name_length = kwargs.get("max_gene_name_length", 20)
+            self.verbose = kwargs.get("verbose", False)
             self.is_reference = kwargs.get("is_reference", False)
             #Set the args value to the genbank file
             genbank_file = args[0]
 
         assert isinstance(self.max_promoter_length,int) and self.max_promoter_length>=0, "the promoter length must be a positive integer!"
 
-        self.verbose=verbose
-        self.gene_subset=gene_subset
-        self.max_gene_name_length=max_gene_name_length
-
         if self.verbose:
             timings=defaultdict(list)
             start_time=time.time()
 
-        self.__parse_genbank_file(genbank_file,gene_subset)
+        self.__parse_genbank_file(pathlib.Path(genbank_file))
 
-        if verbose:
+        if self.verbose:
             timings['parse genbank'].append(time.time()-start_time)
             start_time=time.time()
 
         self.__setup_arrays()
 
-        if verbose:
+        if self.verbose:
             timings['define arrays'].append(time.time()-start_time)
             start_time=time.time()
 
         if self.max_promoter_length>0:
             self.__assign_promoter_regions()
 
-        if verbose:
+        if self.verbose:
             timings['promoter'].append(time.time()-start_time)
             start_time=time.time()
 
@@ -521,15 +514,21 @@ class Genome(object):
 
         return(numpy.vstack((array,empty_row)))
 
-    def __parse_genbank_file(self,genbank_file,gene_subset):
+    def __parse_genbank_file(self,genbank_file):
         '''
         Private function to parse a genbank file
         Args:
             genbank_file (str) : Filename of the genbank file
-            gene_subset (list) : List of gene names used to extract just a subset of genes
         '''
 
-        reference_genome=SeqIO.read(genbank_file,'genbank')
+        # assert (genbank_file[-7:]=='.gbk.gz' or genbank_file[:-4]=='.gbk'), 'GenBank file must be either uncompressed (.gbk) or compressed with gzip (.gbk.gz): '+ genbank_file
+
+        if genbank_file.suffix == '.gz':
+            file_handle  = gzip.open(genbank_file,'rt')
+        elif genbank_file.suffix == '.gbk':
+            file_handle  = open(genbank_file,'rt')
+
+        reference_genome=SeqIO.read(file_handle,'genbank')
 
         # convert to a numpy array at the first opportunity since slicing BioPython is between 10 and 50,000 times slower!
         self.nucleotide_sequence=numpy.array([i.lower() for i in str(reference_genome.seq)])
@@ -592,7 +591,7 @@ class Genome(object):
             # determine if this is a reverse complement gene (only relevant to dsDNA genomes)
             rev_comp=True if record.strand==-1 else False
 
-            if gene_name is None or (gene_subset is not None and gene_name not in gene_subset):
+            if gene_name is None or (self.gene_subset is not None and gene_name not in self.gene_subset):
                 continue
 
             # sigh, you can't assume that a gene_name is unique in a GenBank file
