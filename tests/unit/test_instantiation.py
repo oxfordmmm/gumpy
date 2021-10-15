@@ -89,6 +89,11 @@ def test_instanciate_genes_tb():
 
 def test_instanciate_genome_covid():
 
+    # check an assertion is raised if the name of a gene in the GenBank file is larger
+    # than the maximum string length given
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/NC_045512.2.gbk.gz",max_gene_name_length=3)
+
     reference = gumpy.Genome('config/NC_045512.2.gbk.gz')
 
     assert len(reference)==29903

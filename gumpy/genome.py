@@ -529,10 +529,8 @@ class Genome(object):
         '''
         Private function to parse a genbank file
         Args:
-            genbank_file (str) : Filename of the genbank file
+            genbank_file (Path) : pathlib.Path object of the genbank file
         '''
-
-        # assert (genbank_file[-7:]=='.gbk.gz' or genbank_file[:-4]=='.gbk'), 'GenBank file must be either uncompressed (.gbk) or compressed with gzip (.gbk.gz): '+ genbank_file
 
         if genbank_file.suffix == '.gz':
             file_handle  = gzip.open(genbank_file,'rt')
@@ -550,6 +548,8 @@ class Genome(object):
 
         # store the length of the genome
         self.length=len(self.nucleotide_sequence)
+
+        assert self.length>0, 'genome length zero!'
 
         # create an array of the genome indices
         self.nucleotide_index=numpy.arange(1,self.length+1,dtype="int")
@@ -575,6 +575,7 @@ class Genome(object):
         # loop through the features listed in the GenBank File
         if self.verbose:
             print("Iterating through features in GenBank file...")
+
         for record in tqdm(reference_genome.features, disable=(not self.show_progress_bar)):
 
             # only parse coding sequences and rRNA features
@@ -594,21 +595,24 @@ class Genome(object):
                 gene_name=record.qualifiers['locus_tag'][0]
                 type="LOCUS"
 
+            if gene_name is None or (self.gene_subset is not None and gene_name not in self.gene_subset):
+                continue
+
             # if this is ribosomal RNA, then record as such
             if record.type=='rRNA':
                 type="RNA"
                 codes_protein=False
+
             # determine if this is a reverse complement gene (only relevant to dsDNA genomes)
             rev_comp=True if record.strand==-1 else False
 
-            if gene_name is None or (self.gene_subset is not None and gene_name not in self.gene_subset):
-                continue
-
             # sigh, you can't assume that a gene_name is unique in a GenBank file
+            # this only allows for duplicates though.
+            # duplicates of duplicates will be foo_2_2
             gene_name+="_2" if gene_name in self.genes.keys() else ''
 
-            # since we've defined the feature_name array to be 20 chars, check the gene_name will fit
-            assert len(gene_name)<=self.max_gene_name_length, "Gene "+gene_name+" is too long at "+str(len(gene_name))+" chars; need to change numpy.zeros definiton U20 to match"
+            # check the gene_name will fit in the max gene name length
+            assert len(gene_name)<=self.max_gene_name_length, "Gene "+gene_name+" is too long at "+str(len(gene_name))+" chars; need to specify max_gene_name_length"
 
             # note that BioPython "helpfully" turns these from 1-based into 0-based coordinates, hence the +1
             # gene_end has also been incremented by 1 so that slicing naturally works
@@ -677,17 +681,20 @@ class Genome(object):
             (numpy_array) : Updated genes_mask array
             (numpy_array) : Updated genes array
         '''
+
         for (i, row) in enumerate(genes_mask):
-            #Use of the dot product of masks allows determining if a gene will fit in an array
+
+            # use of the dot product of masks allows determining if a gene will fit in an array
             if numpy.dot(row, mask) == False:
-                #There is not a collision with this row
-                #Add the row
-                #Start/End have to be adjusted to account for 0 indexing of arrays and 1 indexing of genetics
+
+                # there is no collision with this row so add the row
+                # start/end have to be adjusted to account for 0 indexing of arrays and 1 indexing of genetics
                 row[start-1:end-1] = True
                 genes[i][start-1:end-1] = gene_name
                 self.__handle_rev_comp(rev_comp, start, end, i)
                 return genes_mask, genes, i
-        #If this point is reached, there has been no rows without collisions, so add one
+
+        # if this point is reached, there has been no rows without collisions, so add one
         genes_mask = numpy.vstack((genes_mask, mask))
         new_row = numpy.array([gene_name if m else '' for m in mask])
         genes = numpy.vstack((genes, new_row))
@@ -702,28 +709,34 @@ class Genome(object):
         Use of the dot product on boolean arrays returns a single boolean showing collisions in almost linear time (10^-5 secs for TB size)
             This can be used to determine which row the gene should be in
         '''
-        #Default to all False values
-        genes_mask = numpy.array([numpy.array([False for x in range(self.length)])]) #Boolean mask to show gene presence at indicies
-        genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length)) #Gene names
-        self.gene_rows = dict()#Dict to pull out row indicies for each gene in the stacked arrays
+
+        # Boolean mask to show gene presence at indicies (default to all False values)
+        genes_mask = numpy.array([numpy.array([False for x in range(self.length)])])
+
+        # gene names
+        genes = numpy.array([numpy.array(['' for x in range(self.length)])], dtype="U"+str(self.max_gene_name_length))
+
+        # dict to pull out row indicies for each gene in the stacked arrays
+        self.gene_rows = dict()
 
         if self.verbose:
             print("Finding overlaps...")
 
         for gene_name in tqdm(self.genes, disable=(not self.show_progress_bar)):
-            #Get the start/end/rev_comp values
+
+            # get the start/end/rev_comp values
             start = self.genes[gene_name]["start"]
             end = self.genes[gene_name]["end"]
             rev_comp=self.genes[gene_name]['reverse_complement']
 
-            #Determine the boolean mask for this gene
+            # determine the boolean mask for this gene
             if end<start:
                 mask = numpy.logical_or((self.nucleotide_index>=start), (self.nucleotide_index<end))
                 end += self.length
             else:
                 mask=(self.nucleotide_index>=start) & (self.nucleotide_index<end)
 
-            #Fit the gene into the stacked arrays
+            # fit the gene into the stacked arrays
             genes_mask, genes, row = self.__fit_gene(mask, genes, genes_mask, start, end, gene_name, rev_comp)
             self.gene_rows[gene_name] = row
 
@@ -763,7 +776,7 @@ class Genome(object):
         # the latter is especially difficult when you have two genes next to one another, one reverse complement, since their promoters can
         # 'fight' for space. It is this problem that means we have to grow each promoter out one base at a time
 
-        #Populate a dictionary to store the starts/ends of genes as they grow with promoters
+        # populate a dictionary to store the starts/ends of genes as they grow with promoters
         start_end = {gene_name : {
                                 "start": self.genes[gene_name]["start"],
                                 "end": self.genes[gene_name]["end"]}

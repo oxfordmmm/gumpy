@@ -28,9 +28,6 @@ def test_genome_functions():
     g2.build_genome_string(fixed_length=False,)=='aaaaataccaaaccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
     g2.build_genome_string(fixed_length=True,)=='aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
 
-
-
-
     #Ensure that adding verbose arg to constructor doesn't change object's value
     #It should add values to the timings dict, but this is unimportant to the values so is not checked in the __eq__
     g2 = gumpy.Genome("config/TEST-DNA.gbk", verbose=True)
