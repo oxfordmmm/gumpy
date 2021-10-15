@@ -462,8 +462,11 @@ class Genome(object):
         '''
 
         # check the arguments are well formed
+        assert pathlib.Path(filename).is_file(), 'filename does not exist! '+filename
         assert isinstance(compression,bool)
+        assert isinstance(fixed_length,bool)
         assert isinstance(nucleotides_uppercase,bool)
+        assert isinstance(chars_per_line,int)
         if nucleotide_index_range is not None:
             assert isinstance(nucleotide_index_range,tuple)
             assert isinstance(nucleotide_index[0],int)
@@ -867,7 +870,7 @@ class Genome(object):
         # instantiate a Gene object
         g = Gene(name=gene,
                     nucleotide_sequence=self.nucleotide_sequence[mask],
-                    index=self.nucleotide_index[mask],
+                    nucleotide_index=self.nucleotide_index[mask],
                     nucleotide_number=self.stacked_nucleotide_number[stacked_mask],
                     is_cds=self.stacked_is_cds[stacked_mask],
                     is_promoter=self.stacked_is_promoter[stacked_mask],

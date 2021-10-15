@@ -53,6 +53,24 @@ def test_genome_functions():
             s.append(i)
     assert numpy.all(g1.nucleotide_sequence == s)
 
+    with pytest.raises(Exception) as e_info:
+        g1.save_fasta("tests/saves2/TEST-DNA.fasta",fixed_length=True)
+
+    with pytest.raises(Exception) as e_info:
+        g1.save_fasta("tests/saves2/TEST-DNA.fasta",fixed_length='yes')
+
+    with pytest.raises(Exception) as e_info:
+        g1.save_fasta("tests/saves2/TEST-DNA.fasta",compression='yes')
+
+    with pytest.raises(Exception) as e_info:
+        g1.save_fasta("tests/saves2/TEST-DNA.fasta",chars_per_line=4.0)
+
+    with pytest.raises(Exception) as e_info:
+        g1.save_fasta("tests/saves2/TEST-DNA.fasta",chars_per_line=-10)
+
+    with pytest.raises(Exception) as e_info:
+        g1.save_fasta("tests/saves2/TEST-DNA.fasta",nucleotides_uppercase='no')
+
     #FASTA save
     g1.save_fasta("tests/saves/TEST-DNA.fasta",fixed_length=True)
     #Reload FASTA

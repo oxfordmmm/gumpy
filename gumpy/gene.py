@@ -22,6 +22,7 @@ class Gene(object):
             is_promoter (numpy.array, optional): Numpy array to act as a mask for whether given elements are promoters. Defaults to None
             is_indel (numpy.array, optional): Numpy array to act as a mask for whether given elements are indels. Defaults to None
             indel_length (numpy.array, optional): Numpy array denoting the lengths of the indels whenever is_indel==True. Defaults to None
+            indel_nucleotides (numpy.array, optional): Numpy array describing the nucleotides inserted or deleted whenever is_indel==True. Defaults to None
             reverse_complement (boolean, optional): Boolean showing whether this gene is reverse complement. Defaults to False
             codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
@@ -31,7 +32,7 @@ class Gene(object):
 
         #Set the kwargs
         #UPDATE THIS AS REQUIRED
-        allowed_kwargs = ['name', 'nucleotide_sequence', 'index', 'nucleotide_number', 'is_cds', 'is_promoter',
+        allowed_kwargs = ['name', 'nucleotide_sequence', 'nucleotide_index', 'nucleotide_number', 'is_cds', 'is_promoter',
                         'is_indel', 'indel_length', 'indel_nucleotides','codes_protein', 'reverse_complement', 'feature_type',
                         'codon_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number',
                         'codons', 'amino_acid_sequence', 'ribosomal_shifts']
@@ -51,7 +52,7 @@ class Gene(object):
         #Set default values based on kwargs
         name = kwargs.get("name")
         nucleotide_sequence = kwargs.get("nucleotide_sequence")
-        index = kwargs.get("index")
+        nucleotide_index = kwargs.get("nucleotide_index")
         nucleotide_number = kwargs.get("nucleotide_number")
         is_cds = kwargs.get("is_cds")
         is_promoter = kwargs.get("is_promoter")
@@ -65,8 +66,10 @@ class Gene(object):
         #VCF data which is accessed by GeneDifference. Has no direct references here...
 
         assert name is not None, "must provide a gene name!"
+        assert isinstance(name, str)
         self.name=name
 
+        assert isinstance(feature_type, str)
         self.feature_type=feature_type
         assert codes_protein in [True,False], name+": codes_protein must be True or False!"
         self.codes_protein=codes_protein
@@ -76,15 +79,28 @@ class Gene(object):
 
         assert isinstance(nucleotide_sequence,numpy.ndarray), name+": sequence of bases must be a Numpy array!"
 
-        assert isinstance(index,numpy.ndarray) and numpy.issubdtype(index.dtype.type,numpy.integer), name+": genome indices must be a Numpy array of integers!"
+        assert isinstance(nucleotide_index,numpy.ndarray) and numpy.issubdtype(nucleotide_index.dtype.type,numpy.integer), name+": genome indices must be a Numpy array of integers!"
 
         assert isinstance(nucleotide_number,numpy.ndarray), name+": gene numbering must be a Numpy array of integers!"
+
+        # check it is a list, and if it is that it is made up of integers and only integers
+        assert isinstance(ribosomal_shifts,list)
+        if len(ribosomal_shifts)>0:
+            assert all([isinstance(i,int) for i in ribosomal_shifts])
+
+        assert len(nucleotide_index)==len(nucleotide_sequence), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index)==len(nucleotide_number), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index)==len(is_cds), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index)==len(is_promoter), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index)==len(is_indel), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index)==len(indel_length), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index)==len(indel_nucleotides), 'all inputs arrays must be the same length!'
 
         nucleotide_sequence=numpy.char.lower(nucleotide_sequence)
         assert numpy.count_nonzero(numpy.isin(nucleotide_sequence,['a','t','c','g','x','z','o']))==len(nucleotide_sequence), name+": sequence can only contain a,t,c,g,z,x"
 
         self.nucleotide_sequence=nucleotide_sequence
-        self.nucleotide_index=index
+        self.nucleotide_index=nucleotide_index
         self.nucleotide_number=nucleotide_number
         self.is_cds=is_cds
         self.is_promoter=is_promoter
