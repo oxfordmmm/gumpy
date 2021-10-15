@@ -171,10 +171,6 @@ def test_gene_functions():
         "[1 2 3 4 5 6 7 8 9]"
     ]
 
-    g2.name = "A"
-    g2.nucleotide_sequence[2] = "g"
-    assert g1.list_mutations_wrt(g2) == ["g-1a"]
-
 def test_apply_vcf():
     #Will fail if the test_instanciate.py fails for test_instanciate_vcf()
     g1 = gumpy.Genome("config/TEST-DNA.gbk")
@@ -420,7 +416,7 @@ def test_valid_variant():
 
     with pytest.raises(Exception) as e_info:
         assert not gene.valid_variant(2)
-        
+
     assert not gene.valid_variant("A2X")
     assert not gene.valid_variant("A192X")
     assert not gene.valid_variant("B@K2X")
