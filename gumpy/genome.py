@@ -399,7 +399,7 @@ class Genome(object):
         '''
         numpy.savez_compressed(filename,sequence=self.nucleotide_sequence)
 
-    def build_genome_variable_length_string(self,indices):
+    def __build_genome_variable_length_string(self,indices):
         genome_string=''
         # work backwards as easier to deal with insertions/deletions when you've already gone past them
         for i in indices[::-1]:
@@ -415,10 +415,20 @@ class Genome(object):
         return(genome_string)
 
     def build_genome_string(self,fixed_length=False,nucleotide_index_range=None):
+        '''
+        Generate a string of the nucleotides in the genome (positive strand if DNA).
 
+        Args:
+            fixed_length (bool): if True, then do not add insertions and deletions. Default False.
+            nucleotide_index_range (tuple, ints): the 1-based positions of the sequence to return with start<=index<end.
+
+        Returns:
+            (str): the genome as a string.
+        '''
         # create a string of the genome
         if fixed_length:
             if nucleotide_index_range is not None:
+                assert isinstance(nucleotide_index_range,'tuple')
                 start,end=nucleotide_index_range
                 genome_string=''.join(self.nucleotide_sequence[start-1:end-1])
             else:
@@ -426,9 +436,9 @@ class Genome(object):
         else:
             if nucleotide_index_range is not None:
                 start,end=nucleotide_index_range
-                genome_string=self.build_genome_variable_length_string(self.nucleotide_index[start-1:end-1])
+                genome_string=self.__build_genome_variable_length_string(self.nucleotide_index[start-1:end-1])
             else:
-                genome_string=self.build_genome_variable_length_string(self.nucleotide_index)
+                genome_string=self.__build_genome_variable_length_string(self.nucleotide_index)
 
         return(genome_string)
 

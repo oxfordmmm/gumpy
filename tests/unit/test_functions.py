@@ -14,6 +14,23 @@ def test_genome_functions():
     g2.nucleotide_sequence[5] = "t"
     assert g1 != g2
 
+    assert g1.build_genome_string(fixed_length=True,)=='aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+    assert g2.build_genome_string(fixed_length=True,)=='aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+
+    g2.is_indel[7]=True
+    g2.indel_length[7]=2
+    g2.indel_nucleotides[7]='cc'
+    assert g2.build_genome_string(fixed_length=False,)=='aaaaataccaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+    g2.build_genome_string(fixed_length=True,)=='aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+    g2.is_indel[10]=True
+    g2.indel_length[10]=-4
+    g2.indel_nucleotides[7]='cccc'
+    g2.build_genome_string(fixed_length=False,)=='aaaaataccaaaccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+    g2.build_genome_string(fixed_length=True,)=='aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+
+
+
+
     #Ensure that adding verbose arg to constructor doesn't change object's value
     #It should add values to the timings dict, but this is unimportant to the values so is not checked in the __eq__
     g2 = gumpy.Genome("config/TEST-DNA.gbk", verbose=True)
@@ -125,6 +142,8 @@ def test_gene_functions():
     g2.name = "A"
     g2.nucleotide_sequence[2] = "g"
     assert g1.list_mutations_wrt(g2) == ["g-1a"]
+
+
 
 def test_apply_vcf():
     #Will fail if the test_instanciate.py fails for test_instanciate_vcf()
