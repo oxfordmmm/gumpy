@@ -249,7 +249,12 @@ class Gene(object):
         # self.amino_acids_of_codons=numpy.array([self.codon_to_amino_acid[i] for i in all_codons])
 
     def __repr__(self):
+        '''
+        Overload the print function to write a summary of the Gene.
 
+        Returns:
+            str: String describing the Gene
+        '''
         string_length=5
 
         output=self.name+" gene\n"
@@ -356,53 +361,27 @@ class Gene(object):
         return(mutations)
 
     def __len__(self):
+        '''
+        Return the number of nucleotides in the coding region (i.e. ignoring any assumed promoter)
 
-        # return the number of bases in the coding region to avoid ambuiguity about whether or not it codes protein
-        # and how long the promoter is
+        Returns:
+            int
+        '''
 
         return(len(self.nucleotide_sequence[self.is_cds]))
 
-    # def __sub__(self,other):
-    #
-    #     """
-    #     Overload the subtraction operator so it returns a tuple of the differences between the two genes.
-    #     Differences are given in the form of an array of gene indices where the two Genes differ.
-    #
-    #     Args:
-    #         other (gumpy.Gene): Other gene object
-    #     Raises:
-    #         AssertationErrors: Raises errors if the Genes are not the same gene (same length, name and codes_protein are required)
-    #     Returns:
-    #         numpy.array: Numpy array of gene indices where the Genes are different.
-    #     """
-    #
-    #     assert self.total_number_nucleotides==other.total_number_nucleotides, "genes must have the same length!"
-    #     assert self.name==other.name, "both genes must be identical!"
-    #     assert self.codes_protein==other.codes_protein, "both genes must be identical!"
-    #
-    #     positions=[]
-    #
-    #     mask=self.nucleotide_sequence!=other.nucleotide_sequence
-    #     positions=list(self.nucleotide_number[mask])
-    #
-    #     mask=self.is_indel
-    #     positions+=list(self.nucleotide_number[mask])
-    #
-    #
-    #     if not positions:
-    #         return None
-    #
-    #     return(numpy.array(positions))
-
     def __sub__(self, other):
-        '''Return a more detailed difference between two genes. The Gene objects should be referring to the same
-            gene (same name and protein coding), but must have the same length.
+        '''Generate a GeneDifference object for an in-depth examination of the difference between two genes.
 
         Args:
             other (gumpy.Gene): Other Gene object
+
         Returns:
             gumpy.GeneDifference: The GeneDifference object to detail changes at all levels such as indel and amino acid.
         '''
+
+        assert isinstance(other,Gene)
+
         return GeneDifference(self, other)
 
 

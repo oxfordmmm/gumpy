@@ -197,6 +197,7 @@ def test_apply_vcf():
     assert numpy.all(g2.nucleotide_sequence ==  numpy.array(
                     list('axaaaxxxaactcgctgcccgzgzgzzzzgttttttttataaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc')
     ))
+
     diff=g1-g2
     assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g','22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a','33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
     assert numpy.all(diff.nucleotide_index==numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 33, 37, 39, 64, 73]))
@@ -365,6 +366,16 @@ def test_gene_difference():
     genome2 = genome1+gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
     g1 = genome1.build_gene("A")
     g2 = genome2.build_gene("A")
+
+    with pytest.raises(Exception) as e_info:
+        foo=g1+'hello'
+
+    with pytest.raises(Exception) as e_info:
+        foo=g1+2
+
+    with pytest.raises(Exception) as e_info:
+        g2 = g1+genome1.build_gene('B')
+
     diff = g1-g2
 
     assert isinstance(diff, gumpy.GeneDifference)
@@ -401,6 +412,15 @@ def test_valid_variant():
     assert gene.valid_variant("A@9=")
 
     #Invalid variants
+    with pytest.raises(Exception) as e_info:
+        assert not gene.valid_variant("")
+
+    with pytest.raises(Exception) as e_info:
+        assert not gene.valid_variant(None)
+
+    with pytest.raises(Exception) as e_info:
+        assert not gene.valid_variant(2)
+        
     assert not gene.valid_variant("A2X")
     assert not gene.valid_variant("A192X")
     assert not gene.valid_variant("B@K2X")

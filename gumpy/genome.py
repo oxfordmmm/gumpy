@@ -190,6 +190,8 @@ class Genome(object):
         Returns:
             bool : Boolean showing equality of the objects
         '''
+        assert isinstance(other,Genome)
+
         check = True
         check = check and self.genes == other.genes
         check = check and self.name == other.name
