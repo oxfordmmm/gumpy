@@ -14,7 +14,7 @@ import numpy
 from Bio import SeqIO
 from tqdm import tqdm
 
-from gumpy import Gene, GenomeDifference
+from gumpy import Gene, GenomeDifference, VCFFile
 
 class Genome(object):
 
@@ -177,6 +177,7 @@ class Genome(object):
         Returns:
             GenomeDifference: object containing numpy arrays of the differences (variants)
         """
+        assert isinstance(other,Genome), 'RHS must be a gumpy.Genome object'
 
         return(GenomeDifference(self,other))
 
@@ -890,6 +891,10 @@ class Genome(object):
             gumpy.Genome: The resulting Genome object
         '''
 
+        assert isinstance(vcf,VCFFile), 'RHS must be a gumpy.VCFFile object!'
+
+        assert isinstance(vcf.calls,dict), 'something wrong with the gumpy.VCFFile object!'
+
         indices=[i[0] for i in vcf.calls.keys()]
 
         assert max(indices) <= self.length, "The VCF file details changes outside of this genome!"
@@ -908,7 +913,6 @@ class Genome(object):
             Applying a dictionary to the same array takes ~10^-4s
             ~0.1% True mask is a reasonable amount for this task as a VCF file is ~4000 entries
         '''
-
 
         if self.verbose:
             print("Updating the genome...")

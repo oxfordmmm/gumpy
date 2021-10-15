@@ -39,7 +39,7 @@ def test_genome_functions():
         os.makedirs('tests/saves')
     #Uncompressed
     g1.save("tests/saves/TEST-DNA.json")
-    # assert gumpy.Genome.load("tests/saves/TEST-DNA.json") == g1
+    #assert gumpy.Genome.load("tests/saves/TEST-DNA.json") == g1
     #Compressed
     g1.save("tests/saves/TEST-DNA.json.gz", compression_level=1)
     # assert gumpy.Genome.load("tests/saves/TEST-DNA.json.gz") == g1
@@ -80,7 +80,18 @@ def test_genome_functions():
     except AssertionError as e:
         assert str(e) == "Gene name must be string. Gene name provided was of type: <class 'gumpy.genome.Genome'>"
 
-    #at_index()
+    with pytest.raises(Exception) as e_info:
+        g1.at_index('hello')
+
+    with pytest.raises(Exception) as e_info:
+        g1.at_index(-100)
+
+    with pytest.raises(Exception) as e_info:
+        g1.at_index(100.00)
+
+    with pytest.raises(Exception) as e_info:
+        g1.at_index(1000000)
+
     try:
         g1.at_index([])
         assert False
@@ -116,6 +127,12 @@ def test_genome_functions():
 def test_gene_functions():
     genome = gumpy.Genome("config/TEST-DNA.gbk")
 
+    with pytest.raises(Exception) as e_info:
+        genome.build_gene('D')
+
+    with pytest.raises(Exception) as e_info:
+        g1.build_gene(100)
+
     g1 = copy.deepcopy(genome.build_gene("A"))
     g2 = copy.deepcopy(genome.build_gene("A"))
 
@@ -140,13 +157,24 @@ def test_gene_functions():
     g2.nucleotide_sequence[2] = "g"
     assert g1.list_mutations_wrt(g2) == ["g-1a"]
 
-
-
 def test_apply_vcf():
     #Will fail if the test_instanciate.py fails for test_instanciate_vcf()
     g1 = gumpy.Genome("config/TEST-DNA.gbk")
+
+    # should only be able to ONLY add a vcf file
+    with pytest.raises(Exception) as e_info:
+        g2 = g1+'hello'
+
+    with pytest.raises(Exception) as e_info:
+        g2 = g1+"tests/test-cases/TEST-DNA.vcf"
+
+    # check that giving a VCF that includes changes outside the genome fails
+    with pytest.raises(Exception) as e_info:
+        g2 = g1+gumpy.VCFFile("tests/test-cases/TEST-DNA-LONG.vcf")
+
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
     g2 = g1+vcf
+
     assert g1 != g2
     assert numpy.all(g2.nucleotide_sequence ==  numpy.array(
                     list('axaaaxxxaactcgctgcccgzgzgzzzzgttttttttataaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc')
@@ -214,6 +242,12 @@ def test_genome_difference():
     g1 = gumpy.Genome("config/TEST-DNA.gbk", is_reference=True)
     g2 = g1+gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
     assert g1 != g2
+
+    with pytest.raises(Exception) as e_info:
+        g2 = g1-'hello'
+
+    with pytest.raises(Exception) as e_info:
+        g2 = 'hello'-g1
 
     diff = g1-g2
     #Default view
