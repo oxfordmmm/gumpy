@@ -13,6 +13,7 @@ class Gene(object):
 
     def __init__(self, *args, **kwargs):
         '''Constructor for the Gene object.
+
         Args:
             name (str, optional): Name of the gene. Defaults to None
             nucleotide_sequence (numpy.array, optional): Numpy array of the nucleotide sequence. Defaults to None
@@ -178,11 +179,12 @@ class Gene(object):
         return numpy.array(first_half + [array[index]] + second_half)
 
     def __eq__(self, other):
-        '''
-        Overloading the equality operator to provide a method for determining if two genes
+        '''Overloading the equality operator to provide a method for determining if two genes
             are the same
+
         Args:
             other (gumpy.Gene) : The other gene object to compare against
+
         Returns:
             bool : Boolean showing equality
         '''
@@ -208,8 +210,7 @@ class Gene(object):
 
     @staticmethod
     def _complement(nucleotides_array):
-        """
-        Simple private method for returning the complement of an array of bases.
+        """Simple private method for returning the complement of an array of bases.
 
         Note that takes account of HET and NULL calls via z and x, respectively
         """
@@ -221,6 +222,7 @@ class Gene(object):
         return(numpy.array(complement))
 
     def _translate_sequence(self):
+
         # this will ensure that only amino acids with all three bases present
         unique,counts=numpy.unique(self.codon_number,return_counts=True)
         self.amino_acid_number=unique[counts==3]
@@ -249,8 +251,7 @@ class Gene(object):
         # self.amino_acids_of_codons=numpy.array([self.codon_to_amino_acid[i] for i in all_codons])
 
     def __repr__(self):
-        '''
-        Overload the print function to write a summary of the Gene.
+        '''Overload the print function to write a summary of the Gene.
 
         Returns:
             str: String describing the Gene
@@ -264,8 +265,8 @@ class Gene(object):
         else:
             output+="\n"
         if self.nucleotide_sequence[self.is_promoter].size!=0:
-            #Updated to use numpy.printoptions to control the formatting
-            #Does return as `['a' 'c' 't' 'g']`` rather than `actg` but fixes formatting issues from old code
+            # updated to use numpy.printoptions to control the formatting
+            # does return as `['a' 'c' 't' 'g']`` rather than `actg` but fixes formatting issues from old code
             #   such as repeating elements if len(promoter) <= string_length
             with numpy.printoptions(threshold=string_length*2):
                 output += str(self.nucleotide_sequence[self.is_promoter]) + "\n"
@@ -287,8 +288,7 @@ class Gene(object):
         return(output)
 
     def __len__(self):
-        '''
-        Return the number of nucleotides in the coding region (i.e. ignoring any assumed promoter)
+        '''Return the number of nucleotides in the coding region (i.e. ignoring any assumed promoter)
 
         Returns:
             int
@@ -310,12 +310,12 @@ class Gene(object):
 
         return GeneDifference(self, other)
 
-
     def valid_variant(self, variant):
         '''Determines if a given variant is valid for this gene
 
         Args:
             variant (str): String of a mutation in GARC
+            
         Returns:
             bool: True when variant is valid, False otherwise
         '''

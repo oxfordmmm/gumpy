@@ -542,6 +542,23 @@ def test_instanciate_genes_dna():
     assert numpy.all(gene.amino_acid_sequence == numpy.array(list("GG")))
 
 def test_instanciate_vcf():
+    with pytest.raises(Exception) as e_info:
+        vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf",
+                                ignore_filter='True',format_fields_min_thresholds={'GT_CONF':0})
+
+    with pytest.raises(Exception) as e_info:
+        vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf",
+                                bypass_reference_calls='True',format_fields_min_thresholds={'GT_CONF':0})
+
+    with pytest.raises(Exception) as e_info:
+        vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf",
+                                bypass_reference_calls=True,format_fields_min_thresholds=['GT_CONF',0])
+
+    with pytest.raises(Exception) as e_info:
+        vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf",
+                                bypass_reference_calls=True,format_fields_min_thresholds={'FIELD_NOT_IN_VCF_FILE':0})
+
+
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf",
                             ignore_filter=True,format_fields_min_thresholds={'GT_CONF':0})
 
@@ -616,7 +633,6 @@ def test_instanciate_vcf():
 
         (73, 'indel'): {'call': ('ins', 'a'),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 198,1), 'GT_CONF': 145.21,'REF': 't','ALTS': ('ta', 'at')}}
     }
-
 
     # could use assertDictEqual from unittest framework, but not using at present
     assert vcf.calls == calls

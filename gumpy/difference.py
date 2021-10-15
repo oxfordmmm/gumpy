@@ -17,11 +17,15 @@ import numpy
 import warnings
 from collections import defaultdict
 from abc import ABC #Python library for abstract classes
+import gumpy
 
 class Difference(ABC):
-    '''Abstract class used to provide the ability to switch between views. Inherited by GenomeDifference and GeneDifference.
+    '''
+    Abstract class used to provide the ability to switch between views. Inherited by GenomeDifference and GeneDifference.
+
     This should not be instantiated.
     '''
+
     def __init__(self):
         '''If this class is instantiated, crash
         '''
@@ -121,34 +125,43 @@ class Difference(ABC):
             return array
 
 class GenomeDifference(Difference):
-    '''GenomeDifference object is used to return the difference between two genomes.
-        The difference can be viewed in one of two ways:
-            `diff`: Arrays of the values from genome1 where there are different values in genome2,
-                    or values which exist in genome1 but not genome2 depending on which is more appropriate (closer to classical subtraction).
-                    This is the default view.
-            `full`: Arrays of tuples consisting of (genome1_val, genome2_val) - more information but less like classical subtraction
-                    and more difficult to wrangle meaningful information from.
-        This option can be set by using the update_view() method
+    '''
+    GenomeDifference object captures the difference between two genomes.
 
-        Instance variables:
-            snp_distance (int): SNP distance between the two genomes
-            indices (numpy.array): Array of genome indices where the two genomes differ in nucleotides
-            nucleotides (numpy.array): Array of differences in nucleotides. Format depends on the current view.
-            indel_indices (numpy.array): Array of indices where the two genomes have indels
-            indels (numpy.array): Array of differences in inels. Format depends on the current view.
-        Functions:
-            variants(int) -> dict: Takes a genome index and returns a dictionary mapping field->(genome1_val, genome2_val) for all fields
-                                    of a vcf file (if applicable)
-            gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects
-        Inherited functions:
-            update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
+    The difference can be viewed in one of two ways:
+        `diff`: Arrays of the values from genome1 where there are different values in genome2,
+                or values which exist in genome1 but not genome2 depending on which is more appropriate (closer to classical subtraction).
+                This is the default view.
+        `full`: Arrays of tuples consisting of (genome1_val, genome2_val) - more information but less like classical subtraction
+                and more difficult to wrangle meaningful information from.
+    This option can be set by using the update_view() method
+
+    Instance variables:
+        snp_distance (int): SNP distance between the two genomes
+        indices (numpy.array): Array of genome indices where the two genomes differ in nucleotides
+        nucleotides (numpy.array): Array of differences in nucleotides. Format depends on the current view.
+        indel_indices (numpy.array): Array of indices where the two genomes have indels
+        indels (numpy.array): Array of differences in inels. Format depends on the current view.
+    Functions:
+        variants(int) -> dict: Takes a genome index and returns a dictionary mapping field->(genome1_val, genome2_val) for all fields
+                                of a vcf file (if applicable)
+        gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects
+    Inherited functions:
+        update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
     def __init__(self, genome1, genome2):
-        '''Constructor for the GenomeDifference object. Called implictly when `genome1.difference(genome2)` is performed.
+        '''
+        Constructor for the GenomeDifference object.
+
+        Called implictly when `genome1.difference(genome2)` is performed.
         Args:
             genome1 (gumpy.Genome): A Genome object to compare against
             genome2 (gumpy.Genome): The other Genome object
         '''
+
+        assert isinstance(genome1, gumpy.Genome)
+        assert isinstance(genome2, gumpy.Genome)
+
         self.genome1 = genome1
         self.genome2 = genome2
         self._view_method = "diff"
@@ -338,23 +351,23 @@ class GenomeDifference(Difference):
         message += "Continuing only with genes which exist in both genomes."
         warnings.warn(message, UserWarning)
 
-
-    def gene_differences(self):
-        '''Get the GeneDifference objects for each gene in the genomes.
-        Must be explicitly called by the user
-
-        Returns:
-            numpy.array: Array of GeneDifference objects
-        '''
-        #Build the genome with the VCF applied
-        #Checking for the same genes
-        if self.genome1.genes.keys() != self.genome2.genes.keys():
-            #Get only the genes which are the same but give a warning
-            genes = set(self.genome1.genes.keys()).intersection(set(self.genome2.genes.keys()))
-            self.__raise_mutations_warning(self.genome1, self.genome2)
-        else:
-            genes = self.genome1.genes.keys()
-        return numpy.array([GeneDifference(self.genome1.genes[gene], self.genome2.genes[gene]) for gene in genes])
+    #
+    # def gene_differences(self):
+    #     '''Get the GeneDifference objects for each gene in the genomes.
+    #     Must be explicitly called by the user
+    #
+    #     Returns:
+    #         numpy.array: Array of GeneDifference objects
+    #     '''
+    #     #Build the genome with the VCF applied
+    #     #Checking for the same genes
+    #     if self.genome1.genes.keys() != self.genome2.genes.keys():
+    #         #Get only the genes which are the same but give a warning
+    #         genes = set(self.genome1.genes.keys()).intersection(set(self.genome2.genes.keys()))
+    #         self.__raise_mutations_warning(self.genome1, self.genome2)
+    #     else:
+    #         genes = self.genome1.genes.keys()
+    #     return numpy.array([GeneDifference(self.genome1.genes[gene], self.genome2.genes[gene]) for gene in genes])
 
 class GeneDifference(Difference):
     '''Object to store the differences within genes. The view system is inherited from the Difference class.
@@ -381,12 +394,17 @@ class GeneDifference(Difference):
         update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
     def __init__(self, gene1, gene2):
-        '''Constructor. Takes in two gene objects and calculates the difference in a few areas such as nucleotides, codons, and amino acids.
+        '''
+        Constructor. Takes in two gene objects and calculates the difference in a few areas such as nucleotides, codons, and amino acids.
 
         Args:
             gene1 (gumpy.Gene): Gene object 1
             gene2 (gumpy.Gene): Gene object 2
         '''
+
+        assert isinstance(gene1, gumpy.Gene)
+        assert isinstance(gene2, gumpy.Gene)
+
         if gene1.total_number_nucleotides != gene2.total_number_nucleotides:
             #The lengths of the genes are different so comparing them is meaningless
             warnings.warn("The two genes ("+gene1.name+" and "+gene2.name+") are different lengths, so comparision failed...", UserWarning)

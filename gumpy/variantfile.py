@@ -3,6 +3,7 @@ Classes used to parse and store VCF data
 '''
 import pysam, copy
 import pandas, numpy
+import pathlib
 
 from collections import defaultdict
 
@@ -27,8 +28,9 @@ class VCFRecord(object):
         `is_alt` (bool): or, is the call for a single specified alt
     '''
     def __init__(self, *args, **kwargs):
-        '''Constructor, pulls the data out of the pysam object
-        into a more useable format
+        '''Constructor for the VCFRecord object.
+
+        Parses the supplied pysam object and presents in a more Pythonic format
 
         Args:
             record (pysam.libcbcf.VariantRecord): The record object
@@ -133,7 +135,6 @@ class VCFFile(object):
         `contig_lengths` (dict): Dictionary mapping contig_name->length for all defined contigs.
         `format_fields_description` (dict): Dictionary mapping format_name->dict(description, id, type).
         `records` (list(VCFRecord)): List of VCFRecord objects for each record within the file.
-        `genome` (gumpy.Genome): optional Genome object; if passed will be used to check the REF bases in the VCF file.
         `calls` (dict): Dict of definite calls made in the VCF file, after any additional filtering has been applied
         `ignore_filter` (bool): whether to ignore the FILTER in the VCF file
         `format_fields_min_thresholds` (dict): dictionary specifying minimum thresholds to be applied to fields in the FORMAT field e.g. {'GTCONF':5}
@@ -150,14 +151,20 @@ class VCFFile(object):
     '''
     def __init__(self, *args, **kwargs):
         '''
-        Constructor. Reads the VCF file and sets up values
+        Constructor for the VCFFile object.
+
+        Parses the VCF file using pysam.
+
         Args:
             filename (str) : The name of the VCF file
+            ignore_filter (bool): If True, ignore the FILTER column in the VCF file. Default is False.
+            bypass_reference_calls (bool): If True, skip any row in the VCF (and therefore do not record)  which calls reference (i.e. 0/0). Default is False.
+            format_fields_min_thresholds (dict, optional): Dict of field name in the FORMAT column and a minimum threshold to apply e.g. {'DP':5}
         '''
         if len(args) != 1:
             #Rebuilding...
             assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
-            allowed_kwargs = ['vcf_version', 'contig_lengths', 'formats', 'records', 'changes', 'ignore_filter', 'format_fields_min_thresholds', 'bypass_reference_calls', 'genome']
+            allowed_kwargs = ['ignore_filter', 'format_fields_min_thresholds', 'bypass_reference_calls']
             seen = set()
             for key in kwargs.keys():
                 if key in allowed_kwargs:
@@ -171,9 +178,18 @@ class VCFFile(object):
             filename = args[0]
 
         self.ignore_filter=kwargs.get('ignore_filter',False)
+        assert isinstance(self.ignore_filter,bool)
+
         self.bypass_reference_calls=kwargs.get('bypass_reference_calls',False)
+        assert isinstance(self.bypass_reference_calls,bool)
+
         self.format_fields_min_thresholds=kwargs.get('format_fields_min_thresholds',None)
+        if self.format_fields_min_thresholds is not None:
+            assert isinstance(self.format_fields_min_thresholds,dict)
+
         self.filename=filename
+        assert isinstance(self.filename,str)
+        assert pathlib.Path(self.filename).is_file()
 
         #Use pysam to parse the VCF
         vcf = pysam.VariantFile(self.filename)
@@ -217,7 +233,7 @@ class VCFFile(object):
         self.snp_distance = numpy.sum(self.is_snp)
 
     def __repr__(self):
-        '''Pretty print the VCF file
+        '''Overload the print function to write a summary of the VCF file
 
         Returns:
             str: String summarising the VCF file
@@ -238,7 +254,8 @@ class VCFFile(object):
         return output
 
     def __find_calls(self):
-        '''Function to find changes within the genome based on the variant file
+        '''
+        Private method to find changes within the genome based on the variant file
         '''
         self.calls = {}
         for record in self.records:
@@ -396,6 +413,7 @@ class VCFFile(object):
 
     def to_df(self):
         '''Convert the VCFRecord to a pandas DataFrame.
+
         Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations
         (but pandas does not currently have a robust method for metadata storage...)
 
@@ -439,11 +457,14 @@ class VCFFile(object):
         return df
 
     def __get_variants(self):
-        '''Pull the variants out of the VCFFile object. Builds arrays
-            of the variant calls, and their respective genome indices, as well as
-            masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
-            i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
         '''
+        Private method to pull the variants out of the VCFFile object.
+
+        Builds arrays of the variant calls, and their respective genome indices, as well as
+        masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
+        i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
+        '''
+
         alts=[]
         variants = []
         indices = []

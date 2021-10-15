@@ -21,8 +21,8 @@ class Genome(object):
     """Genome object"""
 
     def __init__(self, *args, **kwargs):
-        '''
-        Constructor for the Genome object.
+        '''Constructor for the Genome object.
+
         Args:
             genbank_file (str) : The path to the genbank file.
             show_progress_bar (bool, optional) : Boolean as whether to show a progress bar when building Gene objects. Defaults to False.
@@ -134,9 +134,8 @@ class Genome(object):
             self.annotations["references"][i] = new_ref
 
     def __repr__(self):
+        '''Overload the print function to write a summary of the genome.
 
-        '''
-        Overload the print function to write a summary of the genome.
         Returns:
             str : String including attributes for the genome
         '''
@@ -166,24 +165,18 @@ class Genome(object):
         '''Generate a GenomeDifference object for a in-depth difference of the two Genomes
 
         Args:
-            other (gumpy.Genome): The other Genome object to compare to
-                '''
-
-
-        """
-        Overload the subtraction operator so it returns a GenomeDifference object for a in-depth difference of the two Genomes
-        Args:
             other (gumpy.Genome) : The other genome used in the subtraction
+
         Returns:
             GenomeDifference: object containing numpy arrays of the differences (variants)
-        """
+        '''
+        
         assert isinstance(other,Genome), 'RHS must be a gumpy.Genome object'
 
         return(GenomeDifference(self,other))
 
     def __eq__(self, other):
-        '''
-        Overloading the equality operator so two Genome objects can be compared directly
+        '''Overloading the equality operator so two Genome objects can be compared directly
         Checks for the equality based on fields, but does not check for filename equality
         Args:
             other (gumpy.Genome) : The other Genome object to compare to
@@ -205,8 +198,8 @@ class Genome(object):
         return check
 
     def __len__(self):
-        '''
-        Adding len functionality - len(genome) returns the length of the genome
+        '''Adding len functionality - len(genome) returns the length of the genome
+
         Returns:
             int : Length of the genome
         '''
