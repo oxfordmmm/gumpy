@@ -293,6 +293,39 @@ def test_instanciate_genes_rna():
 
 def test_instanciate_genome_dna():
 
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbkhh")
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gkb")
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",gene_subset=['A',1])
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",gene_subset=['A','D'])
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",show_progress_bar=1)
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",is_reference='yes')
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",verbose='yes')
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",max_promoter_length=-2)
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",max_promoter_length=50.00)
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",max_gene_name_length=0)
+
+    with pytest.raises(Exception) as e_info:
+        genome = gumpy.Genome("config/TEST-DNA.gbk",max_gene_name_length=10.0)
+
     genome = gumpy.Genome("config/TEST-DNA.gbk")
 
     #Testing generic attributes such as name and length

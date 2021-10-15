@@ -27,10 +27,10 @@ class Genome(object):
             genbank_file (str) : The path to the genbank file.
             show_progress_bar (bool, optional) : Boolean as whether to show a progress bar when building Gene objects. Defaults to False.
             gene_subset (list, optional) : List of gene names used to extract just a subset of genes. Defaults to None
-            max_promoter_length (int, optional) : Size of the default promoter. Defaults to 100
-            max_gene_name_length (int, optional) : Size of the longest gene name. Defaults to 20
-            verbose (bool, optional) : Boolean as whether to give verbose statements. Defaults to False
-            is_reference (bool, optional) : Boolean showing whether this genome is a reference genome, i.e. mutations can be derived from it. Defaults to False
+            max_promoter_length (int, optional) : Size of the default maximum number of upstream bases to consider the promoter of a gene. Defaults to 100
+            max_gene_name_length (int, optional) : Length of the longest gene name. Defaults to 20
+            verbose (bool, optional) : Give verbose statements? Defaults to False
+            is_reference (bool, optional) : Is this a reference genome? i.e. mutations can be derived with respect to it? Defaults to False
         '''
         if len(args) != 1:
             if "reloading" not in kwargs.keys():
@@ -68,9 +68,20 @@ class Genome(object):
             self.verbose = kwargs.get("verbose", False)
             self.is_reference = kwargs.get("is_reference", False)
             #Set the args value to the genbank file
-            genbank_file = args[0]
+            genbank_file = pathlib.Path(args[0])
 
-        assert isinstance(self.max_promoter_length,int) and self.max_promoter_length>=0, "the promoter length must be a positive integer!"
+        assert genbank_file.is_file(), 'GenBank file does not exist!'
+        assert isinstance(self.max_promoter_length,int) and self.max_promoter_length>=0, "the promoter length must be zero or a positive integer!"
+
+        assert isinstance(self.verbose,bool)
+        assert isinstance(self.is_reference,bool)
+        assert isinstance(self.show_progress_bar,bool)
+        assert isinstance(self.max_gene_name_length,int) and self.max_gene_name_length>0
+        if self.gene_subset is not None:
+            # first check it is a list
+            assert isinstance(self.gene_subset,list)
+            # then check all elements in the list are strings
+            assert all(isinstance(i,str) for i in self.gene_subset)
 
         if self.verbose:
             timings=defaultdict(list)
@@ -553,7 +564,6 @@ class Genome(object):
         self.indel_length=numpy.zeros(self.length,int)
         self.indel_nucleotides=numpy.empty(self.length,dtype=object)
 
-
         assert len(reference_genome.annotations['accessions'])==1, 'only GenBank files with a single accessions currently allowed'
 
         self.annotations={}
@@ -620,6 +630,11 @@ class Genome(object):
                                         'start':gene_start,\
                                         'end':gene_end,
                                         'ribosomal_shifts': shifts }
+
+        # now we can check that all the genes in the gene_subset exist in the GenBank file!
+        if self.gene_subset is not None:
+            for i in self.gene_subset:
+                assert self.contains_gene(i), 'Gene '+i+' not found in the Genbank file!'
 
     def __handle_rev_comp(self, rev_comp, start, end, i):
         '''
