@@ -255,9 +255,13 @@ class VCFFile(object):
 
     def __find_calls(self):
         '''
-        Private method to find changes within the genome based on the variant file
+        Private method to find changes within the genome based on the variant file.
+
+        Creates calls dict used elsewhere.
         '''
+
         self.calls = {}
+
         for record in self.records:
 
             # VCF files are 1 indexed but keep for now
@@ -293,11 +297,14 @@ class VCFFile(object):
                 variant=record.ref
                 variant_type='ref'
 
+            # if the REF, ALT pair are the same length, check if we can decompose into SNPs
             if len(record.ref)==len(variant):
+
                 for counter,(before,after) in enumerate(zip(record.ref,variant)):
 
-                    # only make a change if the ALT is different to the REF
+                    # only make a change if the ALT  base is different to the REF base
                     if before!=after:
+
                         metadata={}
                         metadata['call']=after
                         metadata['ref']=before
@@ -307,13 +314,20 @@ class VCFFile(object):
                         vcf_info['REF']=record.ref
                         vcf_info['ALTS']=record.alts
                         metadata['original_vcf_row']=vcf_info
+
                         self.calls[(index+counter,variant_type)]=metadata
 
+            # otherwise the REF, ALT pair are different lengths
             else:
+
+                # try and simplify into a single indel and multiple SNPs
                 mutations = self._simplify_call(record.ref, variant)
+
                 for (p, type_, bases) in mutations:
+
                     # p = max(p - 1, 0)
                     if type_ in ["ins", "del"]:
+
                         indel_length = len(bases)
                         # if type_ == "del":
                         #     indel_length *= -1
@@ -326,8 +340,11 @@ class VCFFile(object):
                         vcf_info['REF']=record.ref
                         vcf_info['ALTS']=record.alts
                         metadata['original_vcf_row']=vcf_info
+
                         self.calls[(index+p,'indel')]=metadata
+
                     else:
+
                         metadata = {}
                         metadata['call'] = bases[1]
                         metadata['ref'] = bases[0]
@@ -337,18 +354,22 @@ class VCFFile(object):
                         vcf_info['REF'] = record.ref
                         vcf_info['ALTS'] = record.alts
                         metadata['original_vcf_row'] = vcf_info
+
                         self.calls[(index+p,variant_type)] = metadata
 
     def _simplify_call(self, ref, alt):
-        '''Find where in the sequence the indel was, and the values.
+        '''Private method to simplify a complex call into one indel and multiple SNPs.
+
         Based on finding the indel position at which there is the least SNPs
 
         Args:
             ref (str): Reference bases. Should match reference bases at this point
             alt (str): Alt bases.
+
         Returns:
             [(int, str, str)]: Returns a list of tuples of (pos, one of ['ins','del','snp'], indel_bases or (ref, alt) for SNPs)
         '''
+
         def snp_number(ref, alt):
             '''Count the number of SNPs between 2 sequences
 
@@ -412,7 +433,7 @@ class VCFFile(object):
 
 
     def to_df(self):
-        '''Convert the VCFRecord to a pandas DataFrame.
+        '''Convert the VCFFile to a pandas DataFrame.
 
         Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations
         (but pandas does not currently have a robust method for metadata storage...)
@@ -493,7 +514,7 @@ class VCFFile(object):
                 variant = str(index)+"_"+call[0]+"_"+str(call[1])
                 alt=call[1]
                 is_indel.append(True)
-                if call[1]=='ins':
+                if call[0]=='ins':
                     indel_length.append(len(call[1]))
                 else:
                     indel_length.append(-1*len(call[1]))

@@ -735,3 +735,32 @@ def test_instanciate_vcf():
     assert rep[6] == str(vcf.records[2]).strip()
     assert rep[7] == "..."
     assert rep[8] == str(vcf.records[-1]).strip()
+
+    # check the variants
+    assert numpy.all(vcf.variants==numpy.array(['2a>x', '4a>x','6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '33_ins_tt', '37_del_t', '39_ins_g', '39t>a', '64_ins_ca', '73_ins_a']))
+
+    assert numpy.all(vcf.variants[vcf.is_het]==numpy.array(['22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z']))
+
+    assert numpy.all(vcf.variants[vcf.is_indel]==numpy.array(['33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
+
+    assert numpy.all(vcf.indel_length[vcf.is_indel]==numpy.array([2, -1, 1, 2, 1]))
+
+    # assert numpy.all(vcf.indel_length[vcf.is_indel]==numpy.array([]))
+
+
+    assert numpy.all(vcf.variants[vcf.is_het]==numpy.array(['22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z']))
+
+    assert numpy.all(vcf.variants[vcf.is_snp]==numpy.array(['12c>t', '14c>g', '16c>t', '17c>g', '39t>a']))
+
+    assert vcf.snp_distance==5
+
+
+def test_instanciate_vcf_tb():
+
+    vcf=gumpy.VCFFile('tests/test-cases/05.vcf')
+
+    # have checked that 761110a>t is correct since it is a complex row with lots of ALT pairs all 29 bases long at 761094 but the 40th one is only different by a single base
+    # also checked that 2155168c>g is correct -- this is a 2/2
+    assert numpy.all(vcf.variants[vcf.is_snp] == numpy.array(['7362g>c', '9304g>a', '761110a>t', '763031t>c', '2154724c>a', '2155168c>g']))
+
+    assert vcf.snp_distance==6
