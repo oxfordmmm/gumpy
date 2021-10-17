@@ -30,6 +30,7 @@ class Difference(ABC):
         '''If this class is instantiated, crash
         '''
         assert False, "This class should not be instantiated!"
+
     def update_view(self, method, object_type):
         '''Update the viewing method. Can either be `diff` or `full`:
         `diff`: Where applicable, variables return arrays of values from object1 where they are not equal to object 2
@@ -159,6 +160,7 @@ class GenomeDifference(Difference):
             genome2 (gumpy.Genome): The other Genome object
         '''
 
+        # insist that both must be Genome objects
         assert isinstance(genome1, gumpy.Genome)
         assert isinstance(genome2, gumpy.Genome)
 
@@ -204,6 +206,7 @@ class GenomeDifference(Difference):
         is_null=[]
         is_indel=[]
         indel_length=[]
+        indel_nucleotides=[]
         refs=[]
         alts=[]
 
@@ -219,6 +222,7 @@ class GenomeDifference(Difference):
             indices.append(idx)
             is_indel.append(False)
             indel_length.append(0)
+            indel_nucleotides.append(None)
             if a=='z':
                 is_het.append(True)
                 is_snp.append(False)
@@ -254,6 +258,7 @@ class GenomeDifference(Difference):
             is_snp.append(False)
             is_null.append(False)
             indel_length.append(length)
+            indel_nucleotides.append(alt)
             if length>0:
                 variants.append(str(idx)+'_ins_'+str(alt))
             else:
@@ -270,6 +275,7 @@ class GenomeDifference(Difference):
             is_null.append(False)
             length*=-1
             indel_length.append(length)
+            indel_nucleotides.append(alt)
             if length>0:
                 variants.append(str(idx)+'_ins_'+str(alt))
             else:
@@ -279,6 +285,7 @@ class GenomeDifference(Difference):
         self.nucleotide_index=numpy.array(indices)
         self.is_indel=numpy.array(is_indel)
         self.indel_length=numpy.array(indel_length)
+        self.indel_nucleotides=numpy.array(indel_nucleotides)
         self.is_snp=numpy.array(is_snp)
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)

@@ -745,9 +745,6 @@ def test_instanciate_vcf():
 
     assert numpy.all(vcf.indel_length[vcf.is_indel]==numpy.array([2, -1, 1, 2, 1]))
 
-    # assert numpy.all(vcf.indel_length[vcf.is_indel]==numpy.array([]))
-
-
     assert numpy.all(vcf.variants[vcf.is_het]==numpy.array(['22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z']))
 
     assert numpy.all(vcf.variants[vcf.is_snp]==numpy.array(['12c>t', '14c>g', '16c>t', '17c>g', '39t>a']))
@@ -764,3 +761,26 @@ def test_instanciate_vcf_tb():
     assert numpy.all(vcf.variants[vcf.is_snp] == numpy.array(['7362g>c', '9304g>a', '761110a>t', '763031t>c', '2154724c>a', '2155168c>g']))
 
     assert vcf.snp_distance==6
+
+def test_instanciate_difference():
+
+    # check that we cannot directly instantiate the Difference class
+    with pytest.raises(Exception) as e_info:
+        gumpy.difference.Difference()
+
+def test_instanciate_genome_difference():
+
+    g1 = gumpy.Genome("/Users/fowler/packages/gumpy/config/TEST-DNA.gbk")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
+    g2=g1+vcf
+    g3=g1+vcf
+
+    g4=g3-g2
+    assert len(g4.variants)==0, 'there should be no difference between these genomes!'
+
+    # now alter one of the indels
+    g3.indel_nucleotides[g3.nucleotide_index==64]=numpy.array(['ct'])
+
+    # this should fail since both genomes have different indels at the same position
+    with pytest.raises(Exception) as e_info:
+        g4=g3-g2

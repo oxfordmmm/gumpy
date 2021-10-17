@@ -269,6 +269,9 @@ def test_genome_difference():
     assert diff.snp_distance == 5
     assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 33, 37, 39, 64, 73]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'a'], dtype=object))
+    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a', '33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
+    assert numpy.all(diff.indel_length[diff.is_indel] == numpy.array([2,-1,1,2,1]))
+    assert numpy.all(diff.indel_nucleotides[diff.is_indel]==numpy.array(['tt','t','g','ca','a']))
 
     #Change the view and test all outputs
     diff.update_view("full",'genome')
@@ -287,6 +290,12 @@ def test_genome_difference():
        ['g', 'z'],
        ['g', 'z'],
        ['t', 'a']]))
+
+    # now check the other way around!
+    diff2 = g2-g1
+    assert numpy.all(diff2.variants == numpy.array(['2x>a', '6x>a', '7x>a', '8x>a', '12t>c', '14g>c', '16t>c', '17g>c', '22z>g', '24z>g', '26z>g', '27z>g', '28z>g', '29z>g', '39a>t', '33_del_tt', '37_ins_t', '39_del_g', '64_del_ca', '73_del_a']))
+    assert numpy.all(diff2.nucleotide_index == diff.nucleotide_index)
+    assert numpy.all(diff2.indel_length == -1*diff.indel_length)
 
 def test_vcf_genetic_variation():
     #Testing the VCFFile objects' difference()
