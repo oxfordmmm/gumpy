@@ -277,63 +277,6 @@ class Genome(object):
             name (str, optional): Name of the attribute to be stored as in the dict. Defaults to None.
 
         Returns:
-<<<<<<< HEAD
-            None
-        """
-
-        # since we are now applying a VCF file, it makes sense to create these numpy arrays
-        self.coverage=numpy.zeros(self.genome_length,int)
-        self.indel_ref=numpy.zeros(self.genome_length,dtype='object')
-        self.indel_alt=numpy.zeros(self.genome_length,dtype='object')
-
-        # create a set of mutually exclusive Boolean arrays that tell you what the 'single sequence' result is
-        self.is_ref=numpy.zeros(self.genome_length,dtype=bool)
-        self.is_null=numpy.zeros(self.genome_length,dtype=bool)
-        self.is_filter_fail=numpy.zeros(self.genome_length,dtype=bool)
-        self.is_het=numpy.zeros(self.genome_length,dtype=bool)
-        self.is_snp=numpy.zeros(self.genome_length,dtype=bool)
-
-        # set up a dictionary for the metadata since the field names will vary between calling calling codes
-        # for Clockwork these will be GT_CONF and GT_CONF_PERCENTILE
-        self.metadata_fields=metadata_fields
-        if self.metadata_fields is not None:
-            self.genome_sequence_metadata={}
-            for field in self.metadata_fields:
-                self.genome_sequence_metadata[field]=numpy.zeros(self.genome_length,float)
-
-        # to deal with HET calls we need to setup some diploid arrays
-        self.het_variations=numpy.zeros((self.genome_length,2),str)
-        self.het_coverage=numpy.zeros((self.genome_length,2),int)
-        self.het_indel_length=numpy.zeros((self.genome_length,2),int)
-        self.het_ref=numpy.zeros(self.genome_length,dtype='<U50')
-        self.het_alt=numpy.zeros((self.genome_length,2),dtype='<U50')
-
-        return
-
-
-    def _set_sequence_metadata(self,idx,sample_info):
-
-        mask=self.genome_index==idx
-        assert numpy.count_nonzero(mask)>0, idx
-
-        altered_gene=self.genome_feature_name[mask][0]
-
-        if altered_gene!="" and altered_gene not in self.genes_mutated:
-            self.genes_mutated.append(altered_gene)
-
-        if self.metadata_fields is not None:
-            for field in self.metadata_fields:
-                if field in sample_info.keys():
-                    self.genome_sequence_metadata[field][mask]=sample_info[field]
-
-    def _permute_sequence(self,idx,coverage,after=None,indel_length=0,indel_bases=(None,None)):
-
-        # calculate a Boolean mask identifying where we are in the genome
-        mask=self.genome_index==idx
-
-        # use to assign the coverage
-        self.coverage[mask]=coverage
-=======
             dict/list/tuple: Either aggregated output or a single output depending on if aggregation was required
         '''
         if type(obj) in [bool, int, str, float, complex, bytes, bytearray] or obj is None:
@@ -377,8 +320,6 @@ class Genome(object):
         else:
             #Unnamed, so just return it
             return (str(type(obj)), to_return)
->>>>>>> develop
-
 
     @staticmethod
     def load(filename):
