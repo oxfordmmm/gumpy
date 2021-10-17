@@ -373,6 +373,9 @@ def test_vcf_genetic_variation():
             assert numpy.all(g_diff.indel_nucleotides[g_diff.is_indel] == numpy.array(['tt','t','g']))
             assert numpy.all(g_diff.indel_length[g_diff.is_indel] == numpy.array([2,-1,1]))
 
+        elif gene_name=='C':
+            assert len(g_diff.mutations)==0
+            
 
 def test_gene_difference():
     #Test the Gene.difference() method and GeneDifference() objects
