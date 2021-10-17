@@ -54,7 +54,7 @@ from gumpy import Genome, VCFFile
 reference_genome = Genome("reference.gbk")
 vcf = VCFFile("filename.vcf")
 
-resultant_genome = reference_genome.apply_variant_file(vcf)
+resultant_genome = reference_genome + vcf
 ```
 
 ### Genome level comparisons
@@ -69,29 +69,9 @@ from gumpy import Genome, GenomeDifference
 g1 = Genome("filename1.gbk")
 g2 = Genome("filename2.gbk")
 
-diff = g2.difference(g1) #Genome.difference returns a GenomeDifference object
+diff = g2 - g1 #Genome.difference returns a GenomeDifference object
 print(diff.snp_distance) #SNP distance between the two genomes
-print(diff.nucleotides) #Array of nucleotides in g2 which are different in g1
-print(diff.indels) #Array of indels in g2 where there are indels in either g1 or g2
-```
-#### Compare VCF file
-There is functionality to find the impact which a given VCF file has on a given genome.
-This includes changes in codons, amino acids as well as genes (although gene differences are computationally expensive)
-```
-from gumpy import VCFFile, VCFDifference, GeneDifference, Genome
-vcf = VCFFile("filename.vcf")
-genome = Genome("filename.gbk", is_reference=True)
-
-diff = vcf.difference(genome) #Returns a GeneticVariation object
-diff.variants.get('COV') #List of the coverages of all calls
-diff.snps #Dictionary mapping genome_index->snp_call
-
-#Getting gene level differences
-genes_diff = diff.gene_differences() #Array of GeneDifference objects
-[g_diff.codons for g_diff in genes_diff] #List of the codon changes made within each gene (if the changes are within codons)
-[g_diff.amino_acids for g_diff in genes_diff] #List of the amino acid changes within each gene (if coding for amino acids)
-[g_diff.mutations for g_diff in genes_diff] #List of mutations within each gene in GARC
-[g_diff.indels for g_diff in genes_diff] #List of the indel lengths where the indels differ between the VCF and the genome
+print(diff.variants) #Array of variants (SNPs/INDELs) of the differences between g2 and g1
 ```
 
 ### Gene level comparisons
@@ -105,15 +85,12 @@ g1 = Genome("filename1.gbk")
 g2 = Genome("filename2.gbk")
 
 #Get the Gene objects for the gene "gene1_name" from both Genomes
-g1_gene1 = g1.genes["gene1_name"]
-g2_gene1 = g2.genes["gene1_name"]
+g1_gene1 = g1.build_gene["gene1_name"]
+g2_gene1 = g2.build_gene["gene1_name"]
 
 g1_gene1 == g2_gene1 #Equality check of the two genes
-g1_gene1 - g2_gene1 #Returns the indicies within the gene where the two genes differ
-
-#Get a detailed difference between genes
-diff = g1_gene1.difference(g2_gene1)
-diff.mutations #List of mutations in GARC detailing the variation between the two genes
+diff= g1_gene1 - g2_gene1 #Returns a GeneDifference object
+diff.mutations #List of mutations in GARC describing the variation between the two genes
 ```
 
 ### Save and load Genome objects
