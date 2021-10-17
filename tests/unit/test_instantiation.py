@@ -765,7 +765,7 @@ def test_instanciate_difference():
 
 def test_instanciate_genome_difference():
 
-    g1 = gumpy.Genome("/Users/fowler/packages/gumpy/config/TEST-DNA.gbk")
+    g1 = gumpy.Genome("config/TEST-DNA.gbk")
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
     g2=g1+vcf
     g3=g1+vcf
