@@ -171,7 +171,7 @@ class GenomeDifference(Difference):
         #Calculate SNPs
         self.snp_distance = self.__snp_distance()
         '''
-        Where applicable, the `full` diference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
+        Where applicable, the `full` difference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
         '''
 
         self.__get_variants()
@@ -298,24 +298,6 @@ class GenomeDifference(Difference):
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
         return numpy.array(list(zip(self.genome1.nucleotide_sequence[mask], self.genome2.nucleotide_sequence[mask])))
 
-    def __indel_indices(self):
-        '''Finds the positions at which there are indels in either genome. Use genome.indels.get(item) for safe retrieval of indels
-
-        Returns:
-            numpy.array: Array of genome indices where there are indels in either genome
-        '''
-        if self.genome1.indels is None:
-            indices1 = set()
-        else:
-            indices1 = set(self.genome1.indels.keys())
-
-        if self.genome2.indels is None:
-            indices2 = set()
-        else:
-            indices2 = set(self.genome2.indels.keys())
-
-        return numpy.array(sorted([i+1 for i in indices1.union(indices2)]))
-
     def __indels(self):
         '''Find the indels for both genomes and report where they are different
         Returns:
@@ -357,24 +339,6 @@ class GenomeDifference(Difference):
             message += ") which are not present in the reference. "
         message += "Continuing only with genes which exist in both genomes."
         warnings.warn(message, UserWarning)
-
-    #
-    # def gene_differences(self):
-    #     '''Get the GeneDifference objects for each gene in the genomes.
-    #     Must be explicitly called by the user
-    #
-    #     Returns:
-    #         numpy.array: Array of GeneDifference objects
-    #     '''
-    #     #Build the genome with the VCF applied
-    #     #Checking for the same genes
-    #     if self.genome1.genes.keys() != self.genome2.genes.keys():
-    #         #Get only the genes which are the same but give a warning
-    #         genes = set(self.genome1.genes.keys()).intersection(set(self.genome2.genes.keys()))
-    #         self.__raise_mutations_warning(self.genome1, self.genome2)
-    #     else:
-    #         genes = self.genome1.genes.keys()
-    #     return numpy.array([GeneDifference(self.genome1.genes[gene], self.genome2.genes[gene]) for gene in genes])
 
 class GeneDifference(Difference):
     '''Object to store the differences within genes. The view system is inherited from the Difference class.
@@ -669,14 +633,6 @@ class GeneDifference(Difference):
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
 
-    def __indel_indices(self):
-        '''Find the positions at which the indels differ between the two genes
-
-        Returns:
-            numpy.array: Array of gene indices where the two genes have different indels
-        '''
-        mask = self.gene1.indel_length != self.gene2.indel_length
-        return self.gene1.nucleotide_number[mask]
     def __indels(self):
         '''Find the lengths of the indels at each position where the two genes' indels differ
 

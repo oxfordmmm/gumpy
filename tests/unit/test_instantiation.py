@@ -5,8 +5,8 @@ import numpy, gumpy, pytest, math
 #So ignore it to stop failing tests...
 pytestmark = pytest.mark.filterwarnings("ignore")
 
-@pytest.mark.tb
-def test_instanciate_genome_tb():
+@pytest.mark.slow
+def test_instanciate_tb():
 
     tb_reference = gumpy.Genome('config/NC_000962.3.gbk.gz',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
 
@@ -32,11 +32,6 @@ def test_instanciate_genome_tb():
     # check the first and last dozen bases of the whole sequence
     assert ''.join(i for i in tb_reference.nucleotide_sequence[:12]) == 'ttgaccgatgac'
     assert ''.join(i for i in tb_reference.nucleotide_sequence[-12:]) == 'ggagatacgtcg'
-
-@pytest.mark.tb
-def test_instanciate_genes_tb():
-
-    tb_reference = gumpy.Genome('config/NC_000962.3.gbk.gz',gene_subset=['katG','rpoB','pncA','Rv2042c','rrs'])
 
     truth_gene_sequence={}
     truth_gene_sequence['katG']='VPEQHPPITETTTGAASNGCPVVGHMKYPVEGGGNQDWWPNRLNLKVLHQNPAVADPMGAAFDYAAEVATIDVDALTRDIEEVMTTSQPWWPADYGHYGPLFIRMAWHAAGTYRIHDGRGGAGGGMQRFAPLNSWPDNASLDKARRLLWPVKKKYGKKLSWADLIVFAGNCALESMGFKTFGFGFGRVDQWEPDEVYWGKEATWLGDERYSGKRDLENPLAAVQMGLIYVNPEGPNGNPDPMAAAVDIRETFRRMAMNDVETAALIVGGHTFGKTHGAGPADLVGPEPEAAPLEQMGLGWKSSYGTGTGKDAITSGIEVVWTNTPTKWDNSFLEILYGYEWELTKSPAGAWQYTAKDGAGAGTIPDPFGGPGRSPTMLATDLSLRVDPIYERITRRWLEHPEELADEFAKAWYKLIHRDMGPVARYLGPLVPKQTLLWQDPVPAVSHDLVGEAEIASLKSQIRASGLTVSQLVSTAWAAASSFRGSDKRGGANGGRIRLQPQVGWEVNDPDGDLRKVIRTLEEIQESFNSAAPGNIKVSFADLVVLGGCAAIEKAAKAAGHNITVPFTPGRTDASQEQTDVESFAVLEPKADGFRNYLGKGNPLPAEYMLLDKANLLTLSAPEMTVLVGGLRVLGANYKRLPLGVFTEASESLTNDFFVNLLDMGITWEPSPADDGTYQGKDGSGKVKWTGSRVDLVFGSNSELRALVEVYGADDAQPKFVQDFVAAWDKVMNLDRFDVR!'

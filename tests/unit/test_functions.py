@@ -355,15 +355,24 @@ def test_vcf_genetic_variation():
         assert isinstance(g_diff, gumpy.difference.GeneDifference)
 
         if gene_name=='A':
-            assert numpy.all(g_diff.nucleotides==numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z'], dtype=object))
-            assert numpy.all(g_diff.mutations==numpy.array(['K1X', 'K2X', 'T3T', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x'], dtype='<U4'))
-            assert numpy.all(g_diff.ref_nucleotides==numpy.array(['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a'], dtype='<U3'))
+            assert numpy.all(g_diff.mutations==numpy.array(['K1X', 'K2X', 'T3T', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x']))
+            assert numpy.all(g_diff.mutations[g_diff.is_promoter]==numpy.array(['a-2x']))
+            assert numpy.all(g_diff.amino_acid_number==numpy.array([1, 2, 3, 4, 5, 7, 8, 9, None]))
+            assert numpy.all(g_diff.nucleotide_number==numpy.array([None, None, None, None, None, None, None, None, -2]))
+            assert numpy.all(g_diff.gene_position==numpy.array([ 1,  2,  3,  4,  5,  7,  8,  9, -2]))
+            assert numpy.all(g_diff.nucleotide_index==numpy.array([None, None, None, None, None, None, None, None, 2]))
+            assert numpy.all(g_diff.ref_nucleotides==numpy.array(['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a']))
+            assert numpy.all(g_diff.alt_nucleotides==numpy.array(['aax', 'xxa', 'act', 'cgc', 'tgc', 'zgz', 'gzz','zzg','x']))
 
-    #Testing an edge case with 2 different indels at the same position
-    # this currently fails because the VCF modifies the genome and then the REF bases in the VCF are incorrect
-    # g2 = g1+gumpy.VCFFile("tests/test-cases/TEST-DNA-2.vcf")
-    # diff = vcf.difference(g2)
-    # assert check_eq(diff.indels, {33: 'ins_2', 37: 'del_1', 40: "ins_1", 64: 'ins_2', 73: 'ins_1'}, True)
+        elif gene_name=='B':
+            assert numpy.all(g_diff.mutations==numpy.array(['G1Z', 'F4L', '6_ins_tt', '10_del_t', '12_ins_g']))
+            assert numpy.sum(g_diff.is_null)==0
+            assert numpy.all(g_diff.amino_acid_number[g_diff.is_het]==numpy.array([1]))
+            assert numpy.all(g_diff.amino_acid_number[g_diff.is_snp]==numpy.array([4]))
+            assert numpy.all(g_diff.nucleotide_number[g_diff.is_indel]==numpy.array([6,10,12]))
+            assert numpy.all(g_diff.indel_nucleotides[g_diff.is_indel] == numpy.array(['tt','t','g']))
+            assert numpy.all(g_diff.indel_length[g_diff.is_indel] == numpy.array([2,-1,1]))
+
 
 def test_gene_difference():
     #Test the Gene.difference() method and GeneDifference() objects
