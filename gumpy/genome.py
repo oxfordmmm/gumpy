@@ -442,21 +442,26 @@ class Genome(object):
         return(genome_string)
 
 
-    def save_fasta(self,filename,fixed_length=False,nucleotide_index_range=None,compression=False,compresslevel=2,chars_per_line=70,nucleotides_uppercase=True):
+    def save_fasta(self,filename,fixed_length=False,nucleotide_index_range=None,compression=False,compresslevel=2,chars_per_line=70,nucleotides_uppercase=True,description=None, overwrite_existing=True):
 
         '''
         Save the genome as a FASTA file.
 
         Args:
             filename (str): path of the output file
-            fixed_length (bool): If true, ignore indels and only output a genome the same length as the reference but with SNPs. This is useful for phylogeny analyses and relatedness. If false, a genome including indels is produced. Default is false.
+            fixed_length (bool): If True, ignore indels and only output a genome the same length as the reference but with SNPs. This is useful for phylogeny analyses and relatedness. If false, a genome including indels is produced. Default is false.
+            nucleotide_index_range (tuple, optional): A tuple of (start,end) genome indices
             compression (bool): If True, save compressed using gzip. (bzip2 is too slow)
             compresslevel (0-9): the higher the number, the harder the algorithm tries to compress but it takes longer. Default is 2.
             chars_per_line (int): the number of characters per line. Default=70. Must be either a positive integer or None (i.e. no CRs)
+            nucleotide_uppercase (bool): If True, provide the nucleotides in UPPER CASE. Default is True.
+            description (str, optional): what to write on the header line of the FASTA file. If not provided, then a description will be automatically generated from the GenBank file metadata.
+            overwrite_existing (bool): If False, then the code will refuse to overwrite a FASTA file already on disc. Default is True. 
         '''
 
         # check the arguments are well formed
-        assert pathlib.Path(filename).is_file(), 'filename does not exist! '+filename
+        if not overwrite_existing:
+            assert not pathlib.Path(filename).is_file(), 'filename already exists! '+filename
         assert isinstance(compression,bool)
         assert isinstance(fixed_length,bool)
         assert isinstance(nucleotides_uppercase,bool)
@@ -469,6 +474,8 @@ class Genome(object):
             assert nucleotide_index[1]<self.length, 'longer than the genome!'
         assert compresslevel in range(1,10), "compresslevel must be in range 1-9!"
         assert chars_per_line > 0, "number of characters per line in the FASTA file must be a positive integer!"
+        if description is not None:
+            assert isinstance(description,str)
 
         # check the specified fileextension to see if the FASTA file needs compressing
         if compression:
@@ -478,13 +485,16 @@ class Genome(object):
 
         # create the header line for the FASTA file using "|" as delimiters
         header=">"
-        if hasattr(self,'name'):
-            header+=self.name+"|"
-        if hasattr(self,'id') and isinstance(self.id,str) and len(self.id)>0:
-            header+=self.id+"|"
-        if hasattr(self,'description') and isinstance(self.description,str) and len(self.description)>0:
-            header+=self.description+"|"
-        header=header[:-1]
+        if description is None:
+            if hasattr(self,'name'):
+                header+=self.name+"|"
+            if hasattr(self,'id') and isinstance(self.id,str) and len(self.id)>0:
+                header+=self.id+"|"
+            if hasattr(self,'description') and isinstance(self.description,str) and len(self.description)>0:
+                header+=self.description+"|"
+            header=header[:-1]
+        else:
+            header+=description
         header+="\n"
 
         genome_string=self.build_genome_string(fixed_length,nucleotide_index_range)
