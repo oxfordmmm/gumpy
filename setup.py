@@ -6,10 +6,15 @@ with open("README.md", "r") as f:
 
 setup(
     install_requires=[
-        "numpy >= 1.13",
-        "pytest >= 4.0.0",
-        "Biopython >= 1.70",
-        "tqdm >= 4.19.5"],
+        "numpy >= 1.13",\
+        "pysam >= 0.18.0",\
+        "biopython >= 1.70",
+        "tqdm >= 4.19.5",\
+        "pytest >= 4.0.0",\
+        'pytest-cov >= 3.0.0',\
+        'pandas >= 1.3.0',\
+        'scipy >= 1.7.0'        
+        ],
     name='gumpy',
     version=__version__,
     author='Philip W Fowler',
