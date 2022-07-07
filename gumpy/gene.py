@@ -350,9 +350,9 @@ class Gene(object):
         #Match amino acid SNP
         snp = re.compile(r"""
                     ([a-zA-Z_0-9]+@)? #Possibly leading gene name
-                    ([A-Z]) #Reference amino acid
+                    ([A-Z!]) #Reference amino acid
                     ([0-9]+) #Position
-                    ([A-Z]) #Alt amino acid
+                    ([A-Z!]) #Alt amino acid
                     """, re.VERBOSE)
         if self.codes_protein and snp.fullmatch(variant):
             #The variant is an amino acid SNP
