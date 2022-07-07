@@ -669,7 +669,7 @@ class GeneDifference(Difference):
         for (codon1, codon2) in self._codons_full:
             aa1 = codon_to_amino_acid[codon1]
             aa2 = codon_to_amino_acid[codon2]
-            if aa1 != aa2:
+            if codon1 != codon2:
                 aa_diff.append((aa1, aa2))
         return numpy.array(aa_diff)
 
