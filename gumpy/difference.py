@@ -118,7 +118,10 @@ class Difference(ABC):
         if len(array) > 0:
             array = numpy.array([item2 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
         else:
-            return numpy.array([])
+            #Returning an empty array can cause issues with indels in amino acid sequence not producing same length arrays 
+            #as they are handled separately to other arrays which may contain [None]. This breaks the idea of 1:1 relationship
+            #between values in arrays. So just return None instead of an array
+            return None
         #Check for all None values
         if self.__check_none(array, True):
             return None
@@ -669,7 +672,7 @@ class GeneDifference(Difference):
         for (codon1, codon2) in self._codons_full:
             aa1 = codon_to_amino_acid[codon1]
             aa2 = codon_to_amino_acid[codon2]
-            if aa1 != aa2:
+            if codon1 != codon2:
                 aa_diff.append((aa1, aa2))
         return numpy.array(aa_diff)
 
