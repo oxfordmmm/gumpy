@@ -366,7 +366,6 @@ class Gene(object):
             valid = valid and int(pos) in self.amino_acid_number
             #Check ref matches the aa seq at the given pos
             valid = valid and self.amino_acid_sequence[self.amino_acid_number == int(pos)] == ref
-            valid = valid and ref != alt
             return valid
 
         #Match amino acid synon-mutation
