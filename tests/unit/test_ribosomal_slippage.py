@@ -1,5 +1,6 @@
-import pytest, gumpy, numpy
-
+import gumpy
+import numpy
+import pytest
 
 #As BioPython thinks that the locus line of the TEST-RNA.gbk is malformed, it gives a warning
 #So ignore it to stop failing tests...

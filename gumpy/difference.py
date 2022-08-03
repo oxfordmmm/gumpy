@@ -13,11 +13,13 @@ Functions:
     collapse_inner_dict(dict) -> dict: Converts a dictionary with an inner dictionary to a single dictionary. Key collisions are not considered
                                         intentionally as this should not be an issue with this use case
 '''
-import numpy
 import warnings
-from collections import defaultdict
-from abc import ABC #Python library for abstract classes
+from abc import ABC  # Python library for abstract classes
+
+import numpy
+
 import gumpy
+
 
 class Difference(ABC):
     '''
@@ -315,6 +317,7 @@ class GenomeDifference(Difference):
         elif self.genome2.indels is None:
             return numpy.array([(indel, None) for indel in self.genome1.indels.values()], dtype=object)
         else:
+            #This function is never called, but if in future it is, this line needs attention (self.indel_indicies doesn't exist)
             return numpy.array([(self.genome1.indels.get(index), self.genome2.indels.get(index)) for index in self.indel_indices])
 
     def __raise_mutations_warning(self, reference, mutant):

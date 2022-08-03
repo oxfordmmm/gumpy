@@ -1,4 +1,10 @@
-import pytest, gumpy, copy, numpy, os, pandas
+import copy
+import os
+
+import gumpy
+import numpy
+import pandas
+import pytest
 
 #As BioPython thinks that the locus line of the TEST-RNA.gbk is malformed, it gives a warning
 #So ignore it to stop failing tests...
@@ -21,12 +27,12 @@ def test_genome_functions():
     g2.indel_length[7]=2
     g2.indel_nucleotides[7]='cc'
     assert g2.build_genome_string(fixed_length=False,)=='aaaaataccaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
-    g2.build_genome_string(fixed_length=True,)=='aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+    assert g2.build_genome_string(fixed_length=True, )=='aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+    
     g2.is_indel[10]=True
     g2.indel_length[10]=-4
-    g2.indel_nucleotides[7]='cccc'
-    g2.build_genome_string(fixed_length=False,)=='aaaaataccaaaccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
-    g2.build_genome_string(fixed_length=True,)=='aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
+    # g2.indel_nucleotides[7]='cccc'
+    assert g2.build_genome_string(fixed_length=True, )=='aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc'
 
     #Ensure that adding verbose arg to constructor doesn't change object's value
     #It should add values to the timings dict, but this is unimportant to the values so is not checked in the __eq__
@@ -149,7 +155,7 @@ def test_gene_functions():
         genome.build_gene('D')
 
     with pytest.raises(Exception) as e_info:
-        g1.build_gene(100)
+        genome.build_gene(100)
 
     g1 = copy.deepcopy(genome.build_gene("A"))
     g2 = copy.deepcopy(genome.build_gene("A"))

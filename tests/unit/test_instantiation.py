@@ -1,5 +1,8 @@
-import numpy, gumpy, pytest, math
+import math
 
+import gumpy
+import numpy
+import pytest
 
 #As BioPython thinks that the locus line of the TEST-RNA.gbk is malformed, it gives a warning
 #So ignore it to stop failing tests...
@@ -592,9 +595,9 @@ def test_instanciate_vcf():
 
         (6, 'null'): {'call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
 
-        (7, 'null'): {'call': 'x','call': 'x','ref': 'a','pos': 1,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
+        (7, 'null'): {'call': 'x','ref': 'a','pos': 1,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
 
-        (8, 'null'): {'call': 'x','call': 'x','ref': 'a','pos': 2,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
+        (8, 'null'): {'call': 'x','ref': 'a','pos': 2,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
 
         (12, 'snp'): {'call': 't','ref': 'c','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 50,'COV': (0,50),'GT_CONF':200.58,'REF': 'c','ALTS': ('t',)}},
 

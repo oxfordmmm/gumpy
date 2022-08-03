@@ -3,11 +3,10 @@ Genome object
 '''
 import base64
 import copy
-from gumpy.variantfile import VCFRecord, VCFFile
 import gzip
 import json
-import time
 import pathlib
+import time
 from collections import defaultdict
 
 import numpy
@@ -15,6 +14,8 @@ from Bio import SeqIO
 from tqdm import tqdm
 
 from gumpy import Gene, GenomeDifference, VCFFile
+from gumpy.variantfile import VCFRecord
+
 
 class Genome(object):
 
@@ -427,7 +428,7 @@ class Genome(object):
         # create a string of the genome
         if fixed_length:
             if nucleotide_index_range is not None:
-                assert isinstance(nucleotide_index_range,'tuple')
+                assert isinstance(nucleotide_index_range, tuple)
                 start,end=nucleotide_index_range
                 genome_string=''.join(self.nucleotide_sequence[start-1:end-1])
             else:
@@ -468,10 +469,10 @@ class Genome(object):
         assert isinstance(chars_per_line,int)
         if nucleotide_index_range is not None:
             assert isinstance(nucleotide_index_range,tuple)
-            assert isinstance(nucleotide_index[0],int)
-            assert isinstance(nucleotide_index[1],int)
-            assert nucleotide_index[0]>=1, 'genomes are 1-based so the first base must be >=1'
-            assert nucleotide_index[1]<self.length, 'longer than the genome!'
+            assert isinstance(nucleotide_index_range[0],int)
+            assert isinstance(nucleotide_index_range[1],int)
+            assert nucleotide_index_range[0]>=1, 'genomes are 1-based so the first base must be >=1'
+            assert nucleotide_index_range[1]<self.length, 'longer than the genome!'
         assert compresslevel in range(1,10), "compresslevel must be in range 1-9!"
         assert chars_per_line > 0, "number of characters per line in the FASTA file must be a positive integer!"
         if description is not None:
@@ -591,24 +592,24 @@ class Genome(object):
                 continue
 
             gene_name=None
-            type=None
+            type_=None
             codes_protein=True
 
             # try and use the gene name if available, otherwise use the locus
             if 'gene' in record.qualifiers.keys():
                 gene_name=record.qualifiers['gene'][0]
-                type='GENE'
+                type_='GENE'
 
             elif 'locus_tag' in record.qualifiers.keys():
                 gene_name=record.qualifiers['locus_tag'][0]
-                type="LOCUS"
+                type_="LOCUS"
 
             if gene_name is None or (self.gene_subset is not None and gene_name not in self.gene_subset):
                 continue
 
             # if this is ribosomal RNA, then record as such
             if record.type=='rRNA':
-                type="RNA"
+                type_="RNA"
                 codes_protein=False
 
             # determine if this is a reverse complement gene (only relevant to dsDNA genomes)
@@ -637,7 +638,7 @@ class Genome(object):
 
             # record feature metadata in a dict
             self.genes[gene_name]={  'reverse_complement':rev_comp,\
-                                        'type':type,\
+                                        'type':type_,\
                                         'codes_protein':codes_protein,\
                                         'start':gene_start,\
                                         'end':gene_end,
@@ -714,7 +715,7 @@ class Genome(object):
         '''
         Private function to find the sections of the genome in which there are overlapping genes
         This should be more efficient than the older version as it avoids consistent genome iteration
-        Use of the dot product on boolean arrays returns a single boolean showing collisions in almost linear time (10^-5 secs for TB size)
+        Use of the dot product on boolean arrays returns a single boolean showing collisions in almost constant time (10^-5 secs for TB size)
             This can be used to determine which row the gene should be in
         '''
 
@@ -925,27 +926,27 @@ class Genome(object):
             print("Updating the genome...")
 
         # use the calls dict to change the nucleotide indicies in the copy of the genome
-        for (idx,type) in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
+        for (idx,type_) in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
 
             # deal with changes at a single nucleotide site
-            if type in ['snp','null','het']:
+            if type_ in ['snp','null','het']:
 
                 # only set values if the idx is to a single nucleotide
-                genome.nucleotide_sequence[idx-1] = vcf.calls[(idx,type)]['call']
+                genome.nucleotide_sequence[idx-1] = vcf.calls[(idx,type_)]['call']
 
             # deal with insertions and deletions
-            elif type in ['indel']:
+            elif type_ in ['indel']:
 
                 genome.is_indel[idx-1] = True
-                genome.indel_nucleotides[idx-1] = vcf.calls[(idx,type)]['call'][1]
+                genome.indel_nucleotides[idx-1] = vcf.calls[(idx,type_)]['call'][1]
 
-                if vcf.calls[(idx,type)]['call'][0]=='ins':
-                    genome.indel_length[idx-1] = len(vcf.calls[(idx,type)]['call'][1])
+                if vcf.calls[(idx,type_)]['call'][0]=='ins':
+                    genome.indel_length[idx-1] = len(vcf.calls[(idx,type_)]['call'][1])
                 else:
-                    genome.indel_length[idx-1] = -1*len(vcf.calls[(idx,type)]['call'][1])
+                    genome.indel_length[idx-1] = -1*len(vcf.calls[(idx,type_)]['call'][1])
 
             else:
-                raise Exception('variant type not recognised!', vcf.calls[(idx,type)])
+                raise Exception('variant type not recognised!', vcf.calls[(idx,type_)])
 
         # the genome has been altered so not a reference genome
         genome.is_reference = False

@@ -1,11 +1,14 @@
 '''
 Classes used to parse and store VCF data
 '''
-import pysam, copy
-import pandas, numpy
+import copy
 import pathlib
-
 from collections import defaultdict
+
+import numpy
+import pandas
+import pysam
+
 
 class VCFRecord(object):
     '''
@@ -192,6 +195,7 @@ class VCFFile(object):
         assert pathlib.Path(self.filename).is_file()
 
         #Use pysam to parse the VCF
+        #Pylint doesn't think there is a VariantFile method but it works...
         vcf = pysam.VariantFile(self.filename)
 
         #Get some basic metadata
@@ -204,13 +208,13 @@ class VCFFile(object):
 
         #Get the formats
         self.format_fields_metadata = {}
-        for format in vcf.header.formats.keys():
-            description = vcf.header.formats[format].description
-            id = vcf.header.formats[format].id
-            f_type = vcf.header.formats[format].type
-            self.format_fields_metadata[format] = {
+        for format_ in vcf.header.formats.keys():
+            description = vcf.header.formats[format_].description
+            id_ = vcf.header.formats[format_].id
+            f_type = vcf.header.formats[format_].type
+            self.format_fields_metadata[format_] = {
                 "description" : description,
-                "id": id,
+                "id": id_,
                 "type": f_type
             }
 
@@ -453,7 +457,7 @@ class VCFFile(object):
         alts = []
         qual = []
         infos = []
-        filter = []
+        filter_ = []
         values = {}
         for record in self.records:
             chroms.append(record.chrom)
@@ -462,7 +466,7 @@ class VCFFile(object):
             alts.append(record.alts)
             qual.append(record.qual)
             infos.append(record.info)
-            filter.append(record.filter)
+            filter_.append(record.filter)
             for key in record.values:
                 if values.get(key) is None:
                     values[key] = [record.values[key]]
@@ -471,7 +475,7 @@ class VCFFile(object):
         df = pandas.DataFrame({
             "CHROM": chroms, "POS": pos,
             "REF": refs, "ALTS": alts,
-            "QUAL": qual, "INFO": infos, "FILTER": filter,
+            "QUAL": qual, "INFO": infos, "FILTER": filter_,
             **values
             })
         df.attrs = meta_data
@@ -498,18 +502,18 @@ class VCFFile(object):
         indel_length = []
         metadata = defaultdict(list)
 
-        for (index,type) in sorted(list(self.calls.keys())):
+        for (index,type_) in sorted(list(self.calls.keys())):
             indices.append(index)
-            call = self.calls[(index,type)]['call']
+            call = self.calls[(index,type_)]['call']
             alt=call
-            ref = self.calls[(index,type)]['ref']
+            ref = self.calls[(index,type_)]['ref']
             if hasattr(self, 'genome'):
                 assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
             refs.append(ref)
-            pos = self.calls[(index,type)]['pos']
+            pos = self.calls[(index,type_)]['pos']
             positions.append(pos)
             #Update the masks with the appropriate types
-            if type == 'indel':
+            if type_ == 'indel':
                 #Convert to ins_x or del_x rather than tuple
                 variant = str(index)+"_"+call[0]+"_"+str(call[1])
                 alt=call[1]
@@ -521,21 +525,21 @@ class VCFFile(object):
                 is_snp.append(False)
                 is_het.append(False)
                 is_null.append(False)
-            elif type == "snp":
+            elif type_ == "snp":
                 variant = str(index)+ref+'>'+call
                 is_indel.append(False)
                 indel_length.append(0)
                 is_snp.append(True)
                 is_het.append(False)
                 is_null.append(False)
-            elif type == 'het':
+            elif type_ == 'het':
                 variant = str(index)+ref+'>'+alt
                 is_indel.append(False)
                 indel_length.append(0)
                 is_snp.append(False)
                 is_het.append(True)
                 is_null.append(False)
-            elif type == 'null':
+            elif type_ == 'null':
                 variant = str(index)+ref+'>'+alt
                 is_indel.append(False)
                 indel_length.append(0)
@@ -544,8 +548,8 @@ class VCFFile(object):
                 is_null.append(True)
             alts.append(alt)
             variants.append(variant)
-            for key in self.calls[(index,type)]['original_vcf_row']:
-                metadata[key].append(self.calls[(index,type)]['original_vcf_row'][key])
+            for key in self.calls[(index,type_)]['original_vcf_row']:
+                metadata[key].append(self.calls[(index,type_)]['original_vcf_row'][key])
 
         #Convert to numpy arrays for neat indexing
         self.alt_nucleotides=numpy.array(alts)

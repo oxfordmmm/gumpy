@@ -1,10 +1,12 @@
 '''
 Gene object
 '''
-import numpy
 import re
-import functools
+
+import numpy
+
 from gumpy import GeneDifference
+
 
 # FIXME: problems with rrs, mfpB
 class Gene(object):
