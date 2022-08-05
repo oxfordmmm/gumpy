@@ -63,7 +63,7 @@ class Difference(ABC):
             if isinstance(self, GeneDifference) and self.codes_protein:
                 #Gene specific attributes
                 # self.codons = self.__full_to_diff(self._codons_full)
-                self.amino_acid_sequence = self.__full_to_diff(self._amino_acids_full)
+                self.amino_acid_sequence = self.__full_to_diff(self._amino_acids_full, amino_acid=True)
         self._view_method = method
 
     def __check_none(self, arr, check):
@@ -109,16 +109,22 @@ class Difference(ABC):
                 check = check or (e1 != e2)
         return check
 
-    def __full_to_diff(self, array):
+    def __full_to_diff(self, array, amino_acid=False):
         '''Convert an array from a full view to a diff view
 
         Args:
             array (numpy.array): Array of tuples of values
+            amino_acid (bool, optional): Optional flag to denote amino acids to ensure synonymous mutations are retained. Defaults to False
         Returns:
             numpy.array: Array of values from object1
         '''
         if len(array) > 0:
-            array = numpy.array([item2 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
+            if amino_acid:
+                #Amino acids in diff should just be item2 consistently
+                #The actual diff should have already been applied...
+                array = numpy.array([item2 for (item1, item2) in array], dtype=object)
+            else:
+                array = numpy.array([item2 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
         else:
             #Returning an empty array can cause issues with indels in amino acid sequence not producing same length arrays 
             #as they are handled separately to other arrays which may contain [None]. This breaks the idea of 1:1 relationship
@@ -677,7 +683,13 @@ class GeneDifference(Difference):
             aa2 = codon_to_amino_acid[codon2]
             if codon1 != codon2:
                 aa_diff.append((aa1, aa2))
-        return numpy.array(aa_diff)
+        #Mutations should be in order of aa->indel/promoter, so pad to match 
+        fixed = aa_diff
+        #Promoters
+        to_add = sum(1 for p in numpy.logical_or(self.is_promoter, self.is_indel) if p)
+        for _ in range(to_add):
+            fixed.append((None, None))
+        return numpy.array(fixed)
 
 
 

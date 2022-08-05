@@ -398,6 +398,7 @@ class Gene(object):
             #Check it is valid
             name, pos, type_, bases = indel.fullmatch(variant).groups()
             valid = True
+            pos = int(pos)
             #Check the names match
             if name is not None and name != "":
                 valid = valid and name[:-1] == self.name
@@ -410,7 +411,11 @@ class Gene(object):
                 #Mutation was del, so check if the bases given match the ref
                 if bases.isnumeric():
                     #A length was given rather than bases so just check that all bases are in the correct range
-                    valid = valid and int(pos) + int(bases) in self.nucleotide_number
+                    if pos < 0:
+                        #Is a promoter so be careful about pos+bases not being 0
+                        pos -= 1
+                    for i in range(1, int(bases)+1):
+                        valid = valid and pos + i in self.nucleotide_number
                 else:
                     #Bases were given rather than a length, so check for equality against base seq
                     for index in range(len(bases)):
