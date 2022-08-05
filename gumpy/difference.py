@@ -686,9 +686,8 @@ class GeneDifference(Difference):
         #Mutations should be in order of aa->indel/promoter, so pad to match 
         fixed = aa_diff
         #Promoters
-        for _ in range(sum(1 for p in self.is_promoter if p)):
-            fixed.append((None, None))
-        for _ in range(sum(1 for p in self.is_indel if p)):
+        to_add = sum(1 for p in numpy.logical_or(self.is_promoter, self.is_indel) if p)
+        for _ in range(to_add):
             fixed.append((None, None))
         return numpy.array(fixed)
 
