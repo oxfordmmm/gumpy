@@ -21,8 +21,10 @@ Classes:
     GenomeDifference
     GeneDifference
 '''
+import importlib.metadata
+
 #Use of semantic versioning, MAJOR.MINOR.MAINTAINANCE where MAJOR is not backwards compatible, but MINOR and MAINTAINANCE are
-__version__="1.0.3"
+__version__ = importlib.metadata.version("gumpy")
 
 
 from .difference import GenomeDifference, GeneDifference
