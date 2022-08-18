@@ -6,7 +6,6 @@ Abstract classes:
 Classes:
     GenomeDifference
     GeneDifference
-    GeneticVariation
 Functions:
     convert_nucleotides_codons(numpy.array) -> numpy.array: Converts an array of nucleotides to an array of codons.
     setup_codon_aa_dict() -> dict: Returns a dictionary mapping codon->amino_acid

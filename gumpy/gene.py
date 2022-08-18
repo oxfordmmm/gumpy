@@ -13,7 +13,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None):
         '''Constructor for the Gene object.
 
         Args:
@@ -31,42 +31,9 @@ class Gene(object):
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
         '''
-
-
-        #Set the kwargs
-        #UPDATE THIS AS REQUIRED
-        allowed_kwargs = ['name', 'nucleotide_sequence', 'nucleotide_index', 'nucleotide_number', 'is_cds', 'is_promoter',
-                        'is_indel', 'indel_length', 'indel_nucleotides','codes_protein', 'reverse_complement', 'feature_type',
-                        'codon_number', 'total_number_nucleotides', 'codon_to_amino_acid', 'amino_acid_number',
-                        'codons', 'amino_acid_sequence', 'ribosomal_shifts']
-        #If reloading a Gene, just set the attributes and return
-        if "reloading" in kwargs.keys():
-            seen = set()
-            for key in kwargs.keys():
-                if key in allowed_kwargs:
-                    setattr(self, key, kwargs[key])
-                    seen.add(key)
-            for key in set(allowed_kwargs).difference(seen):
-                #Default values to None if the kwarg has not been passed
-                setattr(self, key, None)
-
-            return
-
-        #Set default values based on kwargs
-        name = kwargs.get("name")
-        nucleotide_sequence = kwargs.get("nucleotide_sequence")
-        nucleotide_index = kwargs.get("nucleotide_index")
-        nucleotide_number = kwargs.get("nucleotide_number")
-        is_cds = kwargs.get("is_cds")
-        is_promoter = kwargs.get("is_promoter")
-        is_indel = kwargs.get("is_indel")
-        indel_length = kwargs.get("indel_length")
-        indel_nucleotides = kwargs.get("indel_nucleotides")
-        reverse_complement = kwargs.get("reverse_complement", False)
-        codes_protein = kwargs.get("codes_protein", True)
-        feature_type = kwargs.get("feature_type")
-        ribosomal_shifts = kwargs.get("ribosomal_shifts", [])
-        #VCF data which is accessed by GeneDifference. Has no direct references here...
+        #Using [] as a default value is dangerous, so convert from None
+        if ribosomal_shifts is None:
+            ribosomal_shifts = []
 
         assert name is not None, "must provide a gene name!"
         assert isinstance(name, str)

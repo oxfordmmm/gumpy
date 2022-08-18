@@ -1,10 +1,8 @@
 '''
 Genome object
 '''
-import base64
 import copy
 import gzip
-import json
 import pathlib
 import time
 from collections import defaultdict
@@ -14,14 +12,13 @@ from Bio import SeqIO
 from tqdm import tqdm
 
 from gumpy import Gene, GenomeDifference, VCFFile
-from gumpy.variantfile import VCFRecord
 
 
 class Genome(object):
 
     """Genome object"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, genbank_file: str, show_progress_bar: bool=False, gene_subset: list=None, max_promoter_length: int=100, max_gene_name_length: int=20,  verbose: bool=False, is_reference: bool=False):
         '''Constructor for the Genome object.
 
         Args:
@@ -33,43 +30,14 @@ class Genome(object):
             verbose (bool, optional) : Give verbose statements? Defaults to False
             is_reference (bool, optional) : Is this a reference genome? i.e. mutations can be derived with respect to it? Defaults to False
         '''
-        if len(args) != 1:
-            if "reloading" not in kwargs.keys():
-                #A genbank file has not been given so warn user
-                print("No genbank file was given, setting up minimal detail for this Genome")
-            #Setup the kwargs
-            #UPDATE THIS AS REQUIRED
-            allowed_kwargs = ['show_progress_bar','verbose', 'gene_subset', 'max_gene_name_length', 'is_reference']
-            seen = set()
-            for key in kwargs.keys():
-                '''
-                Use of a whitelist of kwargs allowed to stop overriding of functions from loading malicious file
-                If a malicious user overwrites any of these variable names with a function, the function **should** never be called as none
-                  of these are called within this code. I'm sure there will be a way to break this though, such as custom objects within a dict which should
-                  have objects - and then overwriting functions to allow arbitrary execution.
-                  A possible way to circumvent this kind of behaviour would be to cryptographically sign and verify each object loaded
-                  when saving/loading respectively. However, this may make the saves less portable than would be desired.
-                However, all of this depends on the use case. If it is not possible for a user to upload/download the saved files, this should not be a risk.
-                    This would mean that this kind of caching would only be used internally
-                '''
-                if key in allowed_kwargs:
-                    setattr(self, key, kwargs[key])
-                    seen.add(key)
-                for key in set(allowed_kwargs).difference(seen):
-                    #Default values to None if the kwarg has not been passed
-                    setattr(self, key, None)
+        self.show_progress_bar = show_progress_bar
+        self.gene_subset = gene_subset
+        self.max_promoter_length = max_promoter_length
+        self.max_gene_name_length = max_gene_name_length
+        self.verbose = verbose
+        self.is_reference = is_reference
 
-            return
-        else:
-            #Set values for kwargs to defaults if not provided
-            self.show_progress_bar = kwargs.get("show_progress_bar", False)
-            self.gene_subset = kwargs.get("gene_subset")
-            self.max_promoter_length = kwargs.get("max_promoter_length", 100)
-            self.max_gene_name_length = kwargs.get("max_gene_name_length", 20)
-            self.verbose = kwargs.get("verbose", False)
-            self.is_reference = kwargs.get("is_reference", False)
-            #Set the args value to the genbank file
-            genbank_file = pathlib.Path(args[0])
+        genbank_file = pathlib.Path(genbank_file)
 
         assert genbank_file.is_file(), 'GenBank file does not exist!'
         assert isinstance(self.max_promoter_length,int) and self.max_promoter_length>=0, "the promoter length must be zero or a positive integer!"
@@ -247,144 +215,6 @@ class Genome(object):
             return(None)
         else:
             return(putative_genes)
-
-    def save(self, filename, compression_level=None):
-        '''Experimental way to save the entire object (and Gene objects) based on
-            json and base64 encoding rather than relying on pickles (due to security implications of pickle)
-            Based on numpy serialisation detailed here by daniel451:
-                https://stackoverflow.com/questions/30698004/how-can-i-serialize-a-numpy-array-while-preserving-matrix-dimensions
-            This is definitely space inefficient (~1.7GB for a TB genome) but faster than re-instanciation. Using compression, this can be reduced to <100MB
-            If this causes issues (possibly due to transferring saved files between machines), it may be possible to
-                change numpy serialization to convert to/from lists, although it is likely that this will be significantly more
-                computationally expensive
-
-        Args:
-            filename (str): Path to the file to save in
-            compression_level (int, optional): Level of compression to use (1-9), when None is given, no compression is used. Defaults to None.
-        '''
-        output = self.__save(self, None)
-        #Write the output to a json file
-        if compression_level is not None and compression_level in range(1,10):
-            json.dump(output, gzip.open(filename, "wt", compresslevel=compression_level))
-        else:
-            json.dump(output, open(filename, "w"), indent=2)
-
-    def __save(self, obj, output, name=None):
-        '''Helper function to recursively convert and save each object
-
-        Args:
-            obj (object): Any object
-            output (list/dict): Aggregator for outputs
-            name (str, optional): Name of the attribute to be stored as in the dict. Defaults to None.
-
-        Returns:
-            dict/list/tuple: Either aggregated output or a single output depending on if aggregation was required
-        '''
-        if type(obj) in [bool, int, str, float, complex, bytes, bytearray] or obj is None:
-            #Fundamental data types which need no conversions
-            to_return = obj
-        elif type(obj) == type(numpy.array([])):
-            #Convert numpy arrays to 3 item lists
-            if obj.flags["C_CONTIGUOUS"] == False:
-                #Some arrays are not contiguous, so make them contiguous as base64 requires it
-                obj = numpy.ascontiguousarray(obj, obj.dtype)
-            to_return = [str(obj.dtype), base64.b64encode(obj).decode("utf-8"), obj.shape]
-        elif type(obj) == list:
-            #Convert items in a list
-            to_return = [self.__save(x, []) for x in obj]
-        elif type(obj) == tuple:
-            #Convert items in a tuple
-            to_return = tuple([self.__save(x, []) for x in obj])
-        elif type(obj) == dict:
-            #Keys should be hashable so ignore them but convert the values
-            to_return = {key: self.__save(obj[key], {}) for key in obj.keys()}
-        elif type(obj) in [Gene, Genome, VCFFile, VCFRecord]:
-            #Convert items to dicts
-            attributes = [(attr, getattr(obj, attr)) for attr in vars(obj)]
-            to_return = {}
-            for (a_name, attr) in attributes:
-                to_return[a_name] = self.__save(attr, {})
-        elif str(type(obj)) == "<class 'numpy.str_'>":
-            #Not sure where these come from, but some numpy.str_ items exist so treat them as strings
-            to_return = str(obj)
-        else:
-            #Other types are not allowed.
-            assert False, "Object of weird type: "+str(obj)+str(type(obj))
-
-        if name is not None:
-            #This attribute has a name so add it to the output and return it
-            if type(output) == dict:
-                output[name] = (str(type(obj)), to_return)
-            elif type(output) == list:
-                output.append(str(type(obj)), to_return)
-            return output
-        else:
-            #Unnamed, so just return it
-            return (str(type(obj)), to_return)
-
-    @staticmethod
-    def load(filename):
-        '''Load the object using base64 encoding and JSON
-
-        Args:
-            filename (str): Path to the saved file
-        '''
-        def _load(type_, obj, output, name=None):
-            '''Helper function to recursively load an object
-
-            Args:
-                type_ (str): String of the type which the object should be
-                obj (object): Any input object
-                output (list/dict): Either a list or a dictionary used as an accumulator
-            '''
-            if type_ in [str(type(t)) for t in [bool(), int(), str(), float(), complex(), bytes(), bytearray(), None]]:
-                #Fundamental data types which need no conversions
-                to_return = obj
-            elif type_ == str(type(numpy.array([]))):
-                #Convert numpy arrays to 3 item lists
-                d_type = numpy.dtype(obj[0])
-                d_array = numpy.frombuffer(base64.decodebytes(bytes(obj[1], 'utf-8')), d_type)
-                to_return = d_array.reshape(obj[2]).copy()
-            elif type_ == str(type(list())):
-                #Convert items in a list
-                to_return = [_load(t, o, []) for (t, o) in obj]
-            elif type_ == str(type(tuple())):
-                #Convert items in a tuple
-                to_return = tuple([_load(t, o, []) for (t, o) in obj])
-            elif type_ == str(type(dict())):
-                #Keys should be hashable so ignore them but convert the values
-                to_return = {key: _load(*obj[key], {}) for key in obj.keys()}
-            elif type_ == str(Gene):
-                to_return = Gene(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
-            elif type_ == str(Genome):
-                to_return = Genome(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
-            elif type_ == str(VCFFile):
-                to_return = VCFFile(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
-            elif type_ == str(VCFRecord):
-                to_return = VCFRecord(**{key: _load(*obj[key], {}) for key in obj.keys()}, reloading=True)
-            elif type_ == "<class 'numpy.str_'>":
-                to_return = numpy.str_(obj)
-            else:
-                #Other types are not allowed.
-                assert False, "Object of weird type: "+str(obj)+str(type(obj))
-
-            if name is not None:
-                #This attribute has a name so add it to the output and return it
-                if type(output) == dict:
-                    output[name] = to_return
-                elif type(output) == list:
-                    output.append(to_return)
-                return output
-            else:
-                #Unnamed, so just return it
-                return to_return
-        try:
-            inp = json.load(gzip.open(filename, "rt"))
-        except gzip.BadGzipFile:
-            #Not a gzipped file so try with normal open
-            inp = json.load(open(filename))
-        return _load(*inp, {})
-
 
 
     def save_sequence(self,filename=None):

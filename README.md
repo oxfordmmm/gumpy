@@ -78,7 +78,7 @@ print(diff.variants) #Array of variants (SNPs/INDELs) of the differences between
 ### Gene level comparisons
 When a Genome object is instanciated, it is populated with Gene objects for each gene detailed in the genbank file.
 These genes can also be compared.
-Gene differences can be found through direct comparison of Gene objects, or systematically through the `gene_differences()` method of both `GenomeDifference` and `GeneticVariation`.
+Gene differences can be found through direct comparison of Gene objects, or systematically through the `gene_differences()` method of `GenomeDifference`.
 ```
 from gumpy import Genome, Gene
 
@@ -95,15 +95,20 @@ diff.mutations #List of mutations in GARC describing the variation between the t
 ```
 
 ### Save and load Genome objects
-Due to how long it takes to create a Genome object, it may be beneficial to save the object to disk.
+Due to how long it takes to create a Genome object, it may be beneficial to save the object to disk. The reccomendation is to utilise the `pickle` module to do so, but due to the security implications of this, do so at your own risk! An example is below:
 ```
-from gumpy import Genome
+import pickle
 
-g = Genome("filename.gbk")
+import gumpy
 
-g.save("output.json") #Saves the object to a JSON format
+#Load genome
+g = gumpy.Genome("filename.gbk")
 
-g1 = Genome.load("output.json) #Reloads the object from the JSON
+#Save genome
+pickle.dump(g, open("filename.pkl", "wb"))
 
-g == g1 #True
+#Load genome
+g2 = pickle.load(open("filename.pkl", "rb"))
+
+g == g2 #True
 ```
