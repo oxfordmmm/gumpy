@@ -30,32 +30,16 @@ class VCFRecord(object):
         `is_heterozygous` (bool): is it a is_heterozygous call i.e. call1!=call2?
         `is_alt` (bool): or, is the call for a single specified alt
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, record: pysam.libcbcf.VariantRecord, sample: str):
         '''Constructor for the VCFRecord object.
 
         Parses the supplied pysam object and presents in a more Pythonic format
 
         Args:
             record (pysam.libcbcf.VariantRecord): The record object
-            sample_num (str) : Name of the sample to consider. Used for possible cases
+            sample (str) : Name of the sample to consider. Used for possible cases
                                 where there is more than 1 sample per record
         '''
-        if len(args) != 2:
-            #Rebuilding...
-            assert "reloading" in kwargs.keys(), "Incorrect arguments given."
-            allowed_kwargs = ['chrom', 'pos', 'ref', 'alts', 'qual', 'filter', 'info', 'values']
-            seen = set()
-            for key in kwargs.keys():
-                if key in allowed_kwargs:
-                    setattr(self, key, kwargs[key])
-                    seen.add(key)
-            for key in set(allowed_kwargs).difference(seen):
-                #Default values to None if the kwarg has not been passed
-                setattr(self, key, None)
-            return
-        else:
-            record = args[0]
-            sample = args[1]
 
         assert len(record.samples.keys())==1, 'only supporting single samples per row at present!'
 
@@ -152,7 +136,7 @@ class VCFFile(object):
         `is_indel` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are indel calls
         `snp_distance` (int): SNP distance caused by the VCF
     '''
-    def __init__(self, *args, **kwargs):
+    def __init__(self, filename: str, ignore_filter: bool=False, bypass_reference_calls: bool=False, format_fields_min_thresholds: {str: int}=None):
         '''
         Constructor for the VCFFile object.
 
@@ -160,37 +144,22 @@ class VCFFile(object):
 
         Args:
             filename (str) : The name of the VCF file
-            ignore_filter (bool): If True, ignore the FILTER column in the VCF file. Default is False.
-            bypass_reference_calls (bool): If True, skip any row in the VCF (and therefore do not record)  which calls reference (i.e. 0/0). Default is False.
+            ignore_filter (bool, optional): If True, ignore the FILTER column in the VCF file. Default is False.
+            bypass_reference_calls (bool, optional): If True, skip any row in the VCF (and therefore do not record)  which calls reference (i.e. 0/0). Default is False.
             format_fields_min_thresholds (dict, optional): Dict of field name in the FORMAT column and a minimum threshold to apply e.g. {'DP':5}
         '''
-        if len(args) != 1:
-            #Rebuilding...
-            assert "reloading" in kwargs.keys(), "Incorrect arguments given. Only give a filename."
-            allowed_kwargs = ['ignore_filter', 'format_fields_min_thresholds', 'bypass_reference_calls']
-            seen = set()
-            for key in kwargs.keys():
-                if key in allowed_kwargs:
-                    setattr(self, key, kwargs[key])
-                    seen.add(key)
-            for key in set(allowed_kwargs).difference(seen):
-                #Default values to None if the kwarg has not been passed
-                setattr(self, key, None)
-            return
-        else:
-            filename = args[0]
-
-        self.ignore_filter=kwargs.get('ignore_filter',False)
+        
+        self.ignore_filter = ignore_filter
         assert isinstance(self.ignore_filter,bool)
 
-        self.bypass_reference_calls=kwargs.get('bypass_reference_calls',False)
+        self.bypass_reference_calls = bypass_reference_calls
         assert isinstance(self.bypass_reference_calls,bool)
 
-        self.format_fields_min_thresholds=kwargs.get('format_fields_min_thresholds',None)
+        self.format_fields_min_thresholds = format_fields_min_thresholds
         if self.format_fields_min_thresholds is not None:
             assert isinstance(self.format_fields_min_thresholds,dict)
 
-        self.filename=filename
+        self.filename = filename
         assert isinstance(self.filename,str)
         assert pathlib.Path(self.filename).is_file()
 
