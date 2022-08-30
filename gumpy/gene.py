@@ -89,6 +89,7 @@ class Gene(object):
             self.is_promoter=self.is_promoter[::-1]
             self.is_indel=self.is_indel[::-1]
             self.indel_length=self.indel_length[::-1]
+            self.indel_nucleotides = self.indel_nucleotides[::-1]
             if self.codes_protein:
                 self.codon_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
                 self.gene_position=numpy.concatenate((self.nucleotide_number[self.nucleotide_number<0], self.codon_number))
@@ -132,7 +133,6 @@ class Gene(object):
         self.is_indel = self.__duplicate_index(index, self.is_indel)
         self.indel_length = self.__duplicate_index(index, self.indel_length)
         self.indel_nucleotides = self.__duplicate_index(index, self.indel_nucleotides)
-
 
     def __duplicate_index(self, index, array):
         '''Duplicates an element at a given index and returns the new array
