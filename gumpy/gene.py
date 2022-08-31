@@ -87,9 +87,7 @@ class Gene(object):
             self.nucleotide_number=self.nucleotide_number[::-1]
             self.is_cds=self.is_cds[::-1]
             self.is_promoter=self.is_promoter[::-1]
-            self.is_indel=self.is_indel[::-1]
-            self.indel_length=self.indel_length[::-1]
-            self.indel_nucleotides = self.indel_nucleotides[::-1]
+            self.__revcomp_indel()
             if self.codes_protein:
                 self.codon_number=numpy.floor_divide(self.nucleotide_number[self.is_cds]+2,3)
                 self.gene_position=numpy.concatenate((self.nucleotide_number[self.nucleotide_number<0], self.codon_number))
@@ -107,6 +105,53 @@ class Gene(object):
         if self.codes_protein:
             self._setup_conversion_dicts()
             self._translate_sequence()
+    
+    def __revcomp_indel(self) -> None:
+        '''Make some adjustments for deletions within revcomp genes
+        The largest of which is that the gene position of the deletion needs adjusting for revcomp
+        In a normal gene, the position x says delete to the left y bases
+        In a revcomp gene we want to say the position x says delete to the right y bases
+        So the pos needs changing, and indel_nucleotides need revcomping
+
+        Because its going the opposite direction, the same indel will refer to a different nucleotide position
+        '''
+        #Reverse the indel arrays
+        is_indel=self.is_indel[::-1]
+        indel_length=self.indel_length[::-1]
+        indel_nucleotides = self.indel_nucleotides[::-1]
+
+        #Check for positions where there actually is an indel
+        positions = numpy.where(indel_length != 0)
+        if len(positions) == 1 and len(positions[0]) == 0:
+            #No indels to adjust, so return
+            self.is_indel = is_indel
+            self.indel_length = indel_length
+            self.indel_nucleotides = indel_nucleotides
+            return
+
+        #Fixed arrays to avoid collision cases
+        fixed_indel_nucleotides = numpy.array([None for i in self.indel_nucleotides])
+        fixed_is_indel = numpy.array([False for i in is_indel])
+        fixed_indel_length = numpy.array([0 for i in indel_length])
+
+        for pos in positions:
+            if indel_length[pos] > 0:
+                #An insertion at this pos so only revcomp the inserted bases
+                fixed_indel_nucleotides[pos] = ''.join(self._complement(indel_nucleotides[pos][0][::-1]))
+                fixed_is_indel[pos] = True
+                fixed_indel_length[pos] = indel_length[pos]
+            else:
+                #A deletion at this pos so adjust position
+                new_pos = pos - len(indel_nucleotides[pos][0]) + 1
+                fixed_indel_nucleotides[new_pos] = ''.join(self._complement(indel_nucleotides[pos][0][::-1]))
+                fixed_is_indel[new_pos] = True
+                fixed_indel_length[new_pos] = indel_length[pos]
+
+        #Update instance variables
+        self.is_indel = fixed_is_indel
+        self.indel_length = fixed_indel_length
+        self.indel_nucleotides = fixed_indel_nucleotides
+                
 
     def __duplicate(self, index):
         '''Duplicate all indices of important arrays to add the ribosomal shift
