@@ -414,7 +414,7 @@ def test_instanciate_genome_dna():
         is_cds=genome.stacked_is_cds[full_gene_name == "A"],
         is_promoter=genome.stacked_is_promoter[full_gene_name == "A"],
         is_indel=genome.is_indel[full_gene_name[0] == "A"],
-        indel_length=[0 for i in range(30)],
+        indel_length=numpy.array([0 for i in range(30)]),
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "A"],
         feature_type="GENE"
     )
@@ -428,7 +428,7 @@ def test_instanciate_genome_dna():
         is_cds=genome.stacked_is_cds[full_gene_name == "B"],
         is_promoter=genome.stacked_is_promoter[full_gene_name == "B"],
         is_indel=genome.is_indel[full_gene_name[1] == "B"],
-        indel_length=[0 for i in range(33)],
+        indel_length=numpy.array([0 for i in range(33)]),
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[1] == "B"],
         feature_type="GENE"
     )
@@ -442,7 +442,7 @@ def test_instanciate_genome_dna():
         is_cds=genome.stacked_is_cds[full_gene_name == "C"],
         is_promoter=genome.stacked_is_promoter[full_gene_name == "C"],
         is_indel=genome.is_indel[full_gene_name[0] == "C"],
-        indel_length=[0 for i in range(9)],
+        indel_length=numpy.array([0 for i in range(9)]),
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
         feature_type="GENE",
         reverse_complement=True
@@ -457,7 +457,7 @@ def test_instanciate_genome_dna():
             is_cds=genome.stacked_is_cds[full_gene_name == "C"],
             is_promoter=genome.stacked_is_promoter[full_gene_name == "C"],
             is_indel=genome.is_indel[full_gene_name[0] == "C"],
-            indel_length=[0 for i in range(9)],
+            indel_length=numpy.array([0 for i in range(9)]),
             indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
             feature_type="GENE",
             reverse_complement='True'
@@ -472,7 +472,7 @@ def test_instanciate_genome_dna():
             is_cds=genome.stacked_is_cds[full_gene_name == "C"],
             is_promoter=genome.stacked_is_promoter[full_gene_name == "C"],
             is_indel=genome.is_indel[full_gene_name[0] == "C"],
-            indel_length=[0 for i in range(9)],
+            indel_length=numpy.array([0 for i in range(9)]),
             indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
             feature_type="GENE",
             reverse_complement='True',
