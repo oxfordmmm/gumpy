@@ -9,8 +9,6 @@ Genetics with Numpy
 ```
 git clone https://github.com/oxfordmmm/gumpy
 cd gumpy
-pip install -r requirements.txt
-python setup.py build --force
 pip install .
 ```
 ## Documentation
