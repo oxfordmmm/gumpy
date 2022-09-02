@@ -133,8 +133,7 @@ class Gene(object):
         fixed_indel_nucleotides = numpy.array([None for i in self.indel_nucleotides])
         fixed_is_indel = numpy.array([False for i in is_indel])
         fixed_indel_length = numpy.array([0 for i in indel_length])
-
-        for pos in positions:
+        for pos in positions[0]:
             if indel_length[pos] > 0:
                 #An insertion at this pos so only revcomp the inserted bases
                 fixed_indel_nucleotides[pos] = ''.join(self._complement(indel_nucleotides[pos][0][::-1]))
