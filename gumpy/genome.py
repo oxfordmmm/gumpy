@@ -702,12 +702,19 @@ class Genome(object):
         # check that the genome does contain the gene name
         assert numpy.count_nonzero(mask)>0, "gene ("+gene+") not found in genome!"
 
+        #Revert is_cds to all False if this gene is non-coding
+        #Easier to do it like this than to mess with masking
+        nucleotide_seq = self.nucleotide_sequence[mask]
+        if not self.genes[gene]['codes_protein']:
+            is_cd = numpy.array([False for i in range(len(nucleotide_seq))])
+        else:
+            is_cd = self.stacked_is_cds[stacked_mask]
         # instantiate a Gene object
         g = Gene(name=gene,
-                    nucleotide_sequence=self.nucleotide_sequence[mask],
+                    nucleotide_sequence=nucleotide_seq,
                     nucleotide_index=self.nucleotide_index[mask],
                     nucleotide_number=self.stacked_nucleotide_number[stacked_mask],
-                    is_cds=self.stacked_is_cds[stacked_mask],
+                    is_cds=is_cd,
                     is_promoter=self.stacked_is_promoter[stacked_mask],
                     is_indel=self.is_indel[mask],
                     indel_length=self.indel_length[mask],

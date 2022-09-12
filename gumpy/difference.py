@@ -539,7 +539,7 @@ class GeneDifference(Difference):
                 nucleotide_index.append(idx)
                 gene_position.append(num)
                 if num>0:
-                    is_cds.append(True)
+                    is_cds.append(False)
                     is_promoter.append(False)
                 else:
                     is_cds.append(False)
