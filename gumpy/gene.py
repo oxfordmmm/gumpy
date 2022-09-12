@@ -136,13 +136,13 @@ class Gene(object):
         for pos in positions[0]:
             if indel_length[pos] > 0:
                 #An insertion at this pos so only revcomp the inserted bases
-                fixed_indel_nucleotides[pos] = ''.join(self._complement(indel_nucleotides[pos][0][::-1]))
+                fixed_indel_nucleotides[pos] = ''.join(self._complement(indel_nucleotides[pos][::-1]))
                 fixed_is_indel[pos] = True
                 fixed_indel_length[pos] = indel_length[pos]
             else:
                 #A deletion at this pos so adjust position
-                new_pos = pos - len(indel_nucleotides[pos][0]) + 1
-                fixed_indel_nucleotides[new_pos] = ''.join(self._complement(indel_nucleotides[pos][0][::-1]))
+                new_pos = pos - len(indel_nucleotides[pos]) + 1
+                fixed_indel_nucleotides[new_pos] = ''.join(self._complement(indel_nucleotides[pos][::-1]))
                 fixed_is_indel[new_pos] = True
                 fixed_indel_length[new_pos] = indel_length[pos]
 
