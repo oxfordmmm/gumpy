@@ -1,6 +1,7 @@
 '''
 Gene object
 '''
+import copy
 import re
 
 import numpy
@@ -78,6 +79,10 @@ class Gene(object):
         self.indel_nucleotides=indel_nucleotides
         self.indel_length=indel_length
 
+        #As revcomp changes some of the positions for indels, track separately
+        # so we can track the genome position they came from
+        self.indel_index = copy.deepcopy(self.nucleotide_index)
+
         #Make appropriate changes to the arrays to encorporate the frame shift
         for shift in ribosomal_shifts:
             self.__duplicate(shift)
@@ -119,6 +124,7 @@ class Gene(object):
         is_indel=self.is_indel[::-1]
         indel_length=self.indel_length[::-1]
         indel_nucleotides = self.indel_nucleotides[::-1]
+        fixed_indel_index = self.indel_index[::-1]
 
         #Check for positions where there actually is an indel
         positions = numpy.where(indel_length != 0)
@@ -145,11 +151,13 @@ class Gene(object):
                 fixed_indel_nucleotides[new_pos] = ''.join(self._complement(indel_nucleotides[pos][::-1]))
                 fixed_is_indel[new_pos] = True
                 fixed_indel_length[new_pos] = indel_length[pos]
+                fixed_indel_index[new_pos] = fixed_indel_index[pos]
 
         #Update instance variables
         self.is_indel = fixed_is_indel
         self.indel_length = fixed_indel_length
         self.indel_nucleotides = fixed_indel_nucleotides
+        self.indel_index = fixed_indel_index
                 
 
     def __duplicate(self, index):

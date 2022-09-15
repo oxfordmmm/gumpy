@@ -570,7 +570,7 @@ class GeneDifference(Difference):
         for (num,length,alt,idx) in zip(    self.gene1.nucleotide_number[mask],\
                                             self.gene2.indel_length[mask],\
                                             self.gene2.indel_nucleotides[mask],\
-                                            self.gene1.nucleotide_index[mask]):
+                                            self.gene2.indel_index[mask]):
             # ref.append(None)
             # alt.append(None)
             amino_acid_number.append(None)
@@ -601,7 +601,7 @@ class GeneDifference(Difference):
         for (num,length,alt,idx) in zip(    self.gene1.nucleotide_number[mask],\
                                         self.gene1.indel_length[mask],\
                                         self.gene1.indel_nucleotides[mask],\
-                                        self.gene1.nucleotide_index[mask]):
+                                        self.gene1.indel_index[mask]):
             # ref.append(None)
             # alt.append(None)
             amino_acid_number.append(None)
