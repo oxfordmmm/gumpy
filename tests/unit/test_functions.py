@@ -427,6 +427,7 @@ def test_valid_variant():
     assert gene.valid_variant("A@8_indel")
     assert gene.valid_variant("A@9=")
     assert gene.valid_variant("A@K2K")
+    assert gene.valid_variant("20_del_100")
 
     #Invalid variants
     with pytest.raises(Exception) as e_info:
@@ -454,7 +455,6 @@ def test_valid_variant():
     assert not gene.valid_variant("gene@a4t")
     assert not gene.valid_variant("a-2a")
     assert not gene.valid_variant("A@28_del_aaccggttaaccggtt")
-    assert not gene.valid_variant("20_del_100")
 
     def assert_throws(mutation):
         check = True

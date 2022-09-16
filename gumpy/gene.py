@@ -418,6 +418,7 @@ class Gene(object):
             name, pos, type_, bases = indel.fullmatch(variant).groups()
             valid = True
             pos = int(pos)
+            end = numpy.max(self.nucleotide_number)
             #Check the names match
             if name is not None and name != "":
                 valid = valid and name[:-1] == self.name
@@ -434,12 +435,21 @@ class Gene(object):
                         #Is a promoter so be careful about pos+bases not being 0
                         pos -= 1
                     for i in range(1, int(bases)+1):
+                        #Ignore checking if the del passes the 5'end of the gene
+                        if pos + i > end:
+                            continue
                         valid = valid and pos + i in self.nucleotide_number
                 else:
                     #Bases were given rather than a length, so check for equality against base seq
                     for index in range(len(bases)):
+                        if pos + index > end:
+                            #Ignore checking if the del passes the 5' end of the gene
+                            continue
                         valid = valid and int(pos)+index in self.nucleotide_number
                         valid = valid and self.nucleotide_sequence[self.nucleotide_number == int(pos)+index] == bases[index]
+            if type_ == "ins":
+                #Just check that the position specified lies within the gene
+                valid = valid and pos in self.nucleotide_number
             return valid
         #If none of the mutations have matched, return False
         return False
