@@ -148,6 +148,11 @@ class Gene(object):
             else:
                 #A deletion at this pos so adjust position
                 new_pos = pos - len(indel_nucleotides[pos]) + 1
+                if new_pos < 0:
+                    #This is an issue because this lies outside of the gene now
+                    #So just retain the deletions within this gene, and mark to be at the start
+                    indel_nucleotides[pos] = indel_nucleotides[pos][:pos+1]
+                    new_pos = 0
                 fixed_indel_nucleotides[new_pos] = ''.join(self._complement(indel_nucleotides[pos][::-1]))
                 fixed_is_indel[new_pos] = True
                 fixed_indel_length[new_pos] = indel_length[pos]
@@ -434,19 +439,25 @@ class Gene(object):
                     if pos < 0:
                         #Is a promoter so be careful about pos+bases not being 0
                         pos -= 1
+                    offset = 0
                     for i in range(1, int(bases)+1):
+                        if pos + i == 0:
+                            offset = 1
                         #Ignore checking if the del passes the 5'end of the gene
-                        if pos + i > end:
+                        if pos + i +offset > end:
                             continue
-                        valid = valid and pos + i in self.nucleotide_number
+                        valid = valid and pos + i + offset in self.nucleotide_number
                 else:
                     #Bases were given rather than a length, so check for equality against base seq
-                    for index in range(len(bases)):
+                    offset = 0
+                    for index, base in enumerate(bases):
+                        if pos + index == 0:
+                            offset = 1
                         if pos + index > end:
                             #Ignore checking if the del passes the 5' end of the gene
                             continue
-                        valid = valid and int(pos)+index in self.nucleotide_number
-                        valid = valid and self.nucleotide_sequence[self.nucleotide_number == int(pos)+index] == bases[index]
+                        valid = valid and int(pos)+index+offset in self.nucleotide_number
+                        valid = valid and self.nucleotide_sequence[self.nucleotide_number == int(pos)+index+offset] == base
             if type_ == "ins":
                 #Just check that the position specified lies within the gene
                 valid = valid and pos in self.nucleotide_number
