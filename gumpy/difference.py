@@ -500,7 +500,7 @@ class GeneDifference(Difference):
                             is_snp.append(an not in ['x', 'z'])
                             amino_acid_number.append(None)
                             nucleotide_number.append((num - 1) * 3 + i + 1)
-                            nucleotide_index.append(self.gene1.nucleotide_index[self.gene1.nucleotide_number == (num - 1) * 3 + i + 1])
+                            nucleotide_index.append(self.gene1.nucleotide_index[self.gene1.nucleotide_number == (num - 1) * 3 + i + 1][0])
                             gene_position.append((num - 1) * 3 + i + 1)
                             is_cds.append(True)
                             is_indel.append(False)
