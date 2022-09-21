@@ -354,14 +354,14 @@ def test_vcf_genetic_variation():
         assert isinstance(g_diff, gumpy.difference.GeneDifference)
 
         if gene_name=='A':
-            assert numpy.all(g_diff.mutations==numpy.array(['K1X', 'K2X', 'T3T', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x']))
+            assert numpy.all(g_diff.mutations==numpy.array(['K1X', 'K2X', 'T3T', 'c9t', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x']))
             assert numpy.all(g_diff.mutations[g_diff.is_promoter]==numpy.array(['a-2x']))
-            assert numpy.all(g_diff.amino_acid_number==numpy.array([1, 2, 3, 4, 5, 7, 8, 9, None]))
-            assert numpy.all(g_diff.nucleotide_number==numpy.array([None, None, None, None, None, None, None, None, -2]))
-            assert numpy.all(g_diff.gene_position==numpy.array([ 1,  2,  3,  4,  5,  7,  8,  9, -2]))
-            assert numpy.all(g_diff.nucleotide_index==numpy.array([None, None, None, None, None, None, None, None, 2]))
-            assert numpy.all(g_diff.ref_nucleotides==numpy.array(['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a']))
-            assert numpy.all(g_diff.alt_nucleotides==numpy.array(['aax', 'xxa', 'act', 'cgc', 'tgc', 'zgz', 'gzz','zzg','x']))
+            assert numpy.all(g_diff.amino_acid_number==numpy.array([1, 2, 3, None, 4, 5, 7, 8, 9, None]))
+            assert numpy.all(g_diff.nucleotide_number==numpy.array([None, None, None, 9, None, None, None, None, None, -2]))
+            assert numpy.all(g_diff.gene_position==numpy.array([ 1,  2,  3, 9,  4,  5,  7,  8,  9, -2]))
+            assert numpy.all(g_diff.nucleotide_index==numpy.array([None, None, None, 12, None, None, None, None, None, 2]))
+            assert numpy.all(g_diff.ref_nucleotides==numpy.array(['aaa', 'aaa', 'acc', 'c', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a']))
+            assert numpy.all(g_diff.alt_nucleotides==numpy.array(['aax', 'xxa', 'act', 't', 'cgc', 'tgc', 'zgz', 'gzz','zzg','x']))
 
         elif gene_name=='B':
             assert numpy.all(g_diff.mutations==numpy.array(['G1Z', 'F4L', '6_ins_tt', '10_del_t', '12_ins_g']))
@@ -396,9 +396,9 @@ def test_gene_difference():
 
     assert isinstance(diff, gumpy.GeneDifference)
     assert numpy.all(diff.nucleotides == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z'])
-    assert numpy.all(diff.mutations == ['K1X', 'K2X', 'T3T', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x'])
-    assert numpy.all(diff.ref_nucleotides == ['aaa', 'aaa', 'acc', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a'])
-    assert numpy.all(diff.amino_acid_number == [1, 2, 3, 4, 5, 7, 8, 9, None])
+    assert numpy.all(diff.mutations == ['K1X', 'K2X', 'T3T', 'c9t', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x'])
+    assert numpy.all(diff.ref_nucleotides == ['aaa', 'aaa', 'acc', 'c', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a'])
+    assert numpy.all(diff.amino_acid_number == [1, 2, 3, None, 4, 5, 7, 8, 9, None])
 
 def test_valid_variant():
     #Test if the Gene.valid_variant() works

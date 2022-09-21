@@ -488,6 +488,29 @@ class GeneDifference(Difference):
                 indel_nucleotides.append(None)
                 ref_nucleotides.append(codon1)
                 alt_nucleotides.append(codon2)
+                
+                #If synonymous mutation, pull out nucelotide variants too
+                #This lets us determine effects of mutations such as fabG1@L203L more precisely
+                if r == a:
+                    for i, (rn, an) in enumerate(zip(codon1, codon2)):
+                        if rn != an:
+                            mutations.append(rn + str((num - 1) * 3 + i + 1) + an)
+                            is_null.append(an == 'x')
+                            is_het.append(an == 'z')
+                            is_snp.append(an not in ['x', 'z'])
+                            amino_acid_number.append(None)
+                            nucleotide_number.append((num - 1) * 3 + i + 1)
+                            nucleotide_index.append(self.gene1.nucleotide_index[self.gene1.nucleotide_number == (num - 1) * 3 + i + 1])
+                            gene_position.append((num - 1) * 3 + i + 1)
+                            is_cds.append(True)
+                            is_indel.append(False)
+                            is_promoter.append(False)
+                            indel_length.append(None)
+                            indel_nucleotides.append(None)
+                            ref_nucleotides.append(rn)
+                            alt_nucleotides.append(an)
+
+                            
 
             mask=(self.gene1.nucleotide_sequence!=self.gene2.nucleotide_sequence) & (self.gene1.is_promoter)
 
