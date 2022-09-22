@@ -705,6 +705,11 @@ class GeneDifference(Difference):
             aa2 = codon_to_amino_acid[codon2]
             if codon1 != codon2:
                 aa_diff.append((aa1, aa2))
+                #Adding nucleotide variants for synon
+                if aa1 == aa2:
+                    for c1, c2 in zip(codon1, codon2):
+                        if c1 != c2:
+                            aa_diff.append((None, None))
         #Mutations should be in order of aa->indel/promoter, so pad to match 
         fixed = aa_diff
         #Promoters
