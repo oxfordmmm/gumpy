@@ -1,5 +1,8 @@
 name: BuildAndReleaseOnPyPi
-on: [release]
+#Ensure this only runs when (pre)released
+on:
+  release:
+    types: [released, prereleased]
 
 jobs:
   build:
