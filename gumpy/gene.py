@@ -453,7 +453,7 @@ class Gene(object):
                     for index, base in enumerate(bases):
                         if pos + index == 0:
                             offset = 1
-                        if pos + index > end:
+                        if pos + index + offset > end:
                             #Ignore checking if the del passes the 5' end of the gene
                             continue
                         valid = valid and int(pos)+index+offset in self.nucleotide_number
