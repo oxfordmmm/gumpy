@@ -380,7 +380,7 @@ class VCFFile(object):
             indel = "ins"
         start = 0
         current = None
-        current_snps = 999
+        current_snps = float('inf')
         mutations = []
         for i in range(len(y)+1):
             y1 = [y[a] for a in range(i)] + [None for a in range(length)] + [y[a] for a in range(i, len(y))]
