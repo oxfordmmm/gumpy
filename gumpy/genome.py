@@ -36,6 +36,7 @@ class Genome(object):
         self.max_gene_name_length = max_gene_name_length
         self.verbose = verbose
         self.is_reference = is_reference
+        self.has_vcf_metadata = False
 
         genbank_file = pathlib.Path(genbank_file)
 
@@ -762,14 +763,30 @@ class Genome(object):
         if self.verbose:
             print("Updating the genome...")
 
+        genome.has_vcf_metadata = False
+        if vcf.metadata is not None:
+            genome.has_vcf_metadata = True
+            genome.metadata = {}
+            for i in vcf.metadata:
+                variable_type = vcf.format_fields_metadata[i]['type']
+                if variable_type == 'Float':
+                    genome.metadata[i] = numpy.zeros(self.length,dtype=float)
+                elif variable_type == 'Integer':
+                    genome.metadata[i] = numpy.zeros(self.length,dtype=int)
+                else:
+                    genome.metadata[i] = numpy.empty(self.length,dtype=object)
+
         # use the calls dict to change the nucleotide indicies in the copy of the genome
         for (idx,type_) in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
 
             # deal with changes at a single nucleotide site
             if type_ in ['snp','null','het']:
-
                 # only set values if the idx is to a single nucleotide
                 genome.nucleotide_sequence[idx-1] = vcf.calls[(idx,type_)]['call']
+
+                if genome.has_vcf_metadata:
+                    for i in vcf.metadata:
+                        genome.metadata[i][idx-1] = vcf.calls[(idx,type_)]['original_vcf_row'][i]
 
             # deal with insertions and deletions
             elif type_ in ['indel']:

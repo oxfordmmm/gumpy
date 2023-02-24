@@ -136,7 +136,7 @@ class VCFFile(object):
         `is_indel` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are indel calls
         `snp_distance` (int): SNP distance caused by the VCF
     '''
-    def __init__(self, filename: str, ignore_filter: bool=False, bypass_reference_calls: bool=False, format_fields_min_thresholds: {str: int}=None):
+    def __init__(self, filename: str, ignore_filter: bool=False, bypass_reference_calls: bool=False, format_fields_min_thresholds: {str: int}=None, retain_format_fields: [str]=None, minor_allele_indices: {int}=None):
         '''
         Constructor for the VCFFile object.
 
@@ -147,6 +147,8 @@ class VCFFile(object):
             ignore_filter (bool, optional): If True, ignore the FILTER column in the VCF file. Default is False.
             bypass_reference_calls (bool, optional): If True, skip any row in the VCF (and therefore do not record)  which calls reference (i.e. 0/0). Default is False.
             format_fields_min_thresholds (dict, optional): Dict of field name in the FORMAT column and a minimum threshold to apply e.g. {'DP':5}
+            retain_format_fields (list, optional): list of FORMAT fields specified in the VCF to retain
+            minor_allele_indices (set, optional): set of genome indices names within which to 
         '''
         
         self.ignore_filter = ignore_filter
@@ -155,9 +157,13 @@ class VCFFile(object):
         self.bypass_reference_calls = bypass_reference_calls
         assert isinstance(self.bypass_reference_calls,bool)
 
+        self.retain_format_fields = retain_format_fields
+
         self.format_fields_min_thresholds = format_fields_min_thresholds
         if self.format_fields_min_thresholds is not None:
             assert isinstance(self.format_fields_min_thresholds,dict)
+
+        self.minor_allele_indices = minor_allele_indices
 
         self.filename = filename
         assert isinstance(self.filename,str)
@@ -186,6 +192,11 @@ class VCFFile(object):
                 "id": id_,
                 "type": f_type
             }
+        
+        if self.retain_format_fields is not None:
+            assert isinstance(self.retain_format_fields, list), 'must be a list!'
+            for i in self.retain_format_fields:
+                assert i in self.format_fields_metadata.keys(), i + ' not in FORMAT column of VCF file!'
 
         if isinstance(self.format_fields_min_thresholds,dict):
             assert set(self.format_fields_min_thresholds.keys()).issubset(set(self.format_fields_metadata.keys())), "field to threshold on not found in the FORMAT column of the vcf!"
@@ -245,7 +256,9 @@ class VCFFile(object):
                 continue
 
             # bypass filter fails , unless we have asked to ignore filter calls
-            if not self.ignore_filter and not record.is_filter_pass:
+            if index in self.minor_allele_indices:
+                pass
+            elif not self.ignore_filter and not record.is_filter_pass:
                 continue
 
             # only proceed if a dictionary has been passed (otherwise defaults to None)
@@ -287,7 +300,6 @@ class VCFFile(object):
                         vcf_info['REF']=record.ref
                         vcf_info['ALTS']=record.alts
                         metadata['original_vcf_row']=vcf_info
-
                         self.calls[(index+counter,variant_type)]=metadata
 
             # otherwise the REF, ALT pair are different lengths
@@ -533,4 +545,5 @@ class VCFFile(object):
         self.pos=numpy.array(positions)
         self.metadata = dict()
         for key in metadata:
-            self.metadata[key] = numpy.array(metadata[key], dtype=object)
+            if key in self.retain_format_fields:
+                self.metadata[key] = numpy.array(metadata[key], dtype=object)

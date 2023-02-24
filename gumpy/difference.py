@@ -171,8 +171,8 @@ class GenomeDifference(Difference):
         '''
 
         # insist that both must be Genome objects
-        assert isinstance(genome1, gumpy.Genome)
-        assert isinstance(genome2, gumpy.Genome)
+        assert isinstance(genome1, gumpy.genome.Genome)
+        assert isinstance(genome2, gumpy.genome.Genome)
 
         self.genome1 = genome1
         self.genome2 = genome2
@@ -184,6 +184,12 @@ class GenomeDifference(Difference):
         Where applicable, the `full` difference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
         '''
 
+        # only one of the two Genome objects can be modified by a VCF and have stored metadata
+        if self.genome1.has_vcf_metadata:
+            assert not self.genome2.has_vcf_metadata, 'cannot find the difference between two Genome objects both containing FORMAT info from a VCF file!'
+        elif self.genome2.has_vcf_metadata:
+            assert not self.genome1.has_vcf_metadata, 'cannot find the difference between two Genome objects both containing FORMAT info from a VCF file!'
+            
         self.__get_variants()
 
         #Calculate differences
@@ -219,6 +225,14 @@ class GenomeDifference(Difference):
         indel_nucleotides=[]
         refs=[]
         alts=[]
+        if self.genome1.has_vcf_metadata:
+            metadata = {}
+            for field in self.genome1.metadata:
+                metadata[field] = []        
+        elif self.genome2.has_vcf_metadata:
+            metadata = {}
+            for field in self.genome2.metadata:
+                metadata[field] = []       
 
         # first do the SNPs, HETs and NULLs
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
@@ -245,6 +259,16 @@ class GenomeDifference(Difference):
                 is_het.append(False)
                 is_snp.append(True)
                 is_null.append(False)
+
+        if self.genome1.has_vcf_metadata:
+            for field in self.genome1.metadata:
+                for i in self.genome1.metadata[field][mask]:
+                    metadata[field].append(i)
+        elif self.genome2.has_vcf_metadata:
+            for field in self.genome2.metadata:
+                for i in self.genome2.metadata[field][mask]:
+                    metadata[field].append(i)
+
 
         # INDELs are trickier: we have to deal with the case where both genomes have an indel at the same position
         # if they are different we catch fire since that is too difficult to parse right now
@@ -274,6 +298,15 @@ class GenomeDifference(Difference):
             else:
                 variants.append(str(idx)+'_del_'+str(alt))
 
+        if self.genome1.has_vcf_metadata:
+            for field in self.genome1.metadata:
+                for i in self.genome1.metadata[field][mask]:
+                    metadata[field].append(i)
+        elif self.genome2.has_vcf_metadata:
+            for field in self.genome2.metadata:
+                for i in self.genome2.metadata[field][mask]:
+                    metadata[field].append(i)
+
         # if the indel is on the LHS, then it is unchanged, then it needs 'reversing' since we are returning how to get to the RHS from the LHS hence we delete an insertion etc
         mask = self.genome1.is_indel & (self.genome1.indel_nucleotides!=self.genome2.indel_nucleotides)
 
@@ -291,6 +324,16 @@ class GenomeDifference(Difference):
             else:
                 variants.append(str(idx)+'_del_'+str(alt))
 
+        if self.genome1.has_vcf_metadata:
+            for field in self.genome1.metadata:
+                for i in self.genome1.metadata[field][mask]:
+                    metadata[field].append(i)
+        elif self.genome2.has_vcf_metadata:
+            for field in self.genome2.metadata:
+                for i in self.genome2.metadata[field][mask]:
+                    metadata[field].append(i)
+                
+
         self.variants=numpy.array(variants)
         self.nucleotide_index=numpy.array(indices)
         self.is_indel=numpy.array(is_indel)
@@ -299,6 +342,10 @@ class GenomeDifference(Difference):
         self.is_snp=numpy.array(is_snp)
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
+        if self.genome1.has_vcf_metadata or self.genome2.has_vcf_metadata:
+            self.metadata={}
+            for i in metadata:
+                self.metadata[i]=numpy.array(metadata[i])
 
     def __nucleotides(self):
         '''Calculate the difference in nucleotides
