@@ -601,8 +601,8 @@ class Genome(object):
 
         self.stacked_nucleotide_sequence=numpy.tile(self.nucleotide_sequence,(self.n_rows,1))
 
-        #Use a custom dict to track minority populations
-        self.minor_populations = DictIndex()
+        #Use a list to track minority populations
+        self.minor_populations = []
 
     def __assign_promoter_regions(self):
         '''
@@ -734,7 +734,7 @@ class Genome(object):
                     reverse_complement=self.genes[gene]['reverse_complement'],
                     feature_type=self.genes[gene]['type'],
                     ribosomal_shifts=self.genes[gene]['ribosomal_shifts'],
-                    minor_populations=gene_minor_populations
+                    minority_populations=gene_minor_populations
                 )
 
         return g
@@ -814,8 +814,8 @@ class Genome(object):
 
         return genome
 
-    def minor_populations_GARC(self, interpretation: str='reads') -> [str]:
-        '''Get the variants in GARC of the minor populations for this genome.
+    def minority_populations_GARC(self, interpretation: str='reads') -> [str]:
+        '''Get the variants in GARC of the minority populations for this genome.
         Whether the variants are given in terms of reads or read percentage is controlled by `interpretation`
 
         Args:

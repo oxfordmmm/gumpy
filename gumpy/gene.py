@@ -14,7 +14,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None, minor_populations: list=None):
+    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None, minority_populations: list=None):
         '''Constructor for the Gene object.
 
         Args:
@@ -31,7 +31,7 @@ class Gene(object):
             codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
-            minor_populations ([int, str, str|(str,str), int, float], optional): List of minor populations. Each minor population is defined as [position, type, bases - either str or tuple of (ref, alt), depth supporting this, fractional read support]
+            minority_populations ([int, str, str|(str,str), int, float], optional): List of minor populations. Each minor population is defined as [position, type, bases - either str or tuple of (ref, alt), depth supporting this, fractional read support]
         '''
         #Using [] as a default value is dangerous, so convert from None
         if ribosomal_shifts is None:
@@ -68,17 +68,18 @@ class Gene(object):
         assert len(nucleotide_index) == len(indel_length), 'all inputs arrays must be the same length!'
         assert len(nucleotide_index) == len(indel_nucleotides), 'all inputs arrays must be the same length!'
 
-        nucleotide_sequence=numpy.char.lower(nucleotide_sequence)
+        nucleotide_sequence = numpy.char.lower(nucleotide_sequence)
         assert numpy.count_nonzero(numpy.isin(nucleotide_sequence,['a','t','c','g','x','z','o']))==len(nucleotide_sequence), name+": sequence can only contain a,t,c,g,z,x"
 
-        self.nucleotide_sequence=nucleotide_sequence
-        self.nucleotide_index=nucleotide_index
-        self.nucleotide_number=nucleotide_number
-        self.is_cds=is_cds
-        self.is_promoter=is_promoter
-        self.is_indel=is_indel
-        self.indel_nucleotides=indel_nucleotides
-        self.indel_length=indel_length
+        self.nucleotide_sequence = nucleotide_sequence
+        self.nucleotide_index = nucleotide_index
+        self.nucleotide_number = nucleotide_number
+        self.is_cds = is_cds
+        self.is_promoter = is_promoter
+        self.is_indel = is_indel
+        self.indel_nucleotides = indel_nucleotides
+        self.indel_length = indel_length
+        self.minority_populations = minority_populations
 
         #As revcomp changes some of the positions for indels, track separately
         # so we can track the genome position they came from
@@ -111,6 +112,99 @@ class Gene(object):
         if self.codes_protein:
             self._setup_conversion_dicts()
             self._translate_sequence()
+        
+        self._convert_minority_populations()
+    
+    def _convert_minority_populations(self) -> None:
+        '''Convert the minority population details to gene indices + revcomp as req
+        '''
+        fixed = []
+        for pop in self.minority_populations:
+            #Update genome index to gene index
+            pos = pop[0]
+            pos = self.nucleotide_number[self.nucleotide_index == pos][0]
+            type_ = pop[1]
+            bases = pop[2]
+
+            if self.reverse_complement:
+                #Is revcomp so update bases to reflect this
+                if type_ in ['ref', 'snp']:
+                    ref, alt = self._complement(bases)
+                    bases = (ref, alt)
+                else:
+                    #Is an indel so a little more complex
+                    bases = ''.join(self._complement(bases))[::-1]
+                    if type_ == "del":
+                        new_pos = pos - len(self.indel_nucleotides[pos]) + 1
+                        if new_pos < 0:
+                            #This is an issue because this lies outside of the gene now
+                            #So just retain the deletions within this gene, and mark to be at the start
+                            self.indel_nucleotides[pos] = self.indel_nucleotides[pos][:pos+1]
+                            new_pos = 0
+                        pos = new_pos
+            fixed.append([pos, type_, bases, pop[3], pop[4]])
+        self.minority_populations = sorted(fixed, key= lambda x: x[0])
+
+    def minority_populations_GARC(self, interpretation: str='reads') -> [str]:
+        '''Fetch the mutations caused by minority populations in GARC
+
+        Args:
+            interpretation (str, optional): Which way to interpret the coverage calls. 'reads' gives absolute read coverage. 'percentage' gives fractional read support. Defaults to 'reads'.
+
+        Returns:
+            [str]: List of mutations in GARC
+        '''
+        #TODO: This needs a reference to work from properly
+        #Should identify most cases, but if a ref call gives synon to a mutant (compared to ref) but not ref
+        #This won't pick it up
+
+        #Depending on interpretation requested, we either want [3] or [4]
+        if interpretation == "percentage":
+            coverage = 4
+        else:
+            coverage = 3
+            
+
+        minor_codons = copy.deepcopy(self.codons)
+        codon_cov = [9999999 for i in minor_codons]
+        mutations = []
+        for population in self.minority_populations:
+            pos = population[0]
+            type_ = population[1]
+            bases = population[2]
+            cov = population[coverage]
+            if type_ in ['ins', 'del']:
+                #Indels don't need any special treatment
+                mutations.append(f"{self.name}@{pos}_{type_}_{bases}:{cov}")
+            else:
+                #Check for coding as those need extra support
+                if self.codes_protein and pos > 0:
+                    #Find the codon and change the right nucleotide
+                    codon_num = self.codon_number[self.codon_number == pos][0]
+                    codon = list(minor_codons[codon_num])
+                    p = (pos % 3) - 1
+                    codon[p] = bases[1]
+                    codon = ''.join(codon)
+                    minor_codons[codon_num] = codon
+
+                    #Update codon cov as req
+                    if codon_cov[codon_num] > cov:
+                        codon_cov[codon_num] = cov
+                else:
+                    #Not coding, so just SNPs
+                    mutations.append(f"{self.name}@{bases[0]}{pos}{bases[1]}:{cov}")
+        
+        #Now check for codon changes
+        for (i, (minor, original)) in enumerate(zip(minor_codons, self.codons)):
+            if minor != original:
+                #We have a minor change!
+                minor_aa = self.codon_to_amino_acid[minor]
+                original_aa = self.codon_to_amino_acid[original]
+                mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
+        
+        return mutations
+
+
         
     def __revcomp_indel(self) -> None:
         '''Make some adjustments for deletions within revcomp genes

@@ -273,10 +273,6 @@ class VCFFile(object):
                 pos = self.calls[(idx, type_)]['pos']
             simple_calls.append((idx, pos, t, bases))
         
-        for s in simple_calls:
-            print(s)
-        print()
-        
         seen = []
         
         for (idx, type_) in self.calls.keys():
@@ -316,12 +312,6 @@ class VCFFile(object):
                         #Only tracking absolute number of reads
                         self.minor_populations.append((pos, call[1], call[2], int(depth), round(depth/total_depth, 3)))
         
-        for x in self.minor_populations:
-            print(x)
-        print()
-        print("########################")
-        print()
-
     def __find_calls(self):
         '''
         Private method to find changes within the genome based on the variant file.
@@ -338,7 +328,6 @@ class VCFFile(object):
 
             # if we've asked, bypass (for speed) if this is a ref call
             if self.bypass_reference_calls and record.is_reference:
-                print("Found a ref call", record)
                 continue
 
             # bypass filter fails , unless we have asked to ignore filter calls
