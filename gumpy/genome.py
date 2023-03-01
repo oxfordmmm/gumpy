@@ -36,7 +36,6 @@ class Genome(object):
         self.max_gene_name_length = max_gene_name_length
         self.verbose = verbose
         self.is_reference = is_reference
-        self.has_vcf_metadata = False
 
         genbank_file = pathlib.Path(genbank_file)
 
@@ -602,6 +601,9 @@ class Genome(object):
 
         self.stacked_nucleotide_sequence=numpy.tile(self.nucleotide_sequence,(self.n_rows,1))
 
+        #Use a custom dict to track minority populations
+        self.minor_populations = DictIndex()
+
     def __assign_promoter_regions(self):
         '''
         Private function to assign promoter regions to genes
@@ -710,10 +712,18 @@ class Genome(object):
             is_cd = numpy.array([False for i in range(len(nucleotide_seq))])
         else:
             is_cd = self.stacked_is_cds[stacked_mask]
+        
+        gene_nucleotides = self.nucleotide_index[mask]
+        gene_minor_populations = []
+        for population in self.minor_populations:
+            if population[0] in gene_nucleotides:
+                #This minor population is within the gene
+                gene_minor_populations.append(population)
+
         # instantiate a Gene object
         g = Gene(name=gene,
                     nucleotide_sequence=nucleotide_seq,
-                    nucleotide_index=self.nucleotide_index[mask],
+                    nucleotide_index=gene_nucleotides,
                     nucleotide_number=self.stacked_nucleotide_number[stacked_mask],
                     is_cds=is_cd,
                     is_promoter=self.stacked_is_promoter[stacked_mask],
@@ -723,7 +733,9 @@ class Genome(object):
                     codes_protein=self.genes[gene]['codes_protein'],
                     reverse_complement=self.genes[gene]['reverse_complement'],
                     feature_type=self.genes[gene]['type'],
-                    ribosomal_shifts=self.genes[gene]['ribosomal_shifts'] )
+                    ribosomal_shifts=self.genes[gene]['ribosomal_shifts'],
+                    minor_populations=gene_minor_populations
+                )
 
         return g
 
@@ -741,9 +753,13 @@ class Genome(object):
 
         assert isinstance(vcf.calls,dict), 'something wrong with the gumpy.VCFFile object!'
 
-        indices=[i[0] for i in vcf.calls.keys()]
+        indices = [i[0] for i in vcf.calls.keys()]
 
         assert max(indices) <= self.length, "The VCF file details changes outside of this genome!"
+
+        if len(self.minor_populations) > 0 and len(vcf.minor_population_indices) > 0:
+            #Both this genome and the VCF have minor populations so for simplicity atm, complain
+            raise Exception("Both the existing Genome and the VCF have minor populations!")
 
         if self.verbose:
             print("Copying the genome...")
@@ -763,19 +779,6 @@ class Genome(object):
         if self.verbose:
             print("Updating the genome...")
 
-        genome.has_vcf_metadata = False
-        if vcf.metadata is not None:
-            genome.has_vcf_metadata = True
-            genome.metadata = {}
-            for i in vcf.metadata:
-                variable_type = vcf.format_fields_metadata[i]['type']
-                if variable_type == 'Float':
-                    genome.metadata[i] = numpy.zeros(self.length,dtype=float)
-                elif variable_type == 'Integer':
-                    genome.metadata[i] = numpy.zeros(self.length,dtype=int)
-                else:
-                    genome.metadata[i] = numpy.empty(self.length,dtype=object)
-
         # use the calls dict to change the nucleotide indicies in the copy of the genome
         for (idx,type_) in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
 
@@ -784,12 +787,8 @@ class Genome(object):
                 # only set values if the idx is to a single nucleotide
                 genome.nucleotide_sequence[idx-1] = vcf.calls[(idx,type_)]['call']
 
-                if genome.has_vcf_metadata:
-                    for i in vcf.metadata:
-                        genome.metadata[i][idx-1] = vcf.calls[(idx,type_)]['original_vcf_row'][i]
-
             # deal with insertions and deletions
-            elif type_ in ['indel']:
+            elif type_ == 'indel':
 
                 genome.is_indel[idx-1] = True
                 genome.indel_nucleotides[idx-1] = vcf.calls[(idx,type_)]['call'][1]
@@ -798,11 +797,53 @@ class Genome(object):
                     genome.indel_length[idx-1] = len(vcf.calls[(idx,type_)]['call'][1])
                 else:
                     genome.indel_length[idx-1] = -1*len(vcf.calls[(idx,type_)]['call'][1])
+            
+            elif type_ == 'ref':
+                #TODO: These are ref calls which might have a minority population
+                pass
 
             else:
                 raise Exception('variant type not recognised!', vcf.calls[(idx,type_)])
+        
+        genome.minor_populations = vcf.minor_populations
 
         # the genome has been altered so not a reference genome
         genome.is_reference = False
 
+        print(genome.minor_populations)
+
         return genome
+
+    def minor_populations_GARC(self, interpretation: str='reads') -> [str]:
+        '''Get the variants in GARC of the minor populations for this genome.
+        Whether the variants are given in terms of reads or read percentage is controlled by `interpretation`
+
+        Args:
+            interpretation (str, optional): Which interpretation to use. `reads` for number of reads for this population. `percentage` for the decimal percentage of total reads for this population. Defaults to 'reads'.
+        Returns:
+            list: List of the variants in GARC
+        '''
+        #Use the interpretation type to pull out which index of the minor_populations
+        #Each item of minor_populations is (pos, type, bases, abs_coverage, percent_coverage)
+        if interpretation == "percentage":
+            coverage = 4
+        else:
+            coverage = 3
+        
+        variants = []
+        for minor in self.minor_populations:
+            pos = minor[0]
+            type_ = minor[1]
+            bases = minor[2]
+            depth = minor[coverage]
+
+            if type_ in ['ref', 'snp']:
+                #These are functionally the same
+                for (i, (ref, alt)) in enumerate(zip(*bases)):
+                    variants.append(f"{pos+i}{ref}>{alt}:{depth}")
+            else:
+                #Indels are the same too
+                variants.append(f"{pos}_{type_}_{bases}:{depth}")
+        
+        return variants
+

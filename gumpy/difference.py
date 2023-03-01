@@ -171,8 +171,11 @@ class GenomeDifference(Difference):
         '''
 
         # insist that both must be Genome objects
-        assert isinstance(genome1, gumpy.genome.Genome)
-        assert isinstance(genome2, gumpy.genome.Genome)
+        assert isinstance(genome1, gumpy.Genome)
+        assert isinstance(genome2, gumpy.Genome)
+
+        #Only one is allowed minor populations for simplicity
+        assert len(genome1.minor_populations) ^ len(genome2.minor_populations) == 0, "Genomes have different minor populations!"
 
         self.genome1 = genome1
         self.genome2 = genome2

@@ -299,7 +299,7 @@ def test_genome_difference():
 def test_vcf_genetic_variation():
     #Testing the VCFFile objects' difference()
     g1 = gumpy.Genome("config/TEST-DNA.gbk")
-    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf", bypass_reference_calls=True)
 
     # checking the variant masks
     assert numpy.all(vcf.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g',
@@ -323,7 +323,7 @@ def test_vcf_genetic_variation():
             (1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (0, 50), (0, 2, 43), (0, 68, 8), (0, 68, 8), (1, 99, 100, 2),
             (99, 1, 100, 2), (0, 48, 50, 2), (0, 48, 50, 2), (0, 48, 2, 50), (0, 48, 2, 50), (1, 199), (1, 199), (1, 199), (1, 199), (1, 199),
             (1, 198, 1)
-        ]),
+        ], dtype=object),
         'GT_CONF': numpy.array([
             2.05, 2.76, 2.76, 2.76, 200.58, 155.58, 300.25, 300.25, 613.77, 613.77, 475.54, 475.54, 315.11, 315.11, 145.21, 145.21, 145.21,
             145.21, 145.21, 145.21
@@ -477,7 +477,7 @@ def test_valid_variant():
     assert_throws("@")
 
 def test_vcf_to_df():
-    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf", bypass_reference_calls=True)
 
     df = vcf.to_df()
     assert df.attrs == {

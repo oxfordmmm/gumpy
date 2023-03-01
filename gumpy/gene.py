@@ -14,7 +14,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None):
+    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None, minor_populations: list=None):
         '''Constructor for the Gene object.
 
         Args:
@@ -31,6 +31,7 @@ class Gene(object):
             codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
+            minor_populations ([int, str, str|(str,str), int, float], optional): List of minor populations. Each minor population is defined as [position, type, bases - either str or tuple of (ref, alt), depth supporting this, fractional read support]
         '''
         #Using [] as a default value is dangerous, so convert from None
         if ribosomal_shifts is None:
@@ -59,13 +60,13 @@ class Gene(object):
         if len(ribosomal_shifts)>0:
             assert all([isinstance(i,int) for i in ribosomal_shifts])
 
-        assert len(nucleotide_index)==len(nucleotide_sequence), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(nucleotide_number), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(is_cds), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(is_promoter), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(is_indel), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(indel_length), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(indel_nucleotides), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(nucleotide_sequence), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(nucleotide_number), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(is_cds), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(is_promoter), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(is_indel), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(indel_length), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(indel_nucleotides), 'all inputs arrays must be the same length!'
 
         nucleotide_sequence=numpy.char.lower(nucleotide_sequence)
         assert numpy.count_nonzero(numpy.isin(nucleotide_sequence,['a','t','c','g','x','z','o']))==len(nucleotide_sequence), name+": sequence can only contain a,t,c,g,z,x"
@@ -105,12 +106,12 @@ class Gene(object):
             else:
                 self.gene_position=self.nucleotide_number
 
-        self.total_number_nucleotides=len(nucleotide_sequence)
+        self.total_number_nucleotides = len(nucleotide_sequence)
 
         if self.codes_protein:
             self._setup_conversion_dicts()
             self._translate_sequence()
-    
+        
     def __revcomp_indel(self) -> None:
         '''Make some adjustments for deletions within revcomp genes
         The largest of which is that the gene position of the deletion needs adjusting for revcomp

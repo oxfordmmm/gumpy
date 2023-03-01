@@ -752,7 +752,7 @@ def test_instanciate_vcf():
 
 def test_instanciate_vcf_tb():
 
-    vcf=gumpy.VCFFile('tests/test-cases/05.vcf')
+    vcf=gumpy.VCFFile('tests/test-cases/05.vcf', bypass_reference_calls=True)
 
     # have checked that 761110a>t is correct since it is a complex row with lots of ALT pairs all 29 bases long at 761094 but the 40th one is only different by a single base
     # also checked that 2155168c>g is correct -- this is a 2/2
