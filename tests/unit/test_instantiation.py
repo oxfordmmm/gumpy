@@ -558,7 +558,7 @@ def test_instanciate_vcf():
 
 
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf",
-                            ignore_filter=True,format_fields_min_thresholds={'GT_CONF':0})
+                            ignore_filter=True, format_fields_min_thresholds={'GT_CONF':0}, bypass_reference_calls=True)
 
     #Testing some populated items for the object
     assert vcf.vcf_version == (4, 2)

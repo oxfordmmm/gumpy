@@ -79,7 +79,7 @@ class Gene(object):
         self.is_indel = is_indel
         self.indel_nucleotides = indel_nucleotides
         self.indel_length = indel_length
-        self.minority_populations = minority_populations
+        self.minority_populations = [] if minority_populations is None else minority_populations
 
         #As revcomp changes some of the positions for indels, track separately
         # so we can track the genome position they came from

@@ -558,6 +558,7 @@ class VCFFile(object):
         is_indel = []
         indel_length = []
         metadata = defaultdict(list)
+        to_drop = []
 
         for (index,type_) in sorted(list(self.calls.keys())):
             call = self.calls[(index,type_)]['call']
@@ -567,6 +568,7 @@ class VCFFile(object):
                 #If we have a call at a position which the alt is a reference call
                 #we should only care if we haven't tried to bypass ref calls
                 #Have to check here too i.e CCC->ATC will have a ref call at pos 3
+                to_drop.append((index, type_))
                 continue
             if hasattr(self, 'genome'):
                 assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
@@ -574,6 +576,7 @@ class VCFFile(object):
             refs.append(ref)
             pos = self.calls[(index,type_)]['pos']
             positions.append(pos)
+            print(ref, alt, index+pos, type_, self.calls[(index, type_)])
             #Update the masks with the appropriate types
             if type_ == 'indel':
                 #Convert to ins_x or del_x rather than tuple
@@ -619,6 +622,10 @@ class VCFFile(object):
             variants.append(variant)
             for key in self.calls[(index,type_)]['original_vcf_row']:
                 metadata[key].append(self.calls[(index,type_)]['original_vcf_row'][key])
+        
+        #Remove ref calls as required
+        for key in to_drop:
+            del self.calls[key]
 
         #Convert to numpy arrays for neat indexing
         self.alt_nucleotides=numpy.array(alts)
