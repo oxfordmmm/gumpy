@@ -16,12 +16,17 @@ def test_get_minors():
     print("-----------------------")
     print()
 
-    print(">",sample.minority_populations_GARC())
-    print(">>",sample.minority_populations_GARC(interpretation='percentage'))
+    print("> self:",sample.minority_populations_GARC())
+    print(">",sample.minority_populations_GARC(reference=ref))
+    print(">> self:",sample.minority_populations_GARC(interpretation='percentage'))
+    print(">>",sample.minority_populations_GARC(interpretation='percentage', reference=ref))
 
 
     gyrA = sample.build_gene("gyrA")
-    print(">>>", gyrA.minority_populations_GARC())
-    print(">>>>", gyrA.minority_populations_GARC(interpretation='percentage'))
+    gyrA_ref = ref.build_gene("gyrA")
+    print(">>> self:", gyrA.minority_populations_GARC())
+    print(">>>", gyrA.minority_populations_GARC(reference=gyrA_ref))
+    print(">>>> self:", gyrA.minority_populations_GARC(interpretation='percentage'))
+    print(">>>>", gyrA.minority_populations_GARC(interpretation='percentage', reference=gyrA_ref))
 
     assert False

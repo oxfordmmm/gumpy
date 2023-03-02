@@ -145,27 +145,32 @@ class Gene(object):
             fixed.append([pos, type_, bases, pop[3], pop[4]])
         self.minority_populations = sorted(fixed, key= lambda x: x[0])
 
-    def minority_populations_GARC(self, interpretation: str='reads') -> [str]:
+    def minority_populations_GARC(self, interpretation: str='reads', reference=None) -> [str]:
         '''Fetch the mutations caused by minority populations in GARC
 
         Args:
             interpretation (str, optional): Which way to interpret the coverage calls. 'reads' gives absolute read coverage. 'percentage' gives fractional read support. Defaults to 'reads'.
+            reference (gumpy.Gene, optional): The reference to denote mutations from. Defaults to self.
 
         Returns:
             [str]: List of mutations in GARC
         '''
-        #TODO: This needs a reference to work from properly
-        #Should identify most cases, but if a ref call gives synon to a mutant (compared to ref) but not ref
-        #This won't pick it up
 
         #Depending on interpretation requested, we either want [3] or [4]
         if interpretation == "percentage":
             coverage = 4
         else:
             coverage = 3
-            
+        
+        #Make sure we have a reference to compare against
+        if reference is None:
+            reference = self
+        else:
+            assert len(reference.minority_populations) == 0, "Minority populations can only be compared when 1 Gene does not have them!"
 
+        #Copy the codons to allow minor changes
         minor_codons = copy.deepcopy(self.codons)
+        #Set an arbitrarily high default coverage (we care about smallest available)
         codon_cov = [9999999 for i in minor_codons]
         mutations = []
         for population in self.minority_populations:
@@ -182,7 +187,9 @@ class Gene(object):
                     #Find the codon and change the right nucleotide
                     codon_num = self.codon_number[self.codon_number == pos][0]
                     codon = list(minor_codons[codon_num])
+                    #Index within the codon
                     p = (pos % 3) - 1
+                    #Update codon
                     codon[p] = bases[1]
                     codon = ''.join(codon)
                     minor_codons[codon_num] = codon
@@ -197,10 +204,16 @@ class Gene(object):
         #Now check for codon changes
         for (i, (minor, original)) in enumerate(zip(minor_codons, self.codons)):
             if minor != original:
-                #We have a minor change!
+                #We have a minor AA change!
                 minor_aa = self.codon_to_amino_acid[minor]
-                original_aa = self.codon_to_amino_acid[original]
-                mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
+                original_aa = reference.codon_to_amino_acid[original]
+
+                if original_aa == minor_aa:
+                    #Synonymous
+                    mutations.append(f"{self.name}@{i+1}=:{codon_cov[i]}")
+                else:
+                    #Non-synonymous
+                    mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
         
         return mutations
 

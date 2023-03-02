@@ -814,12 +814,13 @@ class Genome(object):
 
         return genome
 
-    def minority_populations_GARC(self, interpretation: str='reads') -> [str]:
+    def minority_populations_GARC(self, interpretation: str='reads', reference=None) -> [str]:
         '''Get the variants in GARC of the minority populations for this genome.
         Whether the variants are given in terms of reads or read percentage is controlled by `interpretation`
 
         Args:
             interpretation (str, optional): Which interpretation to use. `reads` for number of reads for this population. `percentage` for the decimal percentage of total reads for this population. Defaults to 'reads'.
+            reference (gumpy.Genome, optional): The reference to denote mutations from. Defaults to self
         Returns:
             list: List of the variants in GARC
         '''
@@ -829,6 +830,12 @@ class Genome(object):
             coverage = 4
         else:
             coverage = 3
+
+        if reference is None:
+            reference = self
+        else:
+            #Ensure that only one of the two Genomes has minor populations
+            assert len(reference.minor_populations) == 0, "Minority populations can only be compared when 1 Genome does not have them!"
         
         variants = []
         for minor in self.minor_populations:
@@ -839,7 +846,8 @@ class Genome(object):
 
             if type_ in ['ref', 'snp']:
                 #These are functionally the same
-                for (i, (ref, alt)) in enumerate(zip(*bases)):
+                for (i, (_, alt)) in enumerate(zip(*bases)):
+                    ref = reference.nucleotide_sequence[pos+i-1]
                     variants.append(f"{pos+i}{ref}>{alt}:{depth}")
             else:
                 #Indels are the same too
