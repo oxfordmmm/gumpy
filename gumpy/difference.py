@@ -157,6 +157,7 @@ class GenomeDifference(Difference):
         variants(int) -> dict: Takes a genome index and returns a dictionary mapping field->(genome1_val, genome2_val) for all fields
                                 of a vcf file (if applicable)
         gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects
+        minor_populations() -> [str]: Returns a list of minor population mutations in GARC
     Inherited functions:
         update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
@@ -174,9 +175,6 @@ class GenomeDifference(Difference):
         assert isinstance(genome1, gumpy.Genome)
         assert isinstance(genome2, gumpy.Genome)
 
-        #Only one is allowed minor populations for simplicity
-        assert len(genome1.minor_populations) ^ len(genome2.minor_populations) == 0, "Genomes have different minor populations!"
-
         self.genome1 = genome1
         self.genome2 = genome2
         self._view_method = "diff"
@@ -187,12 +185,6 @@ class GenomeDifference(Difference):
         Where applicable, the `full` difference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
         '''
 
-        # only one of the two Genome objects can be modified by a VCF and have stored metadata
-        if self.genome1.has_vcf_metadata:
-            assert not self.genome2.has_vcf_metadata, 'cannot find the difference between two Genome objects both containing FORMAT info from a VCF file!'
-        elif self.genome2.has_vcf_metadata:
-            assert not self.genome1.has_vcf_metadata, 'cannot find the difference between two Genome objects both containing FORMAT info from a VCF file!'
-            
         self.__get_variants()
 
         #Calculate differences
@@ -206,6 +198,17 @@ class GenomeDifference(Difference):
             self.__raise_mutations_warning(self.genome1, self.genome2)
 
         self.update_view(self._view_method,'gene')
+    
+    def minor_populations(self, interpretation='reads') -> [str]:
+        '''Get the minor population mutations in GARC
+
+        Args:
+            interpretation (str, optional): How to report minor population. 'reads' reports number of reads. 'percentage' reports fractional read support. Defaults to 'reads'.
+
+        Returns:
+            [str]: List of mutations in GARC
+        '''
+        return self.genome1.minority_populations_GARC(interpretation=interpretation, reference=self.genome2)
 
     def __snp_distance(self):
         '''Calculates the SNP distance between the two genomes
@@ -228,14 +231,6 @@ class GenomeDifference(Difference):
         indel_nucleotides=[]
         refs=[]
         alts=[]
-        if self.genome1.has_vcf_metadata:
-            metadata = {}
-            for field in self.genome1.metadata:
-                metadata[field] = []        
-        elif self.genome2.has_vcf_metadata:
-            metadata = {}
-            for field in self.genome2.metadata:
-                metadata[field] = []       
 
         # first do the SNPs, HETs and NULLs
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
@@ -262,15 +257,6 @@ class GenomeDifference(Difference):
                 is_het.append(False)
                 is_snp.append(True)
                 is_null.append(False)
-
-        if self.genome1.has_vcf_metadata:
-            for field in self.genome1.metadata:
-                for i in self.genome1.metadata[field][mask]:
-                    metadata[field].append(i)
-        elif self.genome2.has_vcf_metadata:
-            for field in self.genome2.metadata:
-                for i in self.genome2.metadata[field][mask]:
-                    metadata[field].append(i)
 
 
         # INDELs are trickier: we have to deal with the case where both genomes have an indel at the same position
@@ -301,14 +287,6 @@ class GenomeDifference(Difference):
             else:
                 variants.append(str(idx)+'_del_'+str(alt))
 
-        if self.genome1.has_vcf_metadata:
-            for field in self.genome1.metadata:
-                for i in self.genome1.metadata[field][mask]:
-                    metadata[field].append(i)
-        elif self.genome2.has_vcf_metadata:
-            for field in self.genome2.metadata:
-                for i in self.genome2.metadata[field][mask]:
-                    metadata[field].append(i)
 
         # if the indel is on the LHS, then it is unchanged, then it needs 'reversing' since we are returning how to get to the RHS from the LHS hence we delete an insertion etc
         mask = self.genome1.is_indel & (self.genome1.indel_nucleotides!=self.genome2.indel_nucleotides)
@@ -327,16 +305,6 @@ class GenomeDifference(Difference):
             else:
                 variants.append(str(idx)+'_del_'+str(alt))
 
-        if self.genome1.has_vcf_metadata:
-            for field in self.genome1.metadata:
-                for i in self.genome1.metadata[field][mask]:
-                    metadata[field].append(i)
-        elif self.genome2.has_vcf_metadata:
-            for field in self.genome2.metadata:
-                for i in self.genome2.metadata[field][mask]:
-                    metadata[field].append(i)
-                
-
         self.variants=numpy.array(variants)
         self.nucleotide_index=numpy.array(indices)
         self.is_indel=numpy.array(is_indel)
@@ -345,10 +313,6 @@ class GenomeDifference(Difference):
         self.is_snp=numpy.array(is_snp)
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
-        if self.genome1.has_vcf_metadata or self.genome2.has_vcf_metadata:
-            self.metadata={}
-            for i in metadata:
-                self.metadata[i]=numpy.array(metadata[i])
 
     def __nucleotides(self):
         '''Calculate the difference in nucleotides
@@ -422,6 +386,7 @@ class GeneDifference(Difference):
                                             within the codons for this amino acid index. If these genes do not code protien, returns {}
         nucleotide_variants(int) -> dict: Takes a nucleotide index and returns a dictionary containing data from a vcf
                                             file (if applicable) for attributes such as calls, ref, and alt at the given index
+        minor_populations() -> [str]: Returns a list of minor population mutations in GARC
     Inherited functions:
         update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
@@ -459,6 +424,17 @@ class GeneDifference(Difference):
         self._amino_acids_full = self.__amino_acids()
 
         self.update_view("diff", 'gene') #Use inherited method to set the view
+    
+    def minor_populations(self, interpretation='reads') -> [str]:
+        '''Get the minor population mutations in GARC
+
+        Args:
+            interpretation (str, optional): How to report minor population. 'reads' reports number of reads. 'percentage' reports fractional read support. Defaults to 'reads'.
+
+        Returns:
+            [str]: List of mutations in GARC
+        '''
+        return self.gene1.minority_populations_GARC(interpretation=interpretation, reference=self.gene2)
 
     def __nucleotides(self):
         '''Find the differences in nucleotides

@@ -29,4 +29,11 @@ def test_get_minors():
     print(">>>> self:", gyrA.minority_populations_GARC(interpretation='percentage'))
     print(">>>>", gyrA.minority_populations_GARC(interpretation='percentage', reference=gyrA_ref))
 
+    diff = sample - ref
+    print(">>>>>", diff.minor_populations())
+    print(">>>>>>", diff.minor_populations(interpretation='percentage'))
+
+    geneDiff = gyrA - gyrA_ref
+    print(">>>>>>>", geneDiff.minor_populations())
+    print(">>>>>>>>", geneDiff.minor_populations(interpretation='percentage'))
     assert False
