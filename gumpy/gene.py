@@ -135,13 +135,7 @@ class Gene(object):
                     #Is an indel so a little more complex
                     bases = ''.join(self._complement(bases))[::-1]
                     if type_ == "del":
-                        new_pos = pos - len(self.indel_nucleotides[pos]) + 1
-                        if new_pos < 0:
-                            #This is an issue because this lies outside of the gene now
-                            #So just retain the deletions within this gene, and mark to be at the start
-                            self.indel_nucleotides[pos] = self.indel_nucleotides[pos][:pos+1]
-                            new_pos = 0
-                        pos = new_pos
+                        pos = pos - len(bases) + 1
             fixed.append([pos, type_, bases, pop[3], pop[4]])
         self.minority_populations = sorted(fixed, key= lambda x: x[0])
 
