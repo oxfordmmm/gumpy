@@ -460,7 +460,7 @@ class Genome(object):
 
             #Check for ribosomal shift
             #This happens when a start position < end position
-            positions = [(loc.start.position, loc.end.position) for loc in record.location.parts]
+            positions = [(int(loc.start), int(loc.end)) for loc in record.location.parts]
             shifts = []
             #Check for -1 PFS
             if len(positions) > 1 and positions[0][1] > positions[1][0]:
