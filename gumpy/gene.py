@@ -179,36 +179,39 @@ class Gene(object):
                 #Check for coding as those need extra support
                 if self.codes_protein and pos > 0:
                     #Find the codon and change the right nucleotide
-                    codon_num = self.codon_number[self.codon_number == pos][0]
-                    codon = list(minor_codons[codon_num])
+                    codon_idx = self.codon_number[self.codon_number == (pos+2)//3][0] - 1
+                    codon = list(minor_codons[codon_idx])
                     #Index within the codon
                     p = (pos % 3) - 1
                     #Update codon
                     codon[p] = bases[1]
                     codon = ''.join(codon)
-                    minor_codons[codon_num] = codon
+                    minor_codons[codon_idx] = codon
 
                     #Update codon cov as req
-                    if codon_cov[codon_num] > cov:
-                        codon_cov[codon_num] = cov
+                    if codon_cov[codon_idx] > cov:
+                        codon_cov[codon_idx] = cov
                 else:
                     #Not coding, so just SNPs
-                    mutations.append(f"{self.name}@{bases[0]}{pos}{bases[1]}:{cov}")
+                    ref = reference.nucleotide_sequence[reference.nucelotide_number == pos][0]
+                    mutations.append(f"{self.name}@{ref}{pos}{bases[1]}:{cov}")
         
         #Now check for codon changes
         for (i, (minor, original)) in enumerate(zip(minor_codons, self.codons)):
             if minor != original:
                 #We have a minor AA change!
-                minor_aa = self.codon_to_amino_acid[minor]
-                original_aa = reference.codon_to_amino_acid[original]
+                #Check to make sure this is also different from the reference
+                ref_codon = reference.codons[i]
+                if minor != ref_codon:
+                    minor_aa = self.codon_to_amino_acid[minor]
+                    original_aa = reference.codon_to_amino_acid[ref_codon]
 
-                if original_aa == minor_aa:
-                    #Synonymous
-                    mutations.append(f"{self.name}@{i+1}=:{codon_cov[i]}")
-                else:
-                    #Non-synonymous
-                    mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
-        
+                    if original_aa == minor_aa:
+                        #Synonymous
+                        mutations.append(f"{self.name}@{i+1}=:{codon_cov[i]}")
+                    else:
+                        #Non-synonymous
+                        mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
         return mutations
 
 

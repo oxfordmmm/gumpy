@@ -207,18 +207,20 @@ class VCFFile(object):
         #Ensure that only a single record exists for each position specified
         assert len(self.records) == len(set([record.pos for record in self.records])), "There must 1 and only 1 record per position! "
 
-        if len(self.minor_population_indices) > 0:
-            #We are asking to find some minor variants
-            #So we need to check if the ALLELE_DP field exists as this is the only one to show minor populations
-            assert 'ALLELE_DP' in self.format_fields_metadata.keys(), "'ALLELE_DP' not in VCF format fields. No minor populations can be found!"
-
         self.__find_calls()
 
         self.__get_variants()
 
         self.snp_distance = numpy.sum(self.is_snp)
 
-        self._find_minor_populations()
+        if len(self.minor_population_indices) > 0:
+            #We are asking to find some minor variants
+            #So we need to check if the ALLELE_DP field exists as this is the only one to show minor populations
+            assert 'ALLELE_DP' in self.format_fields_metadata.keys(), "'ALLELE_DP' not in VCF format fields. No minor populations can be found!"
+            self._find_minor_populations()
+        else:
+            #Give a sensible default value otherwise
+            self.minor_populations = []
 
     def __repr__(self):
         '''Overload the print function to write a summary of the VCF file
@@ -576,7 +578,6 @@ class VCFFile(object):
             refs.append(ref)
             pos = self.calls[(index,type_)]['pos']
             positions.append(pos)
-            print(ref, alt, index+pos, type_, self.calls[(index, type_)])
             #Update the masks with the appropriate types
             if type_ == 'indel':
                 #Convert to ins_x or del_x rather than tuple

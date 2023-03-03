@@ -810,8 +810,6 @@ class Genome(object):
         # the genome has been altered so not a reference genome
         genome.is_reference = False
 
-        print(genome.minor_populations)
-
         return genome
 
     def minority_populations_GARC(self, interpretation: str='reads', reference=None) -> [str]:
@@ -846,8 +844,8 @@ class Genome(object):
 
             if type_ in ['ref', 'snp']:
                 #These are functionally the same
-                for (i, (_, alt)) in enumerate(zip(*bases)):
-                    ref = reference.nucleotide_sequence[pos+i-1]
+                for (i, (r, alt)) in enumerate(zip(*bases)):
+                    ref = reference.nucleotide_sequence[reference.nucleotide_index == pos+i][0]
                     variants.append(f"{pos+i}{ref}>{alt}:{depth}")
             else:
                 #Indels are the same too
