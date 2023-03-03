@@ -207,12 +207,16 @@ class Gene(object):
                     original_aa = reference.codon_to_amino_acid[ref_codon]
 
                     if original_aa == minor_aa:
-                        #Synonymous
-                        mutations.append(f"{self.name}@{i+1}=:{codon_cov[i]}")
+                        #Synonymous so find nucleotide changes and form a multi
+                        synon = f"{self.name}@{i+1}=:{codon_cov[i]}"
+                        for j, (ref, alt) in enumerate(zip(ref_codon, minor)):
+                            if ref != alt:
+                                synon += f"&{self.name}@{ref}{i * 3 + 1 + j}{alt}:{codon_cov[i]}"
+                        mutations.append(synon)
                     else:
                         #Non-synonymous
                         mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
-        return mutations
+        return sorted(mutations)
 
 
         

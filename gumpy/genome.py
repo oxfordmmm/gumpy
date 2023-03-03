@@ -851,5 +851,5 @@ class Genome(object):
                 #Indels are the same too
                 variants.append(f"{pos}_{type_}_{bases}:{depth}")
         
-        return variants
+        return sorted(variants)
 
