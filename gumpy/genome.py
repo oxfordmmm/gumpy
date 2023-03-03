@@ -93,7 +93,7 @@ class Genome(object):
                         loc = {}
                         for item_key in vars(item):
                             if item_key == "_start" or item_key == "_end":
-                                loc[item_key] = getattr(item, item_key).position
+                                loc[item_key] = int(getattr(item, item_key))
                             elif getattr(item, item_key) is not None:
                                 loc[item_key] = getattr(item, item_key)
                         new_loc.append(loc)
