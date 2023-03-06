@@ -24,9 +24,83 @@ def make_reproducable(l: [str]) -> [str]:
     #Map back to original and return
     return [str_l[key] for key in sorted_str_l]
 
+@pytest.mark.slow
+def test_minor_failures():
+    '''Tests which are expected to fail/do nothing
+    '''
+
+    #VCF with minor populations, but no indices given
+    vcf = gumpy.VCFFile(
+                        'tests/test-cases/minor-populations.vcf',
+                        ignore_filter=True, 
+                        minor_population_indices={}
+        )
+
+    assert vcf.minor_populations == []
+
+    ref = gumpy.Genome("config/NC_000962.3.gbk.gz", is_reference=True)
+
+    sample = ref + vcf
+
+    assert sample.minor_populations == []
+    assert sample.minority_populations_GARC() == []
+
+    #VCF which doesn't have minor populations
+    #Only has 1 entry at 761155
+    vcf = gumpy.VCFFile(
+                        'tests/test-cases/03.vcf', 
+                        ignore_filter=True,
+                        minor_population_indices={761155}
+    )
+    assert vcf.minor_populations == []
+    assert vcf.minority_populations_GARC() == []
+
+    #Specifying minor indices outside of the genome shouldn't cause crashing
+    vcf = gumpy.VCFFile(
+                        'tests/test-cases/minor-populations.vcf',
+                        ignore_filter=True,
+                        minor_population_indices={9999999999999999999}
+    )
+    assert vcf.minor_populations == []
+    sample = ref + vcf
+    assert sample.minor_populations == []
+    assert sample.minority_populations_GARC() == []
+
+    #Expected exceptions
+    with pytest.raises(Exception):
+        vcf = gumpy.VCFFile(
+                            'tests/test-cases/minor-populations.vcf',
+                            ignore_filter=True,
+                            minor_population_indices=[None]
+        )
+    with pytest.raises(Exception):
+        vcf = gumpy.VCFFile(
+                            'tests/test-cases/minor-populations.vcf',
+                            ignore_filter=True,
+                            minor_population_indices={None}
+        )
+    with pytest.raises(Exception):
+        vcf = gumpy.VCFFile(
+                            'tests/test-cases/minor-populations.vcf',
+                            ignore_filter=True,
+                            minor_population_indices='1,2,3'
+        )
+    with pytest.raises(Exception):
+        #Giving it a file which isnt vcf
+        vcf = gumpy.VCFFile(
+                            'tests/test-cases/01.fasta',
+                            ignore_filter=True,
+                            minor_population_indices={1,2,3}
+        )
+    
+    
+
+
 
 @pytest.mark.slow
 def test_get_minors():
+    '''Tests of expected success for minor populations. Uses TB, FIXME if too slow
+    '''
     vcf = gumpy.VCFFile(
                         'tests/test-cases/minor-populations.vcf',
                         ignore_filter=True, 
@@ -36,7 +110,6 @@ def test_get_minors():
                         }
         )
 
-    #TODO: Add expected failures + expected no minor populations
     #Check for expected minority populations
     expected_minor_populations = [
                                     (7585, 'snp', ('g', 'g'), 15, 0.15), #Ref call

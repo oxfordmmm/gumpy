@@ -760,12 +760,6 @@ def test_instanciate_vcf_tb():
 
     assert vcf.snp_distance==6
 
-def test_instanciate_difference():
-
-    # check that we cannot directly instantiate the Difference class
-    with pytest.raises(Exception) as e_info:
-        gumpy.difference.Difference()
-
 def test_instanciate_genome_difference():
 
     g1 = gumpy.Genome("config/TEST-DNA.gbk")

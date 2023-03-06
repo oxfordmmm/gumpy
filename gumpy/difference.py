@@ -26,11 +26,15 @@ class Difference(ABC):
 
     This should not be instantiated.
     '''
+    #Give some default values to appease the linter
+    _nucleotides_full = numpy.array([])
+    codes_protein = None
+    _indels_full = numpy.array([])
 
-    def __init__(self):
-        '''If this class is instantiated, crash
-        '''
-        assert False, "This class should not be instantiated!"
+    # def __init__(self):
+    #     '''If this class is instantiated, crash
+    #     '''
+    #     assert False, "This class should not be instantiated!"
 
     def update_view(self, method, object_type):
         '''Update the viewing method. Can either be `diff` or `full`:
@@ -151,7 +155,6 @@ class GenomeDifference(Difference):
         snp_distance (int): SNP distance between the two genomes
         indices (numpy.array): Array of genome indices where the two genomes differ in nucleotides
         nucleotides (numpy.array): Array of differences in nucleotides. Format depends on the current view.
-        indel_indices (numpy.array): Array of indices where the two genomes have indels
         indels (numpy.array): Array of differences in inels. Format depends on the current view.
     Functions:
         variants(int) -> dict: Takes a genome index and returns a dictionary mapping field->(genome1_val, genome2_val) for all fields
@@ -161,6 +164,7 @@ class GenomeDifference(Difference):
     Inherited functions:
         update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
+
     def __init__(self, genome1, genome2):
         '''
         Constructor for the GenomeDifference object.
@@ -322,23 +326,6 @@ class GenomeDifference(Difference):
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
         return numpy.array(list(zip(self.genome1.nucleotide_sequence[mask], self.genome2.nucleotide_sequence[mask])))
 
-    def __indels(self):
-        '''Find the indels for both genomes and report where they are different
-        Returns:
-            numpy.array: Array of tuples showing (indel1, indel2), if an indel is given as None, it did not exist in the genome
-        '''
-        #Find the indels for both genomes
-        #As Genome.indels defaults to None if a VCF has not been applied, checks are required
-        if self.genome1.indels is None and self.genome2.indels is None:
-            return numpy.array([])
-        elif self.genome1.indels is None:
-            return numpy.array([(None, indel) for indel in self.genome2.indels.values()], dtype=object)
-        elif self.genome2.indels is None:
-            return numpy.array([(indel, None) for indel in self.genome1.indels.values()], dtype=object)
-        else:
-            #This function is never called, but if in future it is, this line needs attention (self.indel_indicies doesn't exist)
-            return numpy.array([(self.genome1.indels.get(index), self.genome2.indels.get(index)) for index in self.indel_indices])
-
     def __raise_mutations_warning(self, reference, mutant):
         '''Give a warning to the user that the genes within the two genomes are different.
         Warning displays names of the genes which differ.
@@ -376,7 +363,6 @@ class GeneDifference(Difference):
         gene2 (gumpy.Gene): Gene object 2
         nucleotides (numpy.array): Array of the nucleotides at which the genes differ. Format depends on the current view.
         mutations (numpy.array): Array of mutations in GARC between the two Gene objects.
-        indel_indices (numpy.array): Array of nucleotide numbers where the indel lengths in the two genes differ.
         indels (numpy.array): Array of indel lengths where the indel lengths differ. Format depends on the current view.
         codons (numpy.array): Array of codons where the two Gene objects have different codons. Format depends on the current view.
         amino_acid_sequence (numpy.array): Array of amino acids where the two Gene objects have different amino acids. Format depends on the current view.
@@ -448,19 +434,6 @@ class GeneDifference(Difference):
                 in zip(self.gene1.nucleotide_sequence, self.gene2.nucleotide_sequence)
                 if n1 != n2
             ])
-
-    def __mutations(self):
-        '''Generate the list of mutations between the two genes
-
-        Returns:
-            numpy.array: Array of mutations in GARC
-        '''
-        mutations = []
-        gene_mutation = self.gene2.list_mutations_wrt(self.gene1)
-        if gene_mutation is not None:
-            for mutation in gene_mutation:
-                mutations.append(self.gene1.name+"@"+mutation)
-        return numpy.array(sorted(mutations))
 
     def __get_mutations(self):
 
@@ -693,17 +666,6 @@ class GeneDifference(Difference):
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
 
-    def __indels(self):
-        '''Find the lengths of the indels at each position where the two genes' indels differ
-
-        Returns:
-            numpy.array: Array of lengths of indels in the form [(gene1_indel, gene2_indel)]
-        '''
-        mask = self.gene1.indel_length != self.gene2.indel_length
-        return numpy.array([
-            (i1, i2)
-            for (i1, i2) in zip(self.gene1.indel_length[mask], self.gene2.indel_length[mask])
-        ])
     def __codons(self):
         '''Find the codon positions which are different within the genes (within codon regions)
 
@@ -781,20 +743,20 @@ def setup_codon_aa_dict():
     all_codons = [a+b+c for a in bases for b in bases for c in bases]
     return dict(zip(all_codons, aminoacids))
 
-def collapse_inner_dict(dict_):
-    '''Takes a dict which also contains 1 or more internal dictionaries
-    Converts to a single 1D dictionary, ignoring key clashes
+# def collapse_inner_dict(dict_):
+#     '''Takes a dict which also contains 1 or more internal dictionaries
+#     Converts to a single 1D dictionary, ignoring key clashes
 
-    Args:
-        dict_ (dict): Dictionary to collapse
-    Returns:
-        dict: Collapsed dict
-    '''
-    fixed = {}
-    for key in dict_.keys():
-        if isinstance(dict_[key], dict):
-            #Dict so unpack
-            fixed = {**fixed, **dict_[key]}
-        else:
-            fixed[key] = dict_[key]
-    return fixed
+#     Args:
+#         dict_ (dict): Dictionary to collapse
+#     Returns:
+#         dict: Collapsed dict
+#     '''
+#     fixed = {}
+#     for key in dict_.keys():
+#         if isinstance(dict_[key], dict):
+#             #Dict so unpack
+#             fixed = {**fixed, **dict_[key]}
+#         else:
+#             fixed[key] = dict_[key]
+#     return fixed

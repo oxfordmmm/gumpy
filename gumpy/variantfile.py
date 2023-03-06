@@ -148,7 +148,7 @@ class VCFFile(object):
             bypass_reference_calls (bool, optional): If True, skip any row in the VCF (and therefore do not record)  which calls reference (i.e. 0/0). Default is False.
             format_fields_min_thresholds (dict, optional): Dict of field name in the FORMAT column and a minimum threshold to apply e.g. {'DP':5}
             retain_format_fields (list, optional): list of FORMAT fields specified in the VCF to retain
-            minor_population_indices (set, optional): set of genome indices names within which to 
+            minor_population_indices (set, optional): set of genome indices names within which to look for minor populations
         '''
         
         self.ignore_filter = ignore_filter
@@ -166,6 +166,15 @@ class VCFFile(object):
         #As {}/[] is a dangerous default value, convert from None to {} as req
         if self.minor_population_indices is None:
             self.minor_population_indices = set()
+        else:
+            #Value given, so check if it's of the right format
+            #Functionally, we don't care if it's actually a set. We just care its an interable of ints
+            try:
+                for i in self.minor_population_indices:
+                    assert isinstance(i, int), "Item in minor_population_indices is not an int: "+str(i)
+            except:
+                #Not iterable
+                assert False, "minor_population_indices given is not iterable! "+str(self.minor_population_indices)
 
         self.filename = filename
         assert isinstance(self.filename,str)
@@ -205,7 +214,7 @@ class VCFFile(object):
                 self.records.append(VCFRecord(record, sample))
 
         #Ensure that only a single record exists for each position specified
-        assert len(self.records) == len(set([record.pos for record in self.records])), "There must 1 and only 1 record per position! "
+        assert len(self.records) == len(set([record.pos for record in self.records])), "There must be 1 and only 1 record per position! "
 
         self.__find_calls()
 
@@ -215,8 +224,8 @@ class VCFFile(object):
 
         if len(self.minor_population_indices) > 0:
             #We are asking to find some minor variants
-            #So we need to check if the ALLELE_DP field exists as this is the only one to show minor populations
-            assert 'ALLELE_DP' in self.format_fields_metadata.keys(), "'ALLELE_DP' not in VCF format fields. No minor populations can be found!"
+            #So we need to check if the COV field exists as this shows minor populations
+            assert 'COV' in self.format_fields_metadata.keys(), "'COV' not in VCF format fields. No minor populations can be found!"
             self._find_minor_populations()
         else:
             #Give a sensible default value otherwise
@@ -297,7 +306,7 @@ class VCFFile(object):
             simple = [self._simplify_call(ref, alt) for alt in calls]
 
             #Map each call to the corresponding read depth
-            dps = list(self.calls[(idx, type_)]['original_vcf_row']["ALLELE_DP"])
+            dps = list(self.calls[(idx, type_)]['original_vcf_row']["COV"])
 
             total_depth = self.calls[(idx, type_)]['original_vcf_row']['DP']
             for (calls, depth) in zip(simple, dps):
