@@ -88,8 +88,11 @@ class VCFRecord(object):
                 item = round(item, 3)
             self.values[key] = item
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         '''Pretty print the record
+
+        Returns:
+            str: String representation of the record
         '''
         s = self.chrom + "\t"
         s += str(self.pos) + "\t"
@@ -231,7 +234,7 @@ class VCFFile(object):
             #Give a sensible default value otherwise
             self.minor_populations = []
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         '''Overload the print function to write a summary of the VCF file
 
         Returns:
@@ -422,7 +425,7 @@ class VCFFile(object):
 
                         self.calls[(index+p,variant_type)] = metadata
 
-    def _simplify_call(self, ref, alt):
+    def _simplify_call(self, ref: str, alt: str) -> [(int, str, str)]:
         '''Private method to simplify a complex call into one indel and multiple SNPs.
 
         Based on finding the indel position at which there is the least SNPs
@@ -435,7 +438,7 @@ class VCFFile(object):
             [(int, str, str)]: Returns a list of tuples of (pos, one of ['ins','del','snp'], indel_bases or (ref, alt) for SNPs)
         '''
 
-        def snp_number(ref, alt):
+        def snp_number(ref: str, alt: str) -> int:
             '''Count the number of SNPs between 2 sequences
 
             Args:
@@ -504,7 +507,7 @@ class VCFFile(object):
         return mutations
 
 
-    def to_df(self):
+    def to_df(self) -> pandas.DataFrame:
         '''Convert the VCFFile to a pandas DataFrame.
 
         Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations

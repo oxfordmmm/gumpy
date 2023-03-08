@@ -102,7 +102,7 @@ class Genome(object):
                     new_ref[key] = vars(reference)[key]
             self.annotations["references"][i] = new_ref
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         '''Overload the print function to write a summary of the genome.
 
         Returns:
@@ -128,9 +128,9 @@ class Genome(object):
                 output+=str(i)+', '
         else:
             output+=str(len(self.gene_subset))+' gene/loci have been included.'
-        return(output)
+        return output
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> GenomeDifference:
         '''Generate a GenomeDifference object for a in-depth difference of the two Genomes
 
         Args:
@@ -140,11 +140,11 @@ class Genome(object):
             GenomeDifference: object containing numpy arrays of the differences (variants)
         '''
 
-        assert isinstance(other,Genome), 'RHS must be a gumpy.Genome object'
+        assert isinstance(other, Genome), 'RHS must be a gumpy.Genome object'
 
         return(GenomeDifference(self,other))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         '''Overloading the equality operator so two Genome objects can be compared directly
         Checks for the equality based on fields, but does not check for filename equality
         Args:
@@ -152,7 +152,7 @@ class Genome(object):
         Returns:
             bool : Boolean showing equality of the objects
         '''
-        assert isinstance(other,Genome)
+        assert isinstance(other, Genome)
 
         check = True
         check = check and self.genes == other.genes
@@ -166,7 +166,7 @@ class Genome(object):
 
         return check
 
-    def __len__(self):
+    def __len__(self) -> int:
         '''Adding len functionality - len(genome) returns the length of the genome
 
         Returns:
@@ -174,7 +174,7 @@ class Genome(object):
         '''
         return self.length
 
-    def contains_gene(self,gene_name):
+    def contains_gene(self, gene_name: str) -> bool:
         '''
         Simply checks to see if the specified gene exists in the Genome object.
 
@@ -190,7 +190,7 @@ class Genome(object):
         return bool(self.genes.get(gene_name))
 
 
-    def at_index(self,index):
+    def at_index(self, index: int) -> [str]:
         '''
         Returns the name of any genome features (genes, loci) at a specified genome index (1-based).
 
@@ -217,7 +217,7 @@ class Genome(object):
             return(putative_genes)
 
 
-    def save_sequence(self,filename=None):
+    def save_sequence(self, filename=None) -> None:
 
         '''
         Save the genome as a compressed NPZ file (compressed internally using gzip).
@@ -229,7 +229,14 @@ class Genome(object):
         '''
         numpy.savez_compressed(filename,sequence=self.nucleotide_sequence)
 
-    def __build_genome_variable_length_string(self,indices):
+    def __build_genome_variable_length_string(self, indices: [int]) -> str:
+        '''Build a string of the genome sequence, including indels - resulting in a variable length genome
+        Args:
+            indices ([int]): List of the indices of indels
+        
+        Returns:
+            str: Genome sequence as a string
+        '''
         genome_string=''
         # work backwards as easier to deal with insertions/deletions when you've already gone past them
         for i in indices[::-1]:
@@ -244,7 +251,7 @@ class Genome(object):
                     genome_string=genome_string[abs(indel_length):]
         return(genome_string)
 
-    def build_genome_string(self,fixed_length=False,nucleotide_index_range=None):
+    def build_genome_string(self, fixed_length=False, nucleotide_index_range=None) -> str:
         '''
         Generate a string of the nucleotides in the genome (positive strand if DNA).
 
@@ -270,10 +277,10 @@ class Genome(object):
             else:
                 genome_string=self.__build_genome_variable_length_string(self.nucleotide_index)
 
-        return(genome_string)
+        return genome_string
 
 
-    def save_fasta(self,filename,fixed_length=False,nucleotide_index_range=None,compression=False,compresslevel=2,chars_per_line=70,nucleotides_uppercase=True,description=None, overwrite_existing=True):
+    def save_fasta(self,filename,fixed_length=False,nucleotide_index_range=None,compression=False,compresslevel=2,chars_per_line=70,nucleotides_uppercase=True,description=None, overwrite_existing=True) -> None:
 
         '''
         Save the genome as a FASTA file.
@@ -351,7 +358,7 @@ class Genome(object):
         OUTPUT.close()
 
 
-    def __add_empty_row(self,array):
+    def __add_empty_row(self, array: numpy.array) -> numpy.array:
         '''
         Private function to add an empty row of the correct type to a numpy array
         Args:
@@ -362,9 +369,9 @@ class Genome(object):
 
         empty_row=numpy.zeros((1,array.shape[1]),dtype=array.dtype)
 
-        return(numpy.vstack((array,empty_row)))
+        return numpy.vstack((array,empty_row))
 
-    def __parse_genbank_file(self,genbank_file):
+    def __parse_genbank_file(self, genbank_file: str) -> None:
         '''
         Private function to parse a genbank file
         Args:
@@ -479,7 +486,7 @@ class Genome(object):
             for i in self.gene_subset:
                 assert self.contains_gene(i), 'Gene '+i+' not found in the Genbank file!'
 
-    def __handle_rev_comp(self, rev_comp, start, end, i):
+    def __handle_rev_comp(self, rev_comp: bool, start: int, end: int, i: int) -> None:
         '''
         Private function to handle the rev-comp changes required
         Args:
@@ -503,7 +510,7 @@ class Genome(object):
         else:
             self.stacked_nucleotide_number[i][start-1:end-1] = numpy.mod(1+self.nucleotide_index[start-1:end-1]-start,self.length)
 
-    def __fit_gene(self, mask, genes, genes_mask, start, end, gene_name, rev_comp):
+    def __fit_gene(self, mask: numpy.array, genes: numpy.array, genes_mask: numpy.array, start: int, end: int, gene_name: str, rev_comp: bool) -> (numpy.array, numpy.array):
         '''
         Private function to fit a gene into the genes based on the dot product of the masks
             numpy.dot([bool], [bool])-> bool showing if there are collisions of True values within args
@@ -670,13 +677,16 @@ class Genome(object):
                         new_start_end[gene_name]["start"] = start - 1
             start_end = new_start_end
 
-    def __insert_newlines(self, string: str, every=70):
+    def __insert_newlines(self, string: str, every=70) -> str:
         '''
         Simple private method for inserting a carriage return every N characters into a long string.
 
         Args:
             string (str): the string to insert carriage returns
             every (int): how many characters between each carriage return
+        
+        Returns:
+            str: Same string with "\n" characters inserted
         '''
 
         assert every>0, "every must be an integer greater than zero"
@@ -685,7 +695,7 @@ class Genome(object):
 
         return '\n'.join(string[i:i+every] for i in range(0, len(string), every))
 
-    def build_gene(self, gene):
+    def build_gene(self, gene: str) -> Gene:
         '''
         Public function to build the gumpy.Gene object
 
@@ -739,7 +749,7 @@ class Genome(object):
 
         return g
 
-    def __add__(self, vcf):
+    def __add__(self, vcf: VCFFile):
         '''Function to apply a VCF file to the genome  - producing a replica genome with the specified changes
 
         Args:
@@ -799,7 +809,8 @@ class Genome(object):
                     genome.indel_length[idx-1] = -1*len(vcf.calls[(idx,type_)]['call'][1])
             
             elif type_ == 'ref':
-                #TODO: These are ref calls which might have a minority population
+                #These only exist due to reference calls
+                #They only made it this far as they are required to pull out minors at these positions
                 pass
 
             else:

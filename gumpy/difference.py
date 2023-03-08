@@ -36,7 +36,7 @@ class Difference(ABC):
     #     '''
     #     assert False, "This class should not be instantiated!"
 
-    def update_view(self, method, object_type):
+    def update_view(self, method: str):
         '''Update the viewing method. Can either be `diff` or `full`:
         `diff`: Where applicable, variables return arrays of values from object1 where they are not equal to object 2
         `full`: Where applicable, variables return arrays of tuples showing (object1_val, object2_val) where values are not equal between objects.
@@ -69,7 +69,7 @@ class Difference(ABC):
                 self.amino_acid_sequence = self.__full_to_diff(self._amino_acids_full, amino_acid=True)
         self._view_method = method
 
-    def __check_none(self, arr, check):
+    def __check_none(self, arr: [], check: bool) -> bool:
         '''Recursive function to determine if a given array is all None values.
         Due to the shape of some arrays, implicit equality checking causes warnings
 
@@ -89,7 +89,7 @@ class Difference(ABC):
                 check = check and (elem is None)
         return check
 
-    def __check_any(self, arr1, arr2, check):
+    def __check_any(self, arr1: [], arr2: [], check: bool) -> bool:
         '''Recursive function to determine if given arrays are the different at any point.
         Required due to implicit equality of weird shape arrays causing warnings
 
@@ -112,7 +112,7 @@ class Difference(ABC):
                 check = check or (e1 != e2)
         return check
 
-    def __full_to_diff(self, array, amino_acid=False):
+    def __full_to_diff(self, array: numpy.array, amino_acid: bool=False) -> numpy.array:
         '''Convert an array from a full view to a diff view
 
         Args:
@@ -201,9 +201,9 @@ class GenomeDifference(Difference):
         if self.genome1.genes.keys() != self.genome2.genes.keys():
             self.__raise_mutations_warning(self.genome1, self.genome2)
 
-        self.update_view(self._view_method,'gene')
+        self.update_view(self._view_method)
     
-    def minor_populations(self, interpretation='reads') -> [str]:
+    def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC
 
         Args:
@@ -214,7 +214,7 @@ class GenomeDifference(Difference):
         '''
         return self.genome1.minority_populations_GARC(interpretation=interpretation, reference=self.genome2)
 
-    def __snp_distance(self):
+    def __snp_distance(self) -> int:
         '''Calculates the SNP distance between the two genomes
 
         Returns:
@@ -224,6 +224,8 @@ class GenomeDifference(Difference):
         return sum([1 for (base1, base2) in zip(self.genome1.nucleotide_sequence, self.genome2.nucleotide_sequence) if base1 != base2 and base1 in ['a','t','c','g'] and base2 in ['a','t','c','g']])
 
     def __get_variants(self):
+        '''Get the variants between the two genomes, populating the internal arrays
+        '''
 
         variants=[]
         indices=[]
@@ -318,7 +320,7 @@ class GenomeDifference(Difference):
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
 
-    def __nucleotides(self):
+    def __nucleotides(self) -> numpy.array:
         '''Calculate the difference in nucleotides
         Returns:
             numpy.array: Numpy array of tuples of (genome1_nucleotide, genome2_nucleotide)
@@ -409,9 +411,9 @@ class GeneDifference(Difference):
         self._codons_full = self.__codons()
         self._amino_acids_full = self.__amino_acids()
 
-        self.update_view("diff", 'gene') #Use inherited method to set the view
+        self.update_view("diff") #Use inherited method to set the view
     
-    def minor_populations(self, interpretation='reads') -> [str]:
+    def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC
 
         Args:
@@ -422,7 +424,7 @@ class GeneDifference(Difference):
         '''
         return self.gene1.minority_populations_GARC(interpretation=interpretation, reference=self.gene2)
 
-    def __nucleotides(self):
+    def __nucleotides(self) -> numpy.array:
         '''Find the differences in nucleotides
 
         Returns:
@@ -436,6 +438,8 @@ class GeneDifference(Difference):
             ])
 
     def __get_mutations(self):
+        '''Get the mutations between the two genes, populating internal arrays
+        '''
 
         mutations=[]
         amino_acid_number=[]
@@ -666,7 +670,7 @@ class GeneDifference(Difference):
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
 
-    def __codons(self):
+    def __codons(self) -> numpy.array:
         '''Find the codon positions which are different within the genes (within codon regions)
 
         Returns:
@@ -680,7 +684,7 @@ class GeneDifference(Difference):
         return numpy.array(list(zip(codons1, codons2)))
 
 
-    def __amino_acids(self):
+    def __amino_acids(self) -> numpy.array:
         '''Calculate the difference in amino acid sequences (within codon regions)
         Returns:
             numpy.array: Array of tuples showing (amino_acid_1, amino_acid_2)
@@ -711,7 +715,7 @@ class GeneDifference(Difference):
 '''
 Helper functions not specific to a class
 '''
-def convert_nucleotides_codons(nucleotides):
+def convert_nucleotides_codons(nucleotides: numpy.array) -> numpy.array:
     '''Helper function to convert an array of nucleotides into an array of codons
 
     Args:
@@ -730,7 +734,7 @@ def convert_nucleotides_codons(nucleotides):
             c = ""
     return numpy.array(codons)
 
-def setup_codon_aa_dict():
+def setup_codon_aa_dict() -> {str: str}:
     '''Setup a conversion dictionary to convert codons to amino acids
 
     Returns:
@@ -742,21 +746,3 @@ def setup_codon_aa_dict():
     aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXXZZZZXZOOOOOXOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXXZZZZXZOOOOOXOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXXZZZZXZOOOOOXOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXXZZZZXZOOOOOXOOXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXXZZZZXZOOOOOXOOOOOOXOOOOOOXOOOOOOXOOOOOOXOOXXXXXXXOOOOXOOOOOOXOO'
     all_codons = [a+b+c for a in bases for b in bases for c in bases]
     return dict(zip(all_codons, aminoacids))
-
-# def collapse_inner_dict(dict_):
-#     '''Takes a dict which also contains 1 or more internal dictionaries
-#     Converts to a single 1D dictionary, ignoring key clashes
-
-#     Args:
-#         dict_ (dict): Dictionary to collapse
-#     Returns:
-#         dict: Collapsed dict
-#     '''
-#     fixed = {}
-#     for key in dict_.keys():
-#         if isinstance(dict_[key], dict):
-#             #Dict so unpack
-#             fixed = {**fixed, **dict_[key]}
-#         else:
-#             fixed[key] = dict_[key]
-#     return fixed

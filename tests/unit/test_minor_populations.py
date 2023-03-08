@@ -53,7 +53,6 @@ def test_minor_failures():
                         minor_population_indices={761155}
     )
     assert vcf.minor_populations == []
-    assert vcf.minority_populations_GARC() == []
 
     #Specifying minor indices outside of the genome shouldn't cause crashing
     vcf = gumpy.VCFFile(

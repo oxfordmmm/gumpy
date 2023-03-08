@@ -273,7 +273,7 @@ def test_genome_difference():
     assert numpy.all(diff.indel_nucleotides[diff.is_indel]==numpy.array(['tt','t','g','ca','a']))
 
     #Change the view and test all outputs
-    diff.update_view("full",'genome')
+    diff.update_view("full")
     assert numpy.all(diff.nucleotides == numpy.array([['a', 'x'],
        ['a', 'x'],
        ['a', 'x'],

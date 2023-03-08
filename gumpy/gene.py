@@ -274,7 +274,7 @@ class Gene(object):
         self.indel_index = fixed_indel_index
                 
 
-    def __duplicate(self, index):
+    def __duplicate(self, index: int):
         '''Duplicate all indices of important arrays to add the ribosomal shift
 
         Args:
@@ -300,7 +300,7 @@ class Gene(object):
         self.indel_length = self.__duplicate_index(index, self.indel_length)
         self.indel_nucleotides = self.__duplicate_index(index, self.indel_nucleotides)
 
-    def __duplicate_index(self, index, array):
+    def __duplicate_index(self, index: int, array: numpy.array) -> numpy.array:
         '''Duplicates an element at a given index and returns the new array
 
         Args:
@@ -313,7 +313,7 @@ class Gene(object):
         second_half = [array[i] for i in range(index, len(array))]
         return numpy.array(first_half + [array[index]] + second_half)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         '''Overloading the equality operator to provide a method for determining if two genes
             are the same
 
@@ -344,19 +344,27 @@ class Gene(object):
         return check
 
     @staticmethod
-    def _complement(nucleotides_array):
+    def _complement(nucleotides_array: [str]) -> numpy.array:
         """Simple private method for returning the complement of an array of bases.
 
         Note that takes account of HET and NULL calls via z and x, respectively
+
+        Args:
+            nucleotides_array (Iterable(str)): Some iterable of nucleotide bases. Usually a numpy.array or list
+        
+        Returns:
+            numpy.array: Array of complemented bases
         """
 
         complementary_bases = {'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'x':'x', 'z':'z', 'o':'o', 'n':'n', 'r':'y', 'y':'r', 's':'w', 'w':'s'}
 
         complement=[complementary_bases[i] for i in nucleotides_array]
 
-        return(numpy.array(complement))
+        return numpy.array(complement)
 
     def _translate_sequence(self):
+        '''Translate the coding sequence into amino acids
+        '''
 
         # this will ensure that only amino acids with all three bases present
         unique,counts=numpy.unique(self.codon_number,return_counts=True)
@@ -376,7 +384,8 @@ class Gene(object):
         self.amino_acid_sequence=numpy.array([self.codon_to_amino_acid[i] for i in self.codons])
 
     def _setup_conversion_dicts(self):
-
+        '''Create the conversion dictionary for converting codon -> amino acid
+        '''
         bases = ['t', 'c', 'a', 'g', 'x', 'z', 'o']
         # aminoacids = 'FFLLXZSSSSXZYY!!XZCC!WXZXXXXXXZZZZXZLLLLXZPPPPXZHHQQXZRRRRXZXXXXXXZZZZXZIIIMXZTTTTXZNNKKXZSSRRXZXXXXXXZZZZXZVVVVXZAAAAXZDDEEXZGGGGXZXXXXXXZZZZXZXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZZZZZXZZZZZXZZZZZXZXXXXXXZZZZXZ'
         # aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXOZZZZXZOOOOOOOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXOZZZZXZOOOOOOOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXOZZZZXZOOOOOOOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXOZZZZXZOOOOOOOOXXXXXXOXXXXXXOXXXXXXOXXXXXXOXXXXXXOXXXXXXOOOOOOOOZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXOZZZZXZOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO'
@@ -385,7 +394,7 @@ class Gene(object):
         self.codon_to_amino_acid = dict(zip(all_codons, aminoacids))
         # self.amino_acids_of_codons=numpy.array([self.codon_to_amino_acid[i] for i in all_codons])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         '''Overload the print function to write a summary of the Gene.
 
         Returns:
@@ -420,18 +429,18 @@ class Gene(object):
         if output.strip()=="":
             output=None
 
-        return(output)
+        return output
 
-    def __len__(self):
+    def __len__(self) -> int:
         '''Return the number of nucleotides in the coding region (i.e. ignoring any assumed promoter)
 
         Returns:
             int
         '''
 
-        return(len(self.nucleotide_sequence[self.is_cds]))
+        return len(self.nucleotide_sequence[self.is_cds])
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> GeneDifference:
         '''Generate a GeneDifference object for an in-depth examination of the difference between two genes.
 
         Args:
@@ -445,7 +454,7 @@ class Gene(object):
 
         return GeneDifference(self, other)
 
-    def valid_variant(self, variant):
+    def valid_variant(self, variant: str) -> bool:
         '''Determines if a given variant is valid for this gene
 
         Args:
