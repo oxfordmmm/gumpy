@@ -374,6 +374,35 @@ def test_vcf_genetic_variation():
 
         elif gene_name=='C':
             assert len(g_diff.mutations)==0
+    
+    g3 = g1 + vcf
+    del g3.genes['A']
+
+    with pytest.warns(UserWarning):
+        diff = g1 - g3
+    with pytest.warns(UserWarning):
+        diff = g3 - g1
+    
+    gene1 = g1.build_gene("A")
+
+    gene2 = g1.build_gene("A")
+    gene2.total_number_nucleotides = 76
+
+    with pytest.raises(gumpy.FailedComparison):
+        gene1 - gene2
+
+    gene3 = g1.build_gene("A")
+    gene3.name = "N"
+    with pytest.warns(UserWarning):
+        gene1 - gene3
+
+    gene4 = g1.build_gene("A")
+    gene4.codes_protein = False
+    with pytest.raises(gumpy.FailedComparison):
+        gene1 - gene4
+    
+
+
             
 
 def test_gene_difference():

@@ -6,6 +6,8 @@ Abstract classes:
 Classes:
     GenomeDifference
     GeneDifference
+Exceptions:
+    FailedComparison
 Functions:
     convert_nucleotides_codons(numpy.array) -> numpy.array: Converts an array of nucleotides to an array of codons.
     setup_codon_aa_dict() -> dict: Returns a dictionary mapping codon->amino_acid
@@ -19,6 +21,17 @@ import numpy
 
 import gumpy
 
+class FailedComparison(Exception):
+    '''Exception to be raised in cases of a failed comparion
+    '''
+    def __init__(self, message: str):
+        '''Constructor
+
+        Args:
+            message (str): Error message
+        '''
+        self.message = message
+        super().__init__(self.message)
 
 class Difference(ABC):
     '''
@@ -30,11 +43,6 @@ class Difference(ABC):
     _nucleotides_full = numpy.array([])
     codes_protein = None
     _indels_full = numpy.array([])
-
-    # def __init__(self):
-    #     '''If this class is instantiated, crash
-    #     '''
-    #     assert False, "This class should not be instantiated!"
 
     def update_view(self, method: str):
         '''Update the viewing method. Can either be `diff` or `full`:
@@ -48,25 +56,11 @@ class Difference(ABC):
         assert method in ['diff', 'full'], "Invalid method: "+method
 
         if method == "full":
-            # self.indels = self._indels_full
-            # if object_type=='gene' and self.codes_protein:
-            if isinstance(self, GeneDifference):
-                if self.codes_protein:
-                    self.amino_acid_sequence = self._amino_acids_full
-                else:
-                    self.nucleotides=self._nucleotides_full
-            else:
-                self.nucleotides=self._nucleotides_full
+            self.nucleotides=self._nucleotides_full
 
         if method == "diff":
             #Convert the full arrays into diff arrays
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)
-            # self.indels = self.__full_to_diff(self._indels_full)
-            # if object_type=='gene' and  self.codes_protein:
-            if isinstance(self, GeneDifference) and self.codes_protein:
-                #Gene specific attributes
-                # self.codons = self.__full_to_diff(self._codons_full)
-                self.amino_acid_sequence = self.__full_to_diff(self._amino_acids_full, amino_acid=True)
         self._view_method = method
 
     def __check_none(self, arr: [], check: bool) -> bool:
@@ -392,13 +386,11 @@ class GeneDifference(Difference):
 
         if gene1.total_number_nucleotides != gene2.total_number_nucleotides:
             #The lengths of the genes are different so comparing them is meaningless
-            warnings.warn("The two genes ("+gene1.name+" and "+gene2.name+") are different lengths, so comparision failed...", UserWarning)
-            return None
+            raise FailedComparison("The two genes ("+gene1.name+" and "+gene2.name+") are different lengths, so comparision failed...")
         if gene1.name != gene2.name:
             warnings.warn("The two genes given have different names ("+gene1.name+", "+gene2.name+") but the same length, continuing...", UserWarning)
         if gene1.codes_protein != gene2.codes_protein:
-            warnings.warn(f"The two genes given do not have the same protein coding for {gene1.name}: Gene1 = {gene1.codes_protein}, Gene2 = {gene2.codes_protein}, so comparison failed...", UserWarning)
-            return None
+            raise FailedComparison(f"The two genes given do not have the same protein coding for {gene1.name}: Gene1 = {gene1.codes_protein}, Gene2 = {gene2.codes_protein}, so comparison failed...")
         self.gene1 = gene1
         self.gene2 = gene2
         self.codes_protein=gene1.codes_protein
@@ -536,6 +528,7 @@ class GeneDifference(Difference):
                 indel_nucleotides.append(None)
                 ref_nucleotides.append(r)
                 alt_nucleotides.append(a)
+                print(a)
                 if a == 'x':
                     is_null.append(True)
                     is_het.append(False)

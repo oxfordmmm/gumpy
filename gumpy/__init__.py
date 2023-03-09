@@ -27,7 +27,7 @@ import importlib.metadata
 __version__ = importlib.metadata.version("gumpy")
 
 
-from .difference import GenomeDifference, GeneDifference
+from .difference import GenomeDifference, GeneDifference, FailedComparison
 from .gene import Gene
 from .variantfile import VCFFile
 from .genome import Genome

@@ -49,10 +49,19 @@ def test_minor_failures():
     #Only has 1 entry at 761155
     vcf = gumpy.VCFFile(
                         'tests/test-cases/03.vcf', 
-                        ignore_filter=True,
                         minor_population_indices={761155}
     )
     assert vcf.minor_populations == []
+    expected = ['VCF variant file, version 4.2', 'tests/test-cases/03.vcf', '1 records', 'FORMAT columns: COV, DP, GT, GT_CONF', "NC_000962.3 761155 c ('t',) 5.0 . GT:DP:COV:GT_CONF (1, 1):68:(0, 68):613.77"]
+    assert [x.replace("\t", " ") for x in vcf.__repr__().split("\n") if x.replace("\t","")] == expected
+
+    #Shouldn't pass the filter
+    vcf = gumpy.VCFFile(
+                        'tests/test-cases/03.vcf', 
+                        minor_population_indices={761155},
+                        format_fields_min_thresholds={'DP':100}
+    )
+    assert vcf.nucleotide_index.tolist() == []
 
     #Specifying minor indices outside of the genome shouldn't cause crashing
     vcf = gumpy.VCFFile(

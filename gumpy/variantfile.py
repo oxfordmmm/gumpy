@@ -50,10 +50,7 @@ class VCFRecord(object):
         self.contig = record.contig
         self.pos = record.pos
         self.ref = record.ref.lower()
-        if isinstance(record.alts,tuple):
-            self.alts = tuple([i.lower() for i in record.alts])
-        else:
-            self.alts=record.alts
+        self.alts = tuple([i.lower() for i in record.alts])
         self.qual = record.qual
 
         #Get the filter attribute value
@@ -98,7 +95,7 @@ class VCFRecord(object):
         s += str(self.pos) + "\t"
         s += self.ref + "\t"
         s += str(self.alts) + "\t"
-        if self.qual == 'None':
+        if self.qual is None:
             s+='.\t'
         else:
             s+=str(self.qual)+'\t'
@@ -584,8 +581,6 @@ class VCFFile(object):
                 #Have to check here too i.e CCC->ATC will have a ref call at pos 3
                 to_drop.append((index, type_))
                 continue
-            if hasattr(self, 'genome'):
-                assert self.genome.nucleotide_sequence[self.genome.nucleotide_index==index]==ref, 'reference nucleotide in VCF does not match the supplied genome at index position '+str(index)
             indices.append(index)
             refs.append(ref)
             pos = self.calls[(index,type_)]['pos']

@@ -720,7 +720,7 @@ def test_instanciate_vcf():
                                 145.21, 145.21, 145.21, 145.21, 145.21])
 
     #Quick test for VCFRecord.__repr__()
-    assert vcf.records[0].__repr__() == "TEST_DNA\t2\ta\t('g',)\tNone\tPASS\tGT:DP:COV:GT_CONF\t(None, None):2:(1, 1):2.05\n"
+    assert vcf.records[0].__repr__() == "TEST_DNA\t2\ta\t('g',)\t.\tPASS\tGT:DP:COV:GT_CONF\t(None, None):2:(1, 1):2.05\n"
 
     #Quick test for vcf.__repr__()
     rep = [line.replace("\n","") for line in str(vcf).split("\n") if line.replace("\n","").strip() != ""]
