@@ -528,7 +528,6 @@ class GeneDifference(Difference):
                 indel_nucleotides.append(None)
                 ref_nucleotides.append(r)
                 alt_nucleotides.append(a)
-                print(a)
                 if a == 'x':
                     is_null.append(True)
                     is_het.append(False)

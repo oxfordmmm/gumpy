@@ -17,6 +17,9 @@ def test_instanciate_tb():
     assert tb_reference.name=='NC_000962'
     assert tb_reference.id=='NC_000962.3'
 
+    expected = ['NC_000962', 'NC_000962.3', 'Mycobacterium tuberculosis H37Rv, complete genome', '4411532 bases', 'ttgacc...acgtcg', 'the following 5 genes have been included: katG, rpoB, pncA, Rv2042c, rrs, ']
+    assert str(tb_reference).split("\n") == expected
+
     # check to see if the stacking can cope with two genes overlapping
     mask=tb_reference.stacked_nucleotide_index==2288681
     assert set(tb_reference.stacked_gene_name[mask]) == {'pncA','Rv2042c'}, 'stacking failing at 2288681 in H37rV v3'
@@ -84,6 +87,10 @@ def test_instanciate_tb():
             assert ''.join(i for i in nuc_sequence) == truth_gene_sequence[gene_name], gene_name+' nucleotide sequence incorrect!'
         else:
             assert ''.join(i for i in gene.amino_acid_sequence) == truth_gene_sequence[gene_name], gene_name+' amino acid sequence incorrect!'
+
+    tb_reference = gumpy.Genome('config/NC_000962.3.gbk.gz',gene_subset=['PE_PGRS38', 'rplU', 'moaR1', 'phoH1', 'Rv0885', 'Rv1276c', 'ppa', 'ctpE', 'eccC2', 'sdhC', 'Rv0203'])
+    expected = ['NC_000962', 'NC_000962.3', 'Mycobacterium tuberculosis H37Rv, complete genome', '4411532 bases', 'ttgacc...acgtcg', '11 gene/loci have been included.']
+    assert str(tb_reference).split("\n") == expected
 
 def test_instanciate_genome_covid():
 

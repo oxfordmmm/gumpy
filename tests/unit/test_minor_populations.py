@@ -133,7 +133,7 @@ def test_get_minors():
         ]
     assert make_reproducable(vcf.minor_populations) == make_reproducable(expected_minor_populations)
 
-    ref = gumpy.Genome("config/NC_000962.3.gbk.gz", is_reference=True)
+    ref = gumpy.Genome("config/NC_000962.3.gbk.gz", is_reference=True, verbose=True)
     sample = ref + vcf
 
     #Checks for genome level minority populations
@@ -196,3 +196,6 @@ def test_get_minors():
     geneDiff = gyrA - gyrA_ref
     assert geneDiff.minor_populations() == gyrA.minority_populations_GARC(reference=gyrA_ref)
     assert geneDiff.minor_populations(interpretation='percentage') == gyrA.minority_populations_GARC(reference=gyrA_ref, interpretation='percentage')
+
+    with pytest.raises(Exception):
+        sample + vcf

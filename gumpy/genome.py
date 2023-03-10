@@ -249,9 +249,9 @@ class Genome(object):
                     genome_string=self.indel_nucleotides[mask][0]+genome_string
                 elif indel_length<0:
                     genome_string=genome_string[abs(indel_length):]
-        return(genome_string)
+        return genome_string
 
-    def build_genome_string(self, fixed_length=False, nucleotide_index_range=None) -> str:
+    def build_genome_string(self, fixed_length: bool=False, nucleotide_index_range: (int, int)=None) -> str:
         '''
         Generate a string of the nucleotides in the genome (positive strand if DNA).
 
@@ -280,7 +280,7 @@ class Genome(object):
         return genome_string
 
 
-    def save_fasta(self,filename,fixed_length=False,nucleotide_index_range=None,compression=False,compresslevel=2,chars_per_line=70,nucleotides_uppercase=True,description=None, overwrite_existing=True) -> None:
+    def save_fasta(self,filename,fixed_length: bool=False, nucleotide_index_range: (int, int)=None, compression: bool=False, compresslevel: int=2, chars_per_line: int=70, nucleotides_uppercase: bool=True, description: str=None, overwrite_existing: bool=True) -> None:
 
         '''
         Save the genome as a FASTA file.
@@ -576,11 +576,13 @@ class Genome(object):
             rev_comp=self.genes[gene_name]['reverse_complement']
 
             # determine the boolean mask for this gene
-            if end<start:
-                mask = numpy.logical_or((self.nucleotide_index>=start), (self.nucleotide_index<end))
-                end += self.length
-            else:
-                mask=(self.nucleotide_index>=start) & (self.nucleotide_index<end)
+            # if end<start:
+                #FIXME: This is never hit with rev comp genes (and I think it would select the whole genome anyway)
+                #Commenting out for future removal
+                # mask = numpy.logical_or((self.nucleotide_index>=start), (self.nucleotide_index<end))
+                # end += self.length
+            # else:
+            mask=(self.nucleotide_index>=start) & (self.nucleotide_index<end)
 
             # fit the gene into the stacked arrays
             genes_mask, genes, row = self.__fit_gene(mask, genes, genes_mask, start, end, gene_name, rev_comp)
@@ -813,9 +815,6 @@ class Genome(object):
                 #They only made it this far as they are required to pull out minors at these positions
                 pass
 
-            else:
-                raise Exception('variant type not recognised!', vcf.calls[(idx,type_)])
-        
         genome.minor_populations = vcf.minor_populations
 
         # the genome has been altered so not a reference genome

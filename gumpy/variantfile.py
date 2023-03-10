@@ -176,8 +176,9 @@ class VCFFile(object):
                 #Not iterable
                 assert False, "minor_population_indices given is not iterable! "+str(self.minor_population_indices)
 
-        self.filename = filename
-        assert isinstance(self.filename,str)
+        assert isinstance(filename,str)
+        #Use expand user path to allow use of "~"
+        self.filename = str(pathlib.Path(filename).expanduser())
         assert pathlib.Path(self.filename).is_file()
 
         #Use pysam to parse the VCF

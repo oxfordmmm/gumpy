@@ -1,4 +1,5 @@
 import copy
+import gzip
 import os
 
 import gumpy
@@ -36,8 +37,8 @@ def test_genome_functions():
 
     #Ensure that adding verbose arg to constructor doesn't change object's value
     #It should add values to the timings dict, but this is unimportant to the values so is not checked in the __eq__
-    g2 = gumpy.Genome("config/TEST-DNA.gbk", verbose=True)
-    assert g1 == g2
+    g3 = gumpy.Genome("config/TEST-DNA.gbk", verbose=True)
+    assert g1 == g3
 
     #Ensure that the saves directory exists
     if not os.path.exists('tests/saves'):
@@ -76,9 +77,43 @@ def test_genome_functions():
     with open("tests/saves/TEST-DNA.fasta") as f:
         data = [line.replace("\n", "") for line in f]
         header = data[0]
-        data = ''.join(data[1::]).lower()
+        data = ''.join(data[1::])
     assert header == ">TEST_DNA|TEST_DNA.1|TEST_DNA, complete genome"
-    assert data == "aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc"
+    assert data == "aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc".upper()
+
+    #Try again with compression
+    g1.save_fasta("tests/saves/TEST-DNA.fasta", fixed_length=True, compression=True)
+    #Reload FASTA
+    with gzip.open("tests/saves/TEST-DNA.fasta.gz", 'rt') as f:
+        data = [line.replace("\n", "") for line in f]
+        header = data[0]
+        data = ''.join(data[1::])
+    assert header == ">TEST_DNA|TEST_DNA.1|TEST_DNA, complete genome"
+    assert data == "aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc".upper()
+
+    #Again with other args
+    g2.save_fasta("tests/saves/TEST-DNA.fasta", fixed_length=True, nucleotides_uppercase=False, description="test description", nucleotide_index_range=(5,10))
+    #Reload FASTA
+    with open("tests/saves/TEST-DNA.fasta") as f:
+        data = [line.replace("\n", "") for line in f]
+        header = data[0]
+        data = ''.join(data[1::])
+    assert header == ">test description"
+    assert data == "aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc"[4:9]
+
+    g2.save_fasta("tests/saves/TEST-DNA.fasta", fixed_length=False, nucleotides_uppercase=False, description="test description", nucleotide_index_range=(5,12))
+    #Reload FASTA
+    with open("tests/saves/TEST-DNA.fasta") as f:
+        data = [line.replace("\n", "") for line in f]
+        header = data[0]
+        data = ''.join(data[1::])
+    assert header == ">test description"
+    assert data == "ataccaaa"
+
+
+    with pytest.raises(Exception):
+        g1.save_fasta("tests/save/TEST-DNA.fasta", fixed_length=True, overwrite_existing=False)
+
 
     #Len
     assert g1.length == len(g1)
@@ -215,6 +250,18 @@ def test_apply_vcf():
     assert numpy.any(gene_changes)
     assert numpy.any(nucleotide_changes)
     assert numpy.all(index_changes)
+
+    #Checking for gene level mutations
+    b1 = g1.build_gene("B")
+    b2 = g2.build_gene("B")
+
+    diff = b1 - b2
+    expected = ['G1Z', 'F4L', '6_ins_tt', '10_del_t', '12_ins_g']
+    assert diff.mutations.tolist() == expected
+
+    diff = b2 - b1
+    expected = ['Z1G', 'L4F', '6_del_tt', '10_ins_t', '12_del_g']
+    assert diff.mutations.tolist() == expected
 
 def check_eq(arr1, arr2, check):
     '''Recursive helper function to determine if 2 arrays are equal.
@@ -428,6 +475,15 @@ def test_gene_difference():
     assert numpy.all(diff.mutations == ['K1X', 'K2X', 'T3T', 'c9t', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x'])
     assert numpy.all(diff.ref_nucleotides == ['aaa', 'aaa', 'acc', 'c', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a'])
     assert numpy.all(diff.amino_acid_number == [1, 2, 3, None, 4, 5, 7, 8, 9, None])
+
+    #Try the other way around too, just to check that logic works too
+    diff = g2 - g1
+    assert isinstance(diff, gumpy.GeneDifference)
+    assert numpy.all(diff.nucleotides == ['a', 'a', 'a', 'a', 'c', 'c', 'c', 'c', 'g', 'g', 'g', 'g', 'g', 'g'])
+    assert numpy.all(diff.mutations == ['X1K', 'X2K', 'T3T', 't9c', 'R4P', 'C5P', 'Z7G', 'Z8G', 'Z9G', 'x-2a'])
+    assert numpy.all(diff.ref_nucleotides == ['aax', 'xxa', 'act', 't', 'cgc', 'tgc', 'zgz', 'gzz', 'zzg', 'x'])
+    assert numpy.all(diff.amino_acid_number == [1, 2, 3, None, 4, 5, 7, 8, 9, None])
+
 
 def test_valid_variant():
     #Test if the Gene.valid_variant() works
