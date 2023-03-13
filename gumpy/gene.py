@@ -298,6 +298,7 @@ class Gene(object):
         self.is_promoter = self.__duplicate_index(index, self.is_promoter)
         self.is_indel = self.__duplicate_index(index, self.is_indel)
         self.indel_length = self.__duplicate_index(index, self.indel_length)
+        self.indel_index = self.__duplicate_index(index, self.indel_index)
         self.indel_nucleotides = self.__duplicate_index(index, self.indel_nucleotides)
 
     def __duplicate_index(self, index: int, array: numpy.array) -> numpy.array:
