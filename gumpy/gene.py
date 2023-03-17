@@ -14,7 +14,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None):
+    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None, minority_populations: list=None):
         '''Constructor for the Gene object.
 
         Args:
@@ -31,6 +31,7 @@ class Gene(object):
             codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
+            minority_populations ([int, str, str|(str,str), int, float], optional): List of minor populations. Each minor population is defined as [position, type, bases - either str or tuple of (ref, alt), depth supporting this, fractional read support]
         '''
         #Using [] as a default value is dangerous, so convert from None
         if ribosomal_shifts is None:
@@ -59,25 +60,26 @@ class Gene(object):
         if len(ribosomal_shifts)>0:
             assert all([isinstance(i,int) for i in ribosomal_shifts])
 
-        assert len(nucleotide_index)==len(nucleotide_sequence), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(nucleotide_number), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(is_cds), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(is_promoter), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(is_indel), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(indel_length), 'all inputs arrays must be the same length!'
-        assert len(nucleotide_index)==len(indel_nucleotides), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(nucleotide_sequence), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(nucleotide_number), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(is_cds), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(is_promoter), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(is_indel), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(indel_length), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(indel_nucleotides), 'all inputs arrays must be the same length!'
 
-        nucleotide_sequence=numpy.char.lower(nucleotide_sequence)
+        nucleotide_sequence = numpy.char.lower(nucleotide_sequence)
         assert numpy.count_nonzero(numpy.isin(nucleotide_sequence,['a','t','c','g','x','z','o']))==len(nucleotide_sequence), name+": sequence can only contain a,t,c,g,z,x"
 
-        self.nucleotide_sequence=nucleotide_sequence
-        self.nucleotide_index=nucleotide_index
-        self.nucleotide_number=nucleotide_number
-        self.is_cds=is_cds
-        self.is_promoter=is_promoter
-        self.is_indel=is_indel
-        self.indel_nucleotides=indel_nucleotides
-        self.indel_length=indel_length
+        self.nucleotide_sequence = nucleotide_sequence
+        self.nucleotide_index = nucleotide_index
+        self.nucleotide_number = nucleotide_number
+        self.is_cds = is_cds
+        self.is_promoter = is_promoter
+        self.is_indel = is_indel
+        self.indel_nucleotides = indel_nucleotides
+        self.indel_length = indel_length
+        self.minority_populations = [] if minority_populations is None else minority_populations
 
         #As revcomp changes some of the positions for indels, track separately
         # so we can track the genome position they came from
@@ -105,12 +107,119 @@ class Gene(object):
             else:
                 self.gene_position=self.nucleotide_number
 
-        self.total_number_nucleotides=len(nucleotide_sequence)
+        self.total_number_nucleotides = len(nucleotide_sequence)
 
         if self.codes_protein:
             self._setup_conversion_dicts()
             self._translate_sequence()
+        
+        self._convert_minority_populations()
     
+    def _convert_minority_populations(self) -> None:
+        '''Convert the minority population details to gene indices + revcomp as req
+        '''
+        fixed = []
+        for pop in self.minority_populations:
+            #Update genome index to gene index
+            pos = pop[0]
+            pos = self.nucleotide_number[self.nucleotide_index == pos][0]
+            type_ = pop[1]
+            bases = pop[2]
+
+            if self.reverse_complement:
+                #Is revcomp so update bases to reflect this
+                if type_ in ['ref', 'snp']:
+                    ref, alt = self._complement(bases)
+                    bases = (ref, alt)
+                else:
+                    #Is an indel so a little more complex
+                    bases = ''.join(self._complement(bases))[::-1]
+                    if type_ == "del":
+                        pos = pos - len(bases) + 1
+            fixed.append([pos, type_, bases, pop[3], pop[4]])
+        self.minority_populations = sorted(fixed, key= lambda x: x[0])
+
+    def minority_populations_GARC(self, interpretation: str='reads', reference=None) -> [str]:
+        '''Fetch the mutations caused by minority populations in GARC
+
+        Args:
+            interpretation (str, optional): Which way to interpret the coverage calls. 'reads' gives absolute read coverage. 'percentage' gives fractional read support. Defaults to 'reads'.
+            reference (gumpy.Gene, optional): The reference to denote mutations from. Defaults to self.
+
+        Returns:
+            [str]: List of mutations in GARC
+        '''
+
+        #Depending on interpretation requested, we either want [3] or [4]
+        if interpretation == "percentage":
+            coverage = 4
+        else:
+            coverage = 3
+        
+        #Make sure we have a reference to compare against
+        if reference is None:
+            reference = self
+        else:
+            assert len(reference.minority_populations) == 0, "Minority populations can only be compared when 1 Gene does not have them!"
+
+        #Copy the codons to allow minor changes
+        minor_codons = copy.deepcopy(self.codons)
+        #Set an arbitrarily high default coverage (we care about smallest available)
+        codon_cov = [9999999 for i in minor_codons]
+        mutations = []
+        for population in self.minority_populations:
+            pos = population[0]
+            type_ = population[1]
+            bases = population[2]
+            cov = population[coverage]
+            if type_ in ['ins', 'del']:
+                #Indels don't need any special treatment
+                mutations.append(f"{self.name}@{pos}_{type_}_{bases}:{cov}")
+            else:
+                #Check for coding as those need extra support
+                if self.codes_protein and pos > 0:
+                    #Find the codon and change the right nucleotide
+                    codon_idx = self.codon_number[self.codon_number == (pos+2)//3][0] - 1
+                    codon = list(minor_codons[codon_idx])
+                    #Index within the codon
+                    p = (pos % 3) - 1
+                    #Update codon
+                    codon[p] = bases[1]
+                    codon = ''.join(codon)
+                    minor_codons[codon_idx] = codon
+
+                    #Update codon cov as req
+                    if codon_cov[codon_idx] > cov:
+                        codon_cov[codon_idx] = cov
+                else:
+                    #Not coding, so just SNPs
+                    ref = reference.nucleotide_sequence[reference.nucelotide_number == pos][0]
+                    mutations.append(f"{self.name}@{ref}{pos}{bases[1]}:{cov}")
+        
+        #Now check for codon changes
+        for (i, (minor, original)) in enumerate(zip(minor_codons, self.codons)):
+            if minor != original:
+                #We have a minor AA change!
+                #Check to make sure this is also different from the reference
+                ref_codon = reference.codons[i]
+                if minor != ref_codon:
+                    minor_aa = self.codon_to_amino_acid[minor]
+                    original_aa = reference.codon_to_amino_acid[ref_codon]
+
+                    if original_aa == minor_aa:
+                        #Synonymous so find nucleotide changes and form a multi
+                        synon = f"{self.name}@{i+1}=:{codon_cov[i]}"
+                        for j, (ref, alt) in enumerate(zip(ref_codon, minor)):
+                            if ref != alt:
+                                synon += f"&{self.name}@{ref}{i * 3 + 1 + j}{alt}:{codon_cov[i]}"
+                        mutations.append(synon)
+                    else:
+                        #Non-synonymous
+                        mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
+        return sorted(mutations)
+
+
+        
     def __revcomp_indel(self) -> None:
         '''Make some adjustments for deletions within revcomp genes
         The largest of which is that the gene position of the deletion needs adjusting for revcomp
@@ -165,7 +274,7 @@ class Gene(object):
         self.indel_index = fixed_indel_index
                 
 
-    def __duplicate(self, index):
+    def __duplicate(self, index: int):
         '''Duplicate all indices of important arrays to add the ribosomal shift
 
         Args:
@@ -189,9 +298,10 @@ class Gene(object):
         self.is_promoter = self.__duplicate_index(index, self.is_promoter)
         self.is_indel = self.__duplicate_index(index, self.is_indel)
         self.indel_length = self.__duplicate_index(index, self.indel_length)
+        self.indel_index = self.__duplicate_index(index, self.indel_index)
         self.indel_nucleotides = self.__duplicate_index(index, self.indel_nucleotides)
 
-    def __duplicate_index(self, index, array):
+    def __duplicate_index(self, index: int, array: numpy.array) -> numpy.array:
         '''Duplicates an element at a given index and returns the new array
 
         Args:
@@ -204,7 +314,7 @@ class Gene(object):
         second_half = [array[i] for i in range(index, len(array))]
         return numpy.array(first_half + [array[index]] + second_half)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         '''Overloading the equality operator to provide a method for determining if two genes
             are the same
 
@@ -235,19 +345,27 @@ class Gene(object):
         return check
 
     @staticmethod
-    def _complement(nucleotides_array):
+    def _complement(nucleotides_array: [str]) -> numpy.array:
         """Simple private method for returning the complement of an array of bases.
 
         Note that takes account of HET and NULL calls via z and x, respectively
+
+        Args:
+            nucleotides_array (Iterable(str)): Some iterable of nucleotide bases. Usually a numpy.array or list
+        
+        Returns:
+            numpy.array: Array of complemented bases
         """
 
         complementary_bases = {'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'x':'x', 'z':'z', 'o':'o', 'n':'n', 'r':'y', 'y':'r', 's':'w', 'w':'s'}
 
         complement=[complementary_bases[i] for i in nucleotides_array]
 
-        return(numpy.array(complement))
+        return numpy.array(complement)
 
     def _translate_sequence(self):
+        '''Translate the coding sequence into amino acids
+        '''
 
         # this will ensure that only amino acids with all three bases present
         unique,counts=numpy.unique(self.codon_number,return_counts=True)
@@ -267,7 +385,8 @@ class Gene(object):
         self.amino_acid_sequence=numpy.array([self.codon_to_amino_acid[i] for i in self.codons])
 
     def _setup_conversion_dicts(self):
-
+        '''Create the conversion dictionary for converting codon -> amino acid
+        '''
         bases = ['t', 'c', 'a', 'g', 'x', 'z', 'o']
         # aminoacids = 'FFLLXZSSSSXZYY!!XZCC!WXZXXXXXXZZZZXZLLLLXZPPPPXZHHQQXZRRRRXZXXXXXXZZZZXZIIIMXZTTTTXZNNKKXZSSRRXZXXXXXXZZZZXZVVVVXZAAAAXZDDEEXZGGGGXZXXXXXXZZZZXZXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZZZZZXZZZZZXZZZZZXZXXXXXXZZZZXZ'
         # aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXOZZZZXZOOOOOOOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXOZZZZXZOOOOOOOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXOZZZZXZOOOOOOOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXOZZZZXZOOOOOOOOXXXXXXOXXXXXXOXXXXXXOXXXXXXOXXXXXXOXXXXXXOOOOOOOOZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXOZZZZXZOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO'
@@ -276,7 +395,7 @@ class Gene(object):
         self.codon_to_amino_acid = dict(zip(all_codons, aminoacids))
         # self.amino_acids_of_codons=numpy.array([self.codon_to_amino_acid[i] for i in all_codons])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         '''Overload the print function to write a summary of the Gene.
 
         Returns:
@@ -311,18 +430,18 @@ class Gene(object):
         if output.strip()=="":
             output=None
 
-        return(output)
+        return output
 
-    def __len__(self):
+    def __len__(self) -> int:
         '''Return the number of nucleotides in the coding region (i.e. ignoring any assumed promoter)
 
         Returns:
             int
         '''
 
-        return(len(self.nucleotide_sequence[self.is_cds]))
+        return len(self.nucleotide_sequence[self.is_cds])
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> GeneDifference:
         '''Generate a GeneDifference object for an in-depth examination of the difference between two genes.
 
         Args:
@@ -336,7 +455,7 @@ class Gene(object):
 
         return GeneDifference(self, other)
 
-    def valid_variant(self, variant):
+    def valid_variant(self, variant: str) -> bool:
         '''Determines if a given variant is valid for this gene
 
         Args:

@@ -1,4 +1,5 @@
 import copy
+import gzip
 import os
 
 import gumpy
@@ -36,8 +37,8 @@ def test_genome_functions():
 
     #Ensure that adding verbose arg to constructor doesn't change object's value
     #It should add values to the timings dict, but this is unimportant to the values so is not checked in the __eq__
-    g2 = gumpy.Genome("config/TEST-DNA.gbk", verbose=True)
-    assert g1 == g2
+    g3 = gumpy.Genome("config/TEST-DNA.gbk", verbose=True)
+    assert g1 == g3
 
     #Ensure that the saves directory exists
     if not os.path.exists('tests/saves'):
@@ -76,9 +77,43 @@ def test_genome_functions():
     with open("tests/saves/TEST-DNA.fasta") as f:
         data = [line.replace("\n", "") for line in f]
         header = data[0]
-        data = ''.join(data[1::]).lower()
+        data = ''.join(data[1::])
     assert header == ">TEST_DNA|TEST_DNA.1|TEST_DNA, complete genome"
-    assert data == "aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc"
+    assert data == "aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc".upper()
+
+    #Try again with compression
+    g1.save_fasta("tests/saves/TEST-DNA.fasta", fixed_length=True, compression=True)
+    #Reload FASTA
+    with gzip.open("tests/saves/TEST-DNA.fasta.gz", 'rt') as f:
+        data = [line.replace("\n", "") for line in f]
+        header = data[0]
+        data = ''.join(data[1::])
+    assert header == ">TEST_DNA|TEST_DNA.1|TEST_DNA, complete genome"
+    assert data == "aaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc".upper()
+
+    #Again with other args
+    g2.save_fasta("tests/saves/TEST-DNA.fasta", fixed_length=True, nucleotides_uppercase=False, description="test description", nucleotide_index_range=(5,10))
+    #Reload FASTA
+    with open("tests/saves/TEST-DNA.fasta") as f:
+        data = [line.replace("\n", "") for line in f]
+        header = data[0]
+        data = ''.join(data[1::])
+    assert header == ">test description"
+    assert data == "aaaaataaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc"[4:9]
+
+    g2.save_fasta("tests/saves/TEST-DNA.fasta", fixed_length=False, nucleotides_uppercase=False, description="test description", nucleotide_index_range=(5,12))
+    #Reload FASTA
+    with open("tests/saves/TEST-DNA.fasta") as f:
+        data = [line.replace("\n", "") for line in f]
+        header = data[0]
+        data = ''.join(data[1::])
+    assert header == ">test description"
+    assert data == "ataccaaa"
+
+
+    with pytest.raises(Exception):
+        g1.save_fasta("tests/save/TEST-DNA.fasta", fixed_length=True, overwrite_existing=False)
+
 
     #Len
     assert g1.length == len(g1)
@@ -216,6 +251,18 @@ def test_apply_vcf():
     assert numpy.any(nucleotide_changes)
     assert numpy.all(index_changes)
 
+    #Checking for gene level mutations
+    b1 = g1.build_gene("B")
+    b2 = g2.build_gene("B")
+
+    diff = b1 - b2
+    expected = ['G1Z', 'F4L', '6_ins_tt', '10_del_t', '12_ins_g']
+    assert diff.mutations.tolist() == expected
+
+    diff = b2 - b1
+    expected = ['Z1G', 'L4F', '6_del_tt', '10_ins_t', '12_del_g']
+    assert diff.mutations.tolist() == expected
+
 def check_eq(arr1, arr2, check):
     '''Recursive helper function to determine if 2 arrays are equal.
     Checks all sub-arrays (if exist). Will work with list, tuple, dict and numpy.array
@@ -273,7 +320,7 @@ def test_genome_difference():
     assert numpy.all(diff.indel_nucleotides[diff.is_indel]==numpy.array(['tt','t','g','ca','a']))
 
     #Change the view and test all outputs
-    diff.update_view("full",'genome')
+    diff.update_view("full")
     assert numpy.all(diff.nucleotides == numpy.array([['a', 'x'],
        ['a', 'x'],
        ['a', 'x'],
@@ -299,7 +346,7 @@ def test_genome_difference():
 def test_vcf_genetic_variation():
     #Testing the VCFFile objects' difference()
     g1 = gumpy.Genome("config/TEST-DNA.gbk")
-    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf", bypass_reference_calls=True)
 
     # checking the variant masks
     assert numpy.all(vcf.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g',
@@ -323,7 +370,7 @@ def test_vcf_genetic_variation():
             (1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (0, 50), (0, 2, 43), (0, 68, 8), (0, 68, 8), (1, 99, 100, 2),
             (99, 1, 100, 2), (0, 48, 50, 2), (0, 48, 50, 2), (0, 48, 2, 50), (0, 48, 2, 50), (1, 199), (1, 199), (1, 199), (1, 199), (1, 199),
             (1, 198, 1)
-        ]),
+        ], dtype=object),
         'GT_CONF': numpy.array([
             2.05, 2.76, 2.76, 2.76, 200.58, 155.58, 300.25, 300.25, 613.77, 613.77, 475.54, 475.54, 315.11, 315.11, 145.21, 145.21, 145.21,
             145.21, 145.21, 145.21
@@ -374,6 +421,35 @@ def test_vcf_genetic_variation():
 
         elif gene_name=='C':
             assert len(g_diff.mutations)==0
+    
+    g3 = g1 + vcf
+    del g3.genes['A']
+
+    with pytest.warns(UserWarning):
+        diff = g1 - g3
+    with pytest.warns(UserWarning):
+        diff = g3 - g1
+    
+    gene1 = g1.build_gene("A")
+
+    gene2 = g1.build_gene("A")
+    gene2.total_number_nucleotides = 76
+
+    with pytest.raises(gumpy.FailedComparison):
+        gene1 - gene2
+
+    gene3 = g1.build_gene("A")
+    gene3.name = "N"
+    with pytest.warns(UserWarning):
+        gene1 - gene3
+
+    gene4 = g1.build_gene("A")
+    gene4.codes_protein = False
+    with pytest.raises(gumpy.FailedComparison):
+        gene1 - gene4
+    
+
+
             
 
 def test_gene_difference():
@@ -399,6 +475,15 @@ def test_gene_difference():
     assert numpy.all(diff.mutations == ['K1X', 'K2X', 'T3T', 'c9t', 'P4R', 'P5C', 'G7Z', 'G8Z', 'G9Z', 'a-2x'])
     assert numpy.all(diff.ref_nucleotides == ['aaa', 'aaa', 'acc', 'c', 'ccc', 'ccc', 'ggg', 'ggg', 'ggg', 'a'])
     assert numpy.all(diff.amino_acid_number == [1, 2, 3, None, 4, 5, 7, 8, 9, None])
+
+    #Try the other way around too, just to check that logic works too
+    diff = g2 - g1
+    assert isinstance(diff, gumpy.GeneDifference)
+    assert numpy.all(diff.nucleotides == ['a', 'a', 'a', 'a', 'c', 'c', 'c', 'c', 'g', 'g', 'g', 'g', 'g', 'g'])
+    assert numpy.all(diff.mutations == ['X1K', 'X2K', 'T3T', 't9c', 'R4P', 'C5P', 'Z7G', 'Z8G', 'Z9G', 'x-2a'])
+    assert numpy.all(diff.ref_nucleotides == ['aax', 'xxa', 'act', 't', 'cgc', 'tgc', 'zgz', 'gzz', 'zzg', 'x'])
+    assert numpy.all(diff.amino_acid_number == [1, 2, 3, None, 4, 5, 7, 8, 9, None])
+
 
 def test_valid_variant():
     #Test if the Gene.valid_variant() works
@@ -477,7 +562,7 @@ def test_valid_variant():
     assert_throws("@")
 
 def test_vcf_to_df():
-    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf", bypass_reference_calls=True)
 
     df = vcf.to_df()
     assert df.attrs == {

@@ -6,6 +6,8 @@ Abstract classes:
 Classes:
     GenomeDifference
     GeneDifference
+Exceptions:
+    FailedComparison
 Functions:
     convert_nucleotides_codons(numpy.array) -> numpy.array: Converts an array of nucleotides to an array of codons.
     setup_codon_aa_dict() -> dict: Returns a dictionary mapping codon->amino_acid
@@ -19,6 +21,17 @@ import numpy
 
 import gumpy
 
+class FailedComparison(Exception):
+    '''Exception to be raised in cases of a failed comparion
+    '''
+    def __init__(self, message: str):
+        '''Constructor
+
+        Args:
+            message (str): Error message
+        '''
+        self.message = message
+        super().__init__(self.message)
 
 class Difference(ABC):
     '''
@@ -26,13 +39,12 @@ class Difference(ABC):
 
     This should not be instantiated.
     '''
+    #Give some default values to appease the linter
+    _nucleotides_full = numpy.array([])
+    codes_protein = None
+    _indels_full = numpy.array([])
 
-    def __init__(self):
-        '''If this class is instantiated, crash
-        '''
-        assert False, "This class should not be instantiated!"
-
-    def update_view(self, method, object_type):
+    def update_view(self, method: str):
         '''Update the viewing method. Can either be `diff` or `full`:
         `diff`: Where applicable, variables return arrays of values from object1 where they are not equal to object 2
         `full`: Where applicable, variables return arrays of tuples showing (object1_val, object2_val) where values are not equal between objects.
@@ -44,28 +56,14 @@ class Difference(ABC):
         assert method in ['diff', 'full'], "Invalid method: "+method
 
         if method == "full":
-            # self.indels = self._indels_full
-            # if object_type=='gene' and self.codes_protein:
-            if isinstance(self, GeneDifference):
-                if self.codes_protein:
-                    self.amino_acid_sequence = self._amino_acids_full
-                else:
-                    self.nucleotides=self._nucleotides_full
-            else:
-                self.nucleotides=self._nucleotides_full
+            self.nucleotides=self._nucleotides_full
 
         if method == "diff":
             #Convert the full arrays into diff arrays
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)
-            # self.indels = self.__full_to_diff(self._indels_full)
-            # if object_type=='gene' and  self.codes_protein:
-            if isinstance(self, GeneDifference) and self.codes_protein:
-                #Gene specific attributes
-                # self.codons = self.__full_to_diff(self._codons_full)
-                self.amino_acid_sequence = self.__full_to_diff(self._amino_acids_full, amino_acid=True)
         self._view_method = method
 
-    def __check_none(self, arr, check):
+    def __check_none(self, arr: [], check: bool) -> bool:
         '''Recursive function to determine if a given array is all None values.
         Due to the shape of some arrays, implicit equality checking causes warnings
 
@@ -85,7 +83,7 @@ class Difference(ABC):
                 check = check and (elem is None)
         return check
 
-    def __check_any(self, arr1, arr2, check):
+    def __check_any(self, arr1: [], arr2: [], check: bool) -> bool:
         '''Recursive function to determine if given arrays are the different at any point.
         Required due to implicit equality of weird shape arrays causing warnings
 
@@ -108,7 +106,7 @@ class Difference(ABC):
                 check = check or (e1 != e2)
         return check
 
-    def __full_to_diff(self, array, amino_acid=False):
+    def __full_to_diff(self, array: numpy.array, amino_acid: bool=False) -> numpy.array:
         '''Convert an array from a full view to a diff view
 
         Args:
@@ -151,15 +149,16 @@ class GenomeDifference(Difference):
         snp_distance (int): SNP distance between the two genomes
         indices (numpy.array): Array of genome indices where the two genomes differ in nucleotides
         nucleotides (numpy.array): Array of differences in nucleotides. Format depends on the current view.
-        indel_indices (numpy.array): Array of indices where the two genomes have indels
         indels (numpy.array): Array of differences in inels. Format depends on the current view.
     Functions:
         variants(int) -> dict: Takes a genome index and returns a dictionary mapping field->(genome1_val, genome2_val) for all fields
                                 of a vcf file (if applicable)
         gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects
+        minor_populations() -> [str]: Returns a list of minor population mutations in GARC
     Inherited functions:
         update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
+
     def __init__(self, genome1, genome2):
         '''
         Constructor for the GenomeDifference object.
@@ -196,9 +195,20 @@ class GenomeDifference(Difference):
         if self.genome1.genes.keys() != self.genome2.genes.keys():
             self.__raise_mutations_warning(self.genome1, self.genome2)
 
-        self.update_view(self._view_method,'gene')
+        self.update_view(self._view_method)
+    
+    def minor_populations(self, interpretation: str='reads') -> [str]:
+        '''Get the minor population mutations in GARC
 
-    def __snp_distance(self):
+        Args:
+            interpretation (str, optional): How to report minor population. 'reads' reports number of reads. 'percentage' reports fractional read support. Defaults to 'reads'.
+
+        Returns:
+            [str]: List of mutations in GARC
+        '''
+        return self.genome1.minority_populations_GARC(interpretation=interpretation, reference=self.genome2)
+
+    def __snp_distance(self) -> int:
         '''Calculates the SNP distance between the two genomes
 
         Returns:
@@ -208,6 +218,8 @@ class GenomeDifference(Difference):
         return sum([1 for (base1, base2) in zip(self.genome1.nucleotide_sequence, self.genome2.nucleotide_sequence) if base1 != base2 and base1 in ['a','t','c','g'] and base2 in ['a','t','c','g']])
 
     def __get_variants(self):
+        '''Get the variants between the two genomes, populating the internal arrays
+        '''
 
         variants=[]
         indices=[]
@@ -246,6 +258,7 @@ class GenomeDifference(Difference):
                 is_snp.append(True)
                 is_null.append(False)
 
+
         # INDELs are trickier: we have to deal with the case where both genomes have an indel at the same position
         # if they are different we catch fire since that is too difficult to parse right now
         # if they are the same, then there is no difference
@@ -274,6 +287,7 @@ class GenomeDifference(Difference):
             else:
                 variants.append(str(idx)+'_del_'+str(alt))
 
+
         # if the indel is on the LHS, then it is unchanged, then it needs 'reversing' since we are returning how to get to the RHS from the LHS hence we delete an insertion etc
         mask = self.genome1.is_indel & (self.genome1.indel_nucleotides!=self.genome2.indel_nucleotides)
 
@@ -300,30 +314,13 @@ class GenomeDifference(Difference):
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
 
-    def __nucleotides(self):
+    def __nucleotides(self) -> numpy.array:
         '''Calculate the difference in nucleotides
         Returns:
             numpy.array: Numpy array of tuples of (genome1_nucleotide, genome2_nucleotide)
         '''
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
         return numpy.array(list(zip(self.genome1.nucleotide_sequence[mask], self.genome2.nucleotide_sequence[mask])))
-
-    def __indels(self):
-        '''Find the indels for both genomes and report where they are different
-        Returns:
-            numpy.array: Array of tuples showing (indel1, indel2), if an indel is given as None, it did not exist in the genome
-        '''
-        #Find the indels for both genomes
-        #As Genome.indels defaults to None if a VCF has not been applied, checks are required
-        if self.genome1.indels is None and self.genome2.indels is None:
-            return numpy.array([])
-        elif self.genome1.indels is None:
-            return numpy.array([(None, indel) for indel in self.genome2.indels.values()], dtype=object)
-        elif self.genome2.indels is None:
-            return numpy.array([(indel, None) for indel in self.genome1.indels.values()], dtype=object)
-        else:
-            #This function is never called, but if in future it is, this line needs attention (self.indel_indicies doesn't exist)
-            return numpy.array([(self.genome1.indels.get(index), self.genome2.indels.get(index)) for index in self.indel_indices])
 
     def __raise_mutations_warning(self, reference, mutant):
         '''Give a warning to the user that the genes within the two genomes are different.
@@ -362,7 +359,6 @@ class GeneDifference(Difference):
         gene2 (gumpy.Gene): Gene object 2
         nucleotides (numpy.array): Array of the nucleotides at which the genes differ. Format depends on the current view.
         mutations (numpy.array): Array of mutations in GARC between the two Gene objects.
-        indel_indices (numpy.array): Array of nucleotide numbers where the indel lengths in the two genes differ.
         indels (numpy.array): Array of indel lengths where the indel lengths differ. Format depends on the current view.
         codons (numpy.array): Array of codons where the two Gene objects have different codons. Format depends on the current view.
         amino_acid_sequence (numpy.array): Array of amino acids where the two Gene objects have different amino acids. Format depends on the current view.
@@ -372,6 +368,7 @@ class GeneDifference(Difference):
                                             within the codons for this amino acid index. If these genes do not code protien, returns {}
         nucleotide_variants(int) -> dict: Takes a nucleotide index and returns a dictionary containing data from a vcf
                                             file (if applicable) for attributes such as calls, ref, and alt at the given index
+        minor_populations() -> [str]: Returns a list of minor population mutations in GARC
     Inherited functions:
         update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
@@ -389,13 +386,11 @@ class GeneDifference(Difference):
 
         if gene1.total_number_nucleotides != gene2.total_number_nucleotides:
             #The lengths of the genes are different so comparing them is meaningless
-            warnings.warn("The two genes ("+gene1.name+" and "+gene2.name+") are different lengths, so comparision failed...", UserWarning)
-            return None
+            raise FailedComparison("The two genes ("+gene1.name+" and "+gene2.name+") are different lengths, so comparision failed...")
         if gene1.name != gene2.name:
             warnings.warn("The two genes given have different names ("+gene1.name+", "+gene2.name+") but the same length, continuing...", UserWarning)
         if gene1.codes_protein != gene2.codes_protein:
-            warnings.warn(f"The two genes given do not have the same protein coding for {gene1.name}: Gene1 = {gene1.codes_protein}, Gene2 = {gene2.codes_protein}, so comparison failed...", UserWarning)
-            return None
+            raise FailedComparison(f"The two genes given do not have the same protein coding for {gene1.name}: Gene1 = {gene1.codes_protein}, Gene2 = {gene2.codes_protein}, so comparison failed...")
         self.gene1 = gene1
         self.gene2 = gene2
         self.codes_protein=gene1.codes_protein
@@ -408,9 +403,20 @@ class GeneDifference(Difference):
         self._codons_full = self.__codons()
         self._amino_acids_full = self.__amino_acids()
 
-        self.update_view("diff", 'gene') #Use inherited method to set the view
+        self.update_view("diff") #Use inherited method to set the view
+    
+    def minor_populations(self, interpretation: str='reads') -> [str]:
+        '''Get the minor population mutations in GARC
 
-    def __nucleotides(self):
+        Args:
+            interpretation (str, optional): How to report minor population. 'reads' reports number of reads. 'percentage' reports fractional read support. Defaults to 'reads'.
+
+        Returns:
+            [str]: List of mutations in GARC
+        '''
+        return self.gene1.minority_populations_GARC(interpretation=interpretation, reference=self.gene2)
+
+    def __nucleotides(self) -> numpy.array:
         '''Find the differences in nucleotides
 
         Returns:
@@ -423,20 +429,9 @@ class GeneDifference(Difference):
                 if n1 != n2
             ])
 
-    def __mutations(self):
-        '''Generate the list of mutations between the two genes
-
-        Returns:
-            numpy.array: Array of mutations in GARC
-        '''
-        mutations = []
-        gene_mutation = self.gene2.list_mutations_wrt(self.gene1)
-        if gene_mutation is not None:
-            for mutation in gene_mutation:
-                mutations.append(self.gene1.name+"@"+mutation)
-        return numpy.array(sorted(mutations))
-
     def __get_mutations(self):
+        '''Get the mutations between the two genes, populating internal arrays
+        '''
 
         mutations=[]
         amino_acid_number=[]
@@ -667,18 +662,7 @@ class GeneDifference(Difference):
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
 
-    def __indels(self):
-        '''Find the lengths of the indels at each position where the two genes' indels differ
-
-        Returns:
-            numpy.array: Array of lengths of indels in the form [(gene1_indel, gene2_indel)]
-        '''
-        mask = self.gene1.indel_length != self.gene2.indel_length
-        return numpy.array([
-            (i1, i2)
-            for (i1, i2) in zip(self.gene1.indel_length[mask], self.gene2.indel_length[mask])
-        ])
-    def __codons(self):
+    def __codons(self) -> numpy.array:
         '''Find the codon positions which are different within the genes (within codon regions)
 
         Returns:
@@ -692,7 +676,7 @@ class GeneDifference(Difference):
         return numpy.array(list(zip(codons1, codons2)))
 
 
-    def __amino_acids(self):
+    def __amino_acids(self) -> numpy.array:
         '''Calculate the difference in amino acid sequences (within codon regions)
         Returns:
             numpy.array: Array of tuples showing (amino_acid_1, amino_acid_2)
@@ -723,7 +707,7 @@ class GeneDifference(Difference):
 '''
 Helper functions not specific to a class
 '''
-def convert_nucleotides_codons(nucleotides):
+def convert_nucleotides_codons(nucleotides: numpy.array) -> numpy.array:
     '''Helper function to convert an array of nucleotides into an array of codons
 
     Args:
@@ -742,7 +726,7 @@ def convert_nucleotides_codons(nucleotides):
             c = ""
     return numpy.array(codons)
 
-def setup_codon_aa_dict():
+def setup_codon_aa_dict() -> {str: str}:
     '''Setup a conversion dictionary to convert codons to amino acids
 
     Returns:
@@ -754,21 +738,3 @@ def setup_codon_aa_dict():
     aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXXZZZZXZOOOOOXOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXXZZZZXZOOOOOXOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXXZZZZXZOOOOOXOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXXZZZZXZOOOOOXOOXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXXZZZZXZOOOOOXOOOOOOXOOOOOOXOOOOOOXOOOOOOXOOXXXXXXXOOOOXOOOOOOXOO'
     all_codons = [a+b+c for a in bases for b in bases for c in bases]
     return dict(zip(all_codons, aminoacids))
-
-def collapse_inner_dict(dict_):
-    '''Takes a dict which also contains 1 or more internal dictionaries
-    Converts to a single 1D dictionary, ignoring key clashes
-
-    Args:
-        dict_ (dict): Dictionary to collapse
-    Returns:
-        dict: Collapsed dict
-    '''
-    fixed = {}
-    for key in dict_.keys():
-        if isinstance(dict_[key], dict):
-            #Dict so unpack
-            fixed = {**fixed, **dict_[key]}
-        else:
-            fixed[key] = dict_[key]
-    return fixed

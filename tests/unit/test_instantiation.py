@@ -17,6 +17,9 @@ def test_instanciate_tb():
     assert tb_reference.name=='NC_000962'
     assert tb_reference.id=='NC_000962.3'
 
+    expected = ['NC_000962', 'NC_000962.3', 'Mycobacterium tuberculosis H37Rv, complete genome', '4411532 bases', 'ttgacc...acgtcg', 'the following 5 genes have been included: katG, rpoB, pncA, Rv2042c, rrs, ']
+    assert str(tb_reference).split("\n") == expected
+
     # check to see if the stacking can cope with two genes overlapping
     mask=tb_reference.stacked_nucleotide_index==2288681
     assert set(tb_reference.stacked_gene_name[mask]) == {'pncA','Rv2042c'}, 'stacking failing at 2288681 in H37rV v3'
@@ -84,6 +87,10 @@ def test_instanciate_tb():
             assert ''.join(i for i in nuc_sequence) == truth_gene_sequence[gene_name], gene_name+' nucleotide sequence incorrect!'
         else:
             assert ''.join(i for i in gene.amino_acid_sequence) == truth_gene_sequence[gene_name], gene_name+' amino acid sequence incorrect!'
+
+    tb_reference = gumpy.Genome('config/NC_000962.3.gbk.gz',gene_subset=['PE_PGRS38', 'rplU', 'moaR1', 'phoH1', 'Rv0885', 'Rv1276c', 'ppa', 'ctpE', 'eccC2', 'sdhC', 'Rv0203'])
+    expected = ['NC_000962', 'NC_000962.3', 'Mycobacterium tuberculosis H37Rv, complete genome', '4411532 bases', 'ttgacc...acgtcg', '11 gene/loci have been included.']
+    assert str(tb_reference).split("\n") == expected
 
 def test_instanciate_genome_covid():
 
@@ -558,7 +565,7 @@ def test_instanciate_vcf():
 
 
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf",
-                            ignore_filter=True,format_fields_min_thresholds={'GT_CONF':0})
+                            ignore_filter=True, format_fields_min_thresholds={'GT_CONF':0}, bypass_reference_calls=True)
 
     #Testing some populated items for the object
     assert vcf.vcf_version == (4, 2)
@@ -720,7 +727,7 @@ def test_instanciate_vcf():
                                 145.21, 145.21, 145.21, 145.21, 145.21])
 
     #Quick test for VCFRecord.__repr__()
-    assert vcf.records[0].__repr__() == "TEST_DNA\t2\ta\t('g',)\tNone\tPASS\tGT:DP:COV:GT_CONF\t(None, None):2:(1, 1):2.05\n"
+    assert vcf.records[0].__repr__() == "TEST_DNA\t2\ta\t('g',)\t.\tPASS\tGT:DP:COV:GT_CONF\t(None, None):2:(1, 1):2.05\n"
 
     #Quick test for vcf.__repr__()
     rep = [line.replace("\n","") for line in str(vcf).split("\n") if line.replace("\n","").strip() != ""]
@@ -752,19 +759,13 @@ def test_instanciate_vcf():
 
 def test_instanciate_vcf_tb():
 
-    vcf=gumpy.VCFFile('tests/test-cases/05.vcf')
+    vcf=gumpy.VCFFile('tests/test-cases/05.vcf', bypass_reference_calls=True)
 
     # have checked that 761110a>t is correct since it is a complex row with lots of ALT pairs all 29 bases long at 761094 but the 40th one is only different by a single base
     # also checked that 2155168c>g is correct -- this is a 2/2
     assert numpy.all(vcf.variants[vcf.is_snp] == numpy.array(['7362g>c', '9304g>a', '761110a>t', '763031t>c', '2154724c>a', '2155168c>g']))
 
     assert vcf.snp_distance==6
-
-def test_instanciate_difference():
-
-    # check that we cannot directly instantiate the Difference class
-    with pytest.raises(Exception) as e_info:
-        gumpy.difference.Difference()
 
 def test_instanciate_genome_difference():
 

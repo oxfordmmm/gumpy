@@ -113,3 +113,6 @@ bin/sequence.*
 *.json
 *.json.gz
 tests/saves/*
+*.pkl
+*.pkl.gz
+*.pickle
