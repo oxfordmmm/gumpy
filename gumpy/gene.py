@@ -162,10 +162,11 @@ class Gene(object):
         else:
             assert len(reference.minority_populations) == 0, "Minority populations can only be compared when 1 Gene does not have them!"
 
-        #Copy the codons to allow minor changes
-        minor_codons = copy.deepcopy(self.codons)
-        #Set an arbitrarily high default coverage (we care about smallest available)
-        codon_cov = [9999999 for i in minor_codons]
+        if self.codes_protein:
+            #Copy the codons to allow minor changes
+            minor_codons = copy.deepcopy(self.codons)
+            #Set an arbitrarily high default coverage (we care about smallest available)
+            codon_cov = [9999999 for i in minor_codons]
         mutations = []
         for population in self.minority_populations:
             pos = population[0]
@@ -193,29 +194,30 @@ class Gene(object):
                         codon_cov[codon_idx] = cov
                 else:
                     #Not coding, so just SNPs
-                    ref = reference.nucleotide_sequence[reference.nucelotide_number == pos][0]
+                    ref = reference.nucleotide_sequence[reference.nucleotide_number == pos][0]
                     mutations.append(f"{self.name}@{ref}{pos}{bases[1]}:{cov}")
         
-        #Now check for codon changes
-        for (i, (minor, original)) in enumerate(zip(minor_codons, self.codons)):
-            if minor != original:
-                #We have a minor AA change!
-                #Check to make sure this is also different from the reference
-                ref_codon = reference.codons[i]
-                if minor != ref_codon:
-                    minor_aa = self.codon_to_amino_acid[minor]
-                    original_aa = reference.codon_to_amino_acid[ref_codon]
+        if self.codes_protein:
+            #Now check for codon changes
+            for (i, (minor, original)) in enumerate(zip(minor_codons, self.codons)):
+                if minor != original:
+                    #We have a minor AA change!
+                    #Check to make sure this is also different from the reference
+                    ref_codon = reference.codons[i]
+                    if minor != ref_codon:
+                        minor_aa = self.codon_to_amino_acid[minor]
+                        original_aa = reference.codon_to_amino_acid[ref_codon]
 
-                    if original_aa == minor_aa:
-                        #Synonymous so find nucleotide changes and form a multi
-                        synon = f"{self.name}@{i+1}=:{codon_cov[i]}"
-                        for j, (ref, alt) in enumerate(zip(ref_codon, minor)):
-                            if ref != alt:
-                                synon += f"&{self.name}@{ref}{i * 3 + 1 + j}{alt}:{codon_cov[i]}"
-                        mutations.append(synon)
-                    else:
-                        #Non-synonymous
-                        mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
+                        if original_aa == minor_aa:
+                            #Synonymous so find nucleotide changes and form a multi
+                            synon = f"{self.name}@{i+1}=:{codon_cov[i]}"
+                            for j, (ref, alt) in enumerate(zip(ref_codon, minor)):
+                                if ref != alt:
+                                    synon += f"&{self.name}@{ref}{i * 3 + 1 + j}{alt}:{codon_cov[i]}"
+                            mutations.append(synon)
+                        else:
+                            #Non-synonymous
+                            mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
         return sorted(mutations)
 
 
@@ -426,9 +428,6 @@ class Gene(object):
             with numpy.printoptions(threshold=string_length*2):
                 output += str(self.nucleotide_sequence[self.is_cds]) + "\n"
                 output += str(self.nucleotide_number[self.is_cds])
-
-        if output.strip()=="":
-            output=None
 
         return output
 
