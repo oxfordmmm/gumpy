@@ -123,12 +123,10 @@ def test_genome_functions():
     assert g1.contains_gene("Not_A_Gene") == False
     try:
         g1.contains_gene(None)
-        assert False
     except AssertionError as e:
         assert str(e) == "Gene name must be string. Gene name provided was of type: <class 'NoneType'>"
     try:
         g1.contains_gene(g1)
-        assert False
     except AssertionError as e:
         assert str(e) == "Gene name must be string. Gene name provided was of type: <class 'gumpy.genome.Genome'>"
 
@@ -146,17 +144,14 @@ def test_genome_functions():
 
     try:
         g1.at_index([])
-        assert False
     except AssertionError as e:
         assert str(e) == "index must be an integer!"
     try:
         g1.at_index(-1)
-        assert False
     except AssertionError as e:
         assert str(e) == "index must be a positive integer!"
     try:
         g1.at_index(1000)
-        assert False
     except AssertionError as e:
         assert str(e) == "index must be less than the length of the genome!"
 
@@ -484,6 +479,19 @@ def test_gene_difference():
     assert numpy.all(diff.ref_nucleotides == ['aax', 'xxa', 'act', 't', 'cgc', 'tgc', 'zgz', 'gzz', 'zzg', 'x'])
     assert numpy.all(diff.amino_acid_number == [1, 2, 3, None, 4, 5, 7, 8, 9, None])
 
+    #Checking for a non-coding gene (by hacking A to be non-coding)
+    genome1.genes['A']['codes_protein'] = False
+    genome2.genes['A']['codes_protein'] = False
+
+    g1 = genome1.build_gene("A")
+    g2 = genome2.build_gene("A")
+
+    diff = g1-g2
+    assert isinstance(diff, gumpy.GeneDifference)
+    assert numpy.all(diff.nucleotides == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z'])
+    assert numpy.all(sorted(diff.mutations) == sorted(['a-2x', 'a3x', 'a4x', 'a5x', 'c9t', 'c11g', 'c13t', 'c14g', 'g19z', 'g21z', 'g23z', 'g24z', 'g25z', 'g26z']))
+
+
 
 def test_valid_variant():
     #Test if the Gene.valid_variant() works
@@ -541,26 +549,23 @@ def test_valid_variant():
     assert not gene.valid_variant("a-2a")
     assert not gene.valid_variant("A@28_del_aaccggttaaccggtt")
 
-    def assert_throws(mutation):
-        check = True
-        try:
-            gene.valid_variant(mutation)
-            check = False
-        except AssertionError:
-            pass
-        finally:
-            if not check:
-                assert False, "Code did not throw expected AssertationError"
-
-    assert_throws(None)
-    assert_throws(0)
-    assert_throws("")
-    assert_throws("0")
-    assert_throws([1,2])
-    assert_throws(-10)
-    assert_throws(gumpy.Gene)
-    assert_throws("@")
-
+    with pytest.raises(AssertionError):
+        gene.valid_variant(None)
+    with pytest.raises(AssertionError):
+        gene.valid_variant(0)
+    with pytest.raises(AssertionError):
+        gene.valid_variant("")
+    with pytest.raises(AssertionError):
+        gene.valid_variant("0")
+    with pytest.raises(AssertionError):
+        gene.valid_variant([1,2])
+    with pytest.raises(AssertionError):
+        gene.valid_variant(-10)
+    with pytest.raises(AssertionError):
+        gene.valid_variant(gumpy.Gene)
+    with pytest.raises(AssertionError):
+        gene.valid_variant("@")
+        
 def test_vcf_to_df():
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf", bypass_reference_calls=True)
 
@@ -678,3 +683,50 @@ def test_simplify_calls():
 
     assert sorted(vcf._simplify_call("a", "gga")) == [(-1, "ins", "gg")]
     assert sorted(vcf._simplify_call("gga",'a')) == [(0, "del", "gg")]
+
+def test_misc():
+    '''Misc edge case testing
+    '''
+    ref = gumpy.Genome("config/TEST-DNA.gbk")
+
+    #We want to test some non-coding things here, so edit the values parsed
+    ref.genes["A"]["codes_protein"] = False
+    a = ref.build_gene("A")
+
+    expected = ['A gene', '30 nucleotides', "['a' 'a' 'a']", '[-3 -2 -1]', '[]', '[]']
+    assert str(a).split("\n") == expected
+
+    #Checking gene difference
+    a2 = copy.deepcopy(a)
+    a2.nucleotide_sequence[2] = 't'
+    diff = a - a2
+
+    #And again for genes with no promoter
+    a.is_promoter = numpy.array([False for i in a.nucleotide_sequence])
+    expected = ['A gene', '30 nucleotides', 'promoter likely in adjacent gene(s)', '[]', '[]']
+    assert str(a).split("\n") == expected
+
+    #Edge cases of indels within revcomp genes
+
+    #This VCF has 95_ins_aa and 97_del_ccc
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-3.vcf")
+    sample = ref + vcf
+
+    c = sample.build_gene("C")
+    ref_c = ref.build_gene("C")
+    diff = ref_c - c
+    assert sorted(diff.mutations) == sorted(['-3_del_gg', '2_ins_tt'])
+    
+    #Should be the same idea from the other perspective too
+    diff = c - ref_c
+    assert sorted(diff.mutations) == sorted(['-3_ins_gg', '2_del_tt'])
+
+    #Make sure gene diff can handle het calls in promoters in coding genes
+    ref.genes["A"]["codes_protein"] = True
+    a = ref.build_gene("A")
+    a2 = copy.deepcopy(a)
+    a2.nucleotide_sequence[0] = 'z'
+
+    diff = a - a2
+    assert diff.mutations == ['a-3z']
+

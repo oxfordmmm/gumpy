@@ -185,6 +185,19 @@ def test_get_minors():
                                                                                                     'gyrA@90=:0.098&gyrA@g270t:0.098',
                                                                                                     'gyrA@S91T:0.02'
                                                                                                 ])
+    
+    #Checking for non-coding versions too (but hack around to make it so gyrA doesn't code)
+    sample.genes['gyrA']['codes_protein'] = False
+    gyrA = sample.build_gene("gyrA")
+    assert sorted(gyrA.minority_populations_GARC()) == sorted([
+                                                        'gyrA@281_del_ac:10', 'gyrA@268_ins_gt:10',
+                                                        'gyrA@g270t:10', 'gyrA@g280t:10', 'gyrA@c284g:15',
+                                                        'gyrA@t271a:2', 'gyrA@t272c:10', 'gyrA@g273t:10'
+
+                                                ])
+    #Convert back to avoid problems
+    sample.genes['gyrA']['codes_protein'] = True
+    gyrA = sample.build_gene("gyrA")
 
     #Check GenomeDifference
     diff = sample - ref
@@ -197,5 +210,30 @@ def test_get_minors():
     assert geneDiff.minor_populations() == gyrA.minority_populations_GARC(reference=gyrA_ref)
     assert geneDiff.minor_populations(interpretation='percentage') == gyrA.minority_populations_GARC(reference=gyrA_ref, interpretation='percentage')
 
+    #Should complain as the sample already has minor populations
     with pytest.raises(Exception):
         sample + vcf
+
+    
+    #Checking revcomp minors - use a different VCF with katG mutations for this
+    #(tried hacking to make gyrA revcomp but this causes other issues as gene indices are already assigned)
+
+    vcf = gumpy.VCFFile(
+                        'tests/test-cases/minor-populations-revcomp.vcf',
+                        ignore_filter=True, 
+                        minor_population_indices=set(range(2154395, 2154410))
+        )
+    sample = ref + vcf
+
+    katG = sample.build_gene("katG")
+    assert sorted(katG.minority_populations_GARC()) == sorted([
+                                                                'katG@T572K:25', 'katG@1710_del_cc:25'
+                                                            ])
+
+    #Similarly, edge case of revcomp, non-coding (so hack katG to be non-coding)
+    sample.genes['katG']['codes_protein'] = False
+    katG = sample.build_gene("katG")
+    assert sorted(katG.minority_populations_GARC()) == sorted([
+                                                            'katG@c1715a:25', 'katG@1710_del_cc:25'
+                                                        ])
+    

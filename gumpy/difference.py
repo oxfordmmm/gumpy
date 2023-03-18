@@ -52,7 +52,7 @@ class Difference(ABC):
         Args:
             method (str): Name of the viewing method. Must be within `['diff', 'full']`
         '''
-        assert type(method) == str, "Invalid method "+str(method)+" of type "+str(type(method))
+        assert isinstance(method, str), "Invalid method "+str(method)+" of type "+str(type(method))
         assert method in ['diff', 'full'], "Invalid method: "+method
 
         if method == "full":
@@ -63,75 +63,19 @@ class Difference(ABC):
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)
         self._view_method = method
 
-    def __check_none(self, arr: [], check: bool) -> bool:
-        '''Recursive function to determine if a given array is all None values.
-        Due to the shape of some arrays, implicit equality checking causes warnings
 
-        Args:
-            arr (array-like): Array to check
-            check (bool): Boolean to propagate the check
-        Returns:
-            bool: True when all None values in all arrays/sub-arrays
-        '''
-        if check == False:
-            #No point in continuing
-            return False
-        for elem in arr:
-            if type(elem) in [list, tuple, type(numpy.array([]))]:
-                check = check and self.__check_none(elem, check)
-            else:
-                check = check and (elem is None)
-        return check
-
-    def __check_any(self, arr1: [], arr2: [], check: bool) -> bool:
-        '''Recursive function to determine if given arrays are the different at any point.
-        Required due to implicit equality of weird shape arrays causing warnings
-
-        Args:
-            arr1 (array-like): Array 1
-            arr2 (array-like): Array 2
-            check (bool): Boolean accumulator
-
-        Returns:
-            bool: True when the two lists are different at any point
-        '''
-        if type(arr1) != type(arr2):
-            return True
-        if type(arr1) not in [list, tuple, type(numpy.array([]))]:
-            return check or (arr1 != arr2)
-        for (e1, e2) in zip(arr1, arr2):
-            if type(e1) in [list, tuple, type(numpy.array([]))]:
-                check = check or self.__check_any(e1, e2, check)
-            else:
-                check = check or (e1 != e2)
-        return check
-
-    def __full_to_diff(self, array: numpy.array, amino_acid: bool=False) -> numpy.array:
+    def __full_to_diff(self, array: numpy.array) -> numpy.array:
         '''Convert an array from a full view to a diff view
 
         Args:
             array (numpy.array): Array of tuples of values
-            amino_acid (bool, optional): Optional flag to denote amino acids to ensure synonymous mutations are retained. Defaults to False
         Returns:
             numpy.array: Array of values from object1
         '''
         if len(array) > 0:
-            if amino_acid:
-                #Amino acids in diff should just be item2 consistently
-                #The actual diff should have already been applied...
-                array = numpy.array([item2 for (item1, item2) in array], dtype=object)
-            else:
-                array = numpy.array([item2 for (item1, item2) in array if self.__check_any(item1, item2, False)], dtype=object)
+            return numpy.array([item2 for (item1, item2) in array], dtype=object)
         else:
-            #Returning an empty array can cause issues with indels in amino acid sequence not producing same length arrays 
-            #as they are handled separately to other arrays which may contain [None]. This breaks the idea of 1:1 relationship
-            #between values in arrays. So just return None instead of an array
             return None
-        #Check for all None values
-        if self.__check_none(array, True):
-            return None
-        else:
-            return array
 
 class GenomeDifference(Difference):
     '''
