@@ -150,7 +150,7 @@ class GenomeDifference(Difference):
         Returns:
             [str]: List of mutations in GARC
         '''
-        return self.genome1.minority_populations_GARC(interpretation=interpretation, reference=self.genome2)
+        return self.genome2.minority_populations_GARC(interpretation=interpretation, reference=self.genome1)
 
     def __snp_distance(self) -> int:
         '''Calculates the SNP distance between the two genomes
@@ -358,7 +358,7 @@ class GeneDifference(Difference):
         Returns:
             [str]: List of mutations in GARC
         '''
-        return self.gene1.minority_populations_GARC(interpretation=interpretation, reference=self.gene2)
+        return self.gene2.minority_populations_GARC(interpretation=interpretation, reference=self.gene1)
 
     def __nucleotides(self) -> numpy.array:
         '''Find the differences in nucleotides

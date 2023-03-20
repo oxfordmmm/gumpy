@@ -200,13 +200,13 @@ def test_get_minors():
     gyrA = sample.build_gene("gyrA")
 
     #Check GenomeDifference
-    diff = sample - ref
+    diff = ref - sample
 
     assert diff.minor_populations() == sample.minority_populations_GARC(reference=ref)
     assert diff.minor_populations(interpretation='percentage') == sample.minority_populations_GARC(reference=ref, interpretation='percentage')
 
     #Check GeneDifference
-    geneDiff = gyrA - gyrA_ref
+    geneDiff = gyrA_ref - gyrA
     assert geneDiff.minor_populations() == gyrA.minority_populations_GARC(reference=gyrA_ref)
     assert geneDiff.minor_populations(interpretation='percentage') == gyrA.minority_populations_GARC(reference=gyrA_ref, interpretation='percentage')
 

@@ -284,13 +284,12 @@ class VCFFile(object):
                 bases = (self.calls[(idx, type_)]['ref'], self.calls[(idx, type_)]['call'])
                 pos = self.calls[(idx, type_)]['pos']
             simple_calls.append((idx, pos, t, bases))
-        
         seen = []
         
         for (idx, type_) in self.calls.keys():
-            if idx not in self.minor_population_indices:
-                #We don't care about these
-                continue
+            #idx here refers to the position of this call, NOT this vcf row, so adjust to avoid shifting when building minor calls
+            idx = idx - self.calls[(idx, type_)]['pos']
+
             #Check if we've delt with this vcf already
             if self.calls[(idx, type_)]['original_vcf_row'] in seen:
                 continue
@@ -321,6 +320,10 @@ class VCFFile(object):
                     if depth >= 2:
                         #These are minor calls!!
                         pos = idx + int(call[0])
+                        if pos not in self.minor_population_indices:
+                            #We don't actually care though
+                            #This has to be done here as simplifying calls can move the position
+                            continue
                         #Only tracking absolute number of reads
                         self.minor_populations.append((pos, call[1], call[2], int(depth), round(depth/total_depth, 3)))
         
