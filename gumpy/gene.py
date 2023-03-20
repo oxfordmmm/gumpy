@@ -480,7 +480,7 @@ class Gene(object):
             try:
                 float(variant[1])
             except ValueError:
-                valid = False
+                return False
 
             #0 is not valid either
             valid = valid and float(variant[1]) > 0

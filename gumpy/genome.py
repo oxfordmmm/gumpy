@@ -765,8 +765,9 @@ class Genome(object):
         assert isinstance(vcf.calls,dict), 'something wrong with the gumpy.VCFFile object!'
 
         indices = [i[0] for i in vcf.calls.keys()]
-
-        assert max(indices) <= self.length, "The VCF file details changes outside of this genome!"
+        if len(indices) > 0:
+            #It's possible that a VCF only details minority populations, and max() complains for empty
+            assert max(indices) <= self.length, "The VCF file details changes outside of this genome!"
 
         if len(self.minor_populations) > 0 and len(vcf.minor_population_indices) > 0:
             #Both this genome and the VCF have minor populations so for simplicity atm, complain
