@@ -522,6 +522,13 @@ def test_valid_variant():
     assert gene.valid_variant("A@K2K")
     assert gene.valid_variant("20_del_100")
 
+    #Minority populations
+    assert gene.valid_variant("A@P5C:5")
+    assert gene.valid_variant("A@P5C:0.5")
+    assert gene.valid_variant("A@P5C:0.05")
+    assert gene.valid_variant("-2_ins_agaaat:3")
+    assert gene.valid_variant("-2_ins_agaaat:375")
+
     #Invalid variants
     with pytest.raises(Exception) as e_info:
         assert not gene.valid_variant("")
@@ -548,6 +555,13 @@ def test_valid_variant():
     assert not gene.valid_variant("gene@a4t")
     assert not gene.valid_variant("a-2a")
     assert not gene.valid_variant("A@28_del_aaccggttaaccggtt")
+    assert not gene.valid_variant("-2_ins_agaaat:0")
+    assert not gene.valid_variant("-2_ins_agaaat:-12")
+    assert not gene.valid_variant("-2_ins_agaaat:0")
+    assert not gene.valid_variant("-2_ins_agaaat:0.0")
+    assert not gene.valid_variant("-2_ins_agaaat:-0.2")
+    assert not gene.valid_variant("-2_ins_agaaat:-")
+    assert not gene.valid_variant("-2_ins_agaaat:aaa")
 
     with pytest.raises(AssertionError):
         gene.valid_variant(None)

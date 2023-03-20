@@ -469,6 +469,28 @@ class Gene(object):
 
         #Match mutation formats using regex
 
+        #Check for minority populations (and remove before continuing)
+        if ":" in variant:
+            valid = True
+            variant = variant.split(":")
+
+            valid = valid and len(variant) == 2
+
+            #Use duck typing to ensure it gives a valid number
+            try:
+                float(variant[1])
+            except ValueError:
+                valid = False
+
+            #0 is not valid either
+            valid = valid and float(variant[1]) > 0
+
+            if valid:
+                #Valid minority population, so continue without it
+                variant = variant[0]
+            else:
+                return False
+
         #Match promoter/non-coding SNP format
         promoter = re.compile(r"""
                 ([a-zA-Z_0-9]+@)? #Possibly a leading gene name
