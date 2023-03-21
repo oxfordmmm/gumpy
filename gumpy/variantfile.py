@@ -287,9 +287,6 @@ class VCFFile(object):
         seen = []
         
         for (idx, type_) in self.calls.keys():
-            #idx here refers to the position of this call, NOT this vcf row, so adjust to avoid shifting when building minor calls
-            idx = idx - self.calls[(idx, type_)]['pos']
-
             #Check if we've delt with this vcf already
             if self.calls[(idx, type_)]['original_vcf_row'] in seen:
                 continue
@@ -309,6 +306,9 @@ class VCFFile(object):
             dps = list(self.calls[(idx, type_)]['original_vcf_row']["COV"])
 
             total_depth = self.calls[(idx, type_)]['original_vcf_row']['DP']
+            
+            #idx here refers to the position of this call, NOT this vcf row, so adjust to avoid shifting when building minor calls
+            idx = idx - self.calls[(idx, type_)]['pos']
             for (calls, depth) in zip(simple, dps):
                 #As we can have >1 call per simple, iter
                 for call in calls:

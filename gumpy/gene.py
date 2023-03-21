@@ -195,6 +195,9 @@ class Gene(object):
                 else:
                     #Not coding, so just SNPs
                     ref = reference.nucleotide_sequence[reference.nucleotide_number == pos][0]
+                    #We don't care if these are synonymous
+                    if ref == bases[1]:
+                        continue
                     mutations.append(f"{self.name}@{ref}{pos}{bases[1]}:{cov}")
         
         if self.codes_protein:
