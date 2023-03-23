@@ -349,6 +349,34 @@ class GeneDifference(Difference):
 
         self.update_view("diff") #Use inherited method to set the view
     
+    def large_deletions(self) -> str:
+        '''Check to see what proportion of the gene has been deleted. Report separately than other mutations if >=50% deleted
+
+        Returns:
+            str | None: Returns mutation in the form of <gene name>_del_<decimal percentage>, or None if < 50% deleted
+        '''
+        #Find everywhere that we have different deletion within coding regions
+        indel_length1 = self.gene1.indel_length[self.gene1.is_cds]
+        indel_length2 = self.gene2.indel_length[self.gene2.is_cds]
+        mask = numpy.logical_and(
+            indel_length1 != indel_length2,
+            numpy.logical_or(
+                indel_length1 < 0, 
+                indel_length2 < 0
+                )
+            )
+        #Find out how much of the gene we have deleted
+        total = -1 * (sum(indel_length1[mask]) + sum(indel_length2[mask]))
+        if total > 0:
+            #We have some deletions
+            percentage = total / len(self.gene1.is_cds)
+            if percentage >= 0.5:
+                #More than 50% deleted, so return
+                return self.gene2.name + "_del_" + str(round(percentage, 2))
+        
+        #No/insufficient deletions so return None
+        return None
+
     def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC
 
