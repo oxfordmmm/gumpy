@@ -244,7 +244,8 @@ def test_instanciate_genome_rna():
         is_indel=genome.is_indel[full_gene_name[0] == "A"],
         indel_length=[0 for i in range(33)],
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "A"],
-        feature_type="GENE"
+        feature_type="GENE",
+        is_deleted=[False for i in genome.nucleotide_sequence[full_gene_name[0] == "A"]]
     )
     assert genome.contains_gene('B')
     gene=genome.build_gene('B')
@@ -258,7 +259,8 @@ def test_instanciate_genome_rna():
         is_indel=genome.is_indel[full_gene_name[1] == "B"],
         indel_length=[0 for i in range(33)],
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[1] == "B"],
-        feature_type="GENE"
+        feature_type="GENE",
+        is_deleted=[False for i in genome.nucleotide_sequence[full_gene_name[1] == "B"]]
     )
     assert genome.contains_gene('C')
     gene=genome.build_gene('C')
@@ -273,6 +275,7 @@ def test_instanciate_genome_rna():
         indel_length=[0 for i in range(36)],
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
         feature_type="GENE",
+        is_deleted=[False for i in genome.nucleotide_sequence[full_gene_name[0] == "C"]]
     )
 
 def test_instanciate_genes_rna():
@@ -430,7 +433,8 @@ def test_instanciate_genome_dna():
         is_indel=genome.is_indel[full_gene_name[0] == "A"],
         indel_length=numpy.array([0 for i in range(30)]),
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "A"],
-        feature_type="GENE"
+        feature_type="GENE",
+        is_deleted=[False for i in genome.nucleotide_sequence[full_gene_name[0] == "A"]]
     )
     assert genome.contains_gene('B')
     gene=genome.build_gene('B')
@@ -444,7 +448,8 @@ def test_instanciate_genome_dna():
         is_indel=genome.is_indel[full_gene_name[1] == "B"],
         indel_length=numpy.array([0 for i in range(33)]),
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[1] == "B"],
-        feature_type="GENE"
+        feature_type="GENE",
+        is_deleted=[False for i in genome.nucleotide_sequence[full_gene_name[1] == "B"]]
     )
     assert genome.contains_gene('C')
     gene=genome.build_gene('C')
@@ -459,7 +464,8 @@ def test_instanciate_genome_dna():
         indel_length=numpy.array([0 for i in range(9)]),
         indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
         feature_type="GENE",
-        reverse_complement=True
+        reverse_complement=True,
+        is_deleted=[False for i in genome.nucleotide_sequence[full_gene_name[0] == "C"]]
     )
 
     with pytest.raises(Exception) as e_info:

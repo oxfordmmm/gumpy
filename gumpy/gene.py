@@ -32,11 +32,13 @@ class Gene(object):
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
             minority_populations ([int, str, str|(str,str), int, float], optional): List of minor populations. Each minor population is defined as [position, type, bases - either str or tuple of (ref, alt), depth supporting this, fractional read support]
-            is_deleted (numpy.array, optional): Numpy array of booleans showing if a given nucleotide index is deleted
+            is_deleted (numpy.array, optional): Numpy array of booleans showing if a given nucleotide index is deleted. Defaults to None
         '''
         #Using [] as a default value is dangerous, so convert from None
         if ribosomal_shifts is None:
             ribosomal_shifts = []
+        if is_deleted is None:
+            is_deleted = [i for i in nucleotide_index]
 
         assert name is not None, "must provide a gene name!"
         assert isinstance(name, str)
