@@ -363,24 +363,60 @@ class GeneDifference(Difference):
 
         if total > 0:
             #We have some deletions
-            percentage = total / len(self.gene1.is_cds)
+            percentage = total / len(self.gene1.nucleotide_sequence)
             if percentage >= 0.5:
-                #More than 50% deleted, so update as appropriate
+                #More than 50% deleted, so give a percentage
                 self.mutations = numpy.append(self.mutations, [f"del_{round(percentage, 2)}"])
-                self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
-                self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
-                self.nucleotide_index = numpy.append(self.nucleotide_index, [None])
-                self.gene_position = numpy.append(self.gene_position, [None])
-                self.is_cds = numpy.append(self.is_cds, [True])
-                self.is_promoter = numpy.append(self.is_promoter, [False])
-                self.is_indel = numpy.append(self.is_indel, [True])
-                self.indel_length = numpy.append(self.indel_length, [total])
-                self.indel_nucleotides = numpy.append(self.indel_nucleotides, [self.gene1.nucleotide_index[mask]])
-                self.ref_nucleotides = numpy.append(self.ref_nucleotides, [None])
-                self.alt_nucleotides = numpy.append(self.alt_nucleotides, [None])
-                self.is_snp = numpy.append(self.is_snp, [False])
-                self.is_het = numpy.append(self.is_het, [False])
-                self.is_null = numpy.append(self.is_null, [False])
+            else:
+                #No massive deletions, so find the longest contiguous deletion
+                longest = []
+                current = []
+                end = -1
+                for idx, deleted in enumerate(mask):
+                    if deleted:
+                        current.append(deleted)
+                    else:
+                        if len(current) > len(longest):
+                            #New longest on last iter
+                            end = idx - 1
+                            longest = current
+                        #Reset the streak
+                        current = []
+                
+                #Check for last iter
+                if len(current) > len(longest):
+                    #New longest
+                    end = idx
+                    longest = current
+                
+                start = end - len(longest) + 1
+                #Check if this was already included
+                if self.gene1.is_indel[start] and self.gene1.indel_length[start] < 0:
+                    #Already a normal del here, so give up
+                    return
+                if self.gene2.is_indel[start] and self.gene2.indel_length[start] < 0:
+                    #Already a normal del here, so give up
+                    return
+
+                pos = self.gene2.nucleotide_number[start]
+                bases = ''.join(self.gene2.nucleotide_sequence[start:start+len(longest)+1])
+                self.mutations = numpy.append(self.mutations, [f"{pos}_del_{bases}"])
+
+            #Common updates
+            self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
+            self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
+            self.nucleotide_index = numpy.append(self.nucleotide_index, [None])
+            self.gene_position = numpy.append(self.gene_position, [None])
+            self.is_cds = numpy.append(self.is_cds, [True])
+            self.is_promoter = numpy.append(self.is_promoter, [False])
+            self.is_indel = numpy.append(self.is_indel, [True])
+            self.indel_length = numpy.append(self.indel_length, [total])
+            self.indel_nucleotides = numpy.append(self.indel_nucleotides, [self.gene1.nucleotide_index[mask]])
+            self.ref_nucleotides = numpy.append(self.ref_nucleotides, [None])
+            self.alt_nucleotides = numpy.append(self.alt_nucleotides, [None])
+            self.is_snp = numpy.append(self.is_snp, [False])
+            self.is_het = numpy.append(self.is_het, [False])
+            self.is_null = numpy.append(self.is_null, [False])
 
     def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC

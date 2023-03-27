@@ -720,11 +720,16 @@ def test_large_deletions():
     assert numpy.all(diff.mutations == ["del_1.0"])
 
     c = ref.build_gene("C")
-    #Deletes 33%, so not reported
+    #Deletes 33%, so reported as normal deletion
     c2 = sample.build_gene("C")
     diff = c - c2
 
-    assert numpy.all(diff.mutations == [])
+    #This might look wrong, but C is revcomp
+    #Bases 91, 92, 93 are deleted here
+    #index:  [99 98 97 96 95 94 93 92 91]
+    #number: [-3 -2 -1  1  2  3  4  5  6] --> starting at gene pos of 4
+
+    assert numpy.all(diff.mutations == ["4_del_ggg"])
 
 
 def test_misc():

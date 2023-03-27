@@ -615,6 +615,9 @@ class Genome(object):
         #Track which nucleotides are deleted
         self.is_deleted = numpy.array([False for i in self.nucleotide_index])
 
+        #Use a dict to track VCF evidence as req
+        self.vcf_evidence = dict()
+
     def __assign_promoter_regions(self):
         '''
         Private function to assign promoter regions to genes
@@ -816,6 +819,7 @@ class Genome(object):
 
         # use the calls dict to change the nucleotide indicies in the copy of the genome
         for (idx,type_) in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
+            self.vcf_evidence[idx-1] = vcf.calls[(idx, type_)]['original_vcf_row']
 
             # deal with changes at a single nucleotide site
             if type_ in ['snp','null','het']:
