@@ -195,7 +195,12 @@ def test_get_minors():
                                                         'gyrA@t271a:2', 'gyrA@t272c:10', 'gyrA@g273t:10'
 
                                                 ])
-    #Convert back to avoid problems
+    assert sorted(gyrA.minority_populations_GARC(reference=gyrA_ref)) == sorted([
+                                                        'gyrA@281_del_ac:10', 'gyrA@268_ins_gt:10',
+                                                        'gyrA@g270t:10', 'gyrA@g280t:10',
+                                                        'gyrA@t271a:2', 'gyrA@g273t:10'
+
+                                                ])    #Convert back to avoid problems
     sample.genes['gyrA']['codes_protein'] = True
     gyrA = sample.build_gene("gyrA")
 

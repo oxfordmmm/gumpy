@@ -698,6 +698,35 @@ def test_simplify_calls():
     assert sorted(vcf._simplify_call("a", "gga")) == [(-1, "ins", "gg")]
     assert sorted(vcf._simplify_call("gga",'a')) == [(0, "del", "gg")]
 
+def test_large_deletions():
+    '''Test large deletion detection
+    '''
+    ref = gumpy.Genome("config/TEST-DNA.gbk")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-4.vcf")
+    sample = ref + vcf
+
+    a = ref.build_gene("A")
+    #Deletes all but first promoter
+    a2 = sample.build_gene("A")
+    diff = a - a2
+
+    assert numpy.all(diff.mutations == ["-1_del_aaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc", 'del_0.93'])
+
+    b = ref.build_gene("B")
+    #Entirely deleted
+    b2 = sample.build_gene("B")
+    diff = b - b2
+
+    assert numpy.all(diff.mutations == ["del_1.0"])
+
+    c = ref.build_gene("C")
+    #Deletes 33%, so not reported
+    c2 = sample.build_gene("C")
+    diff = c - c2
+
+    assert numpy.all(diff.mutations == [])
+
+
 def test_misc():
     '''Misc edge case testing
     '''

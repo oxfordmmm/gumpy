@@ -347,27 +347,40 @@ class GeneDifference(Difference):
         self._codons_full = self.__codons()
         self._amino_acids_full = self.__amino_acids()
 
+        self.__large_deletions()
+
         self.update_view("diff") #Use inherited method to set the view
     
-    def large_deletions(self) -> str:
+    def __large_deletions(self):
         '''Check to see what proportion of the gene has been deleted. Report separately than other mutations if >=50% deleted
-
-        Returns:
-            str | None: Returns mutation in the form of <gene name>_del_<decimal percentage>, or None if < 50% deleted
+        Updates internal arrays to denote a new mutation if deletion above threshold.
         '''
         #Find everywhere that we have different deletion within coding regions
         mask = self.gene1.is_deleted != self.gene2.is_deleted
+
         #Find out how much of the gene we have deleted
         total = sum(self.gene1.is_deleted[mask]) + sum(self.gene2.is_deleted[mask])
+
         if total > 0:
             #We have some deletions
             percentage = total / len(self.gene1.is_cds)
-            if percentage >= 0:
-                #More than 50% deleted, so return
-                return self.gene2.name + "_del_" + str(round(percentage, 2))
-        
-        #No/insufficient deletions so return None
-        return None
+            if percentage >= 0.5:
+                #More than 50% deleted, so update as appropriate
+                self.mutations = numpy.append(self.mutations, [f"del_{round(percentage, 2)}"])
+                self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
+                self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
+                self.nucleotide_index = numpy.append(self.nucleotide_index, [None])
+                self.gene_position = numpy.append(self.gene_position, [None])
+                self.is_cds = numpy.append(self.is_cds, [True])
+                self.is_promoter = numpy.append(self.is_promoter, [False])
+                self.is_indel = numpy.append(self.is_indel, [True])
+                self.indel_length = numpy.append(self.indel_length, [total])
+                self.indel_nucleotides = numpy.append(self.indel_nucleotides, [self.gene1.nucleotide_index[mask]])
+                self.ref_nucleotides = numpy.append(self.ref_nucleotides, [None])
+                self.alt_nucleotides = numpy.append(self.alt_nucleotides, [None])
+                self.is_snp = numpy.append(self.is_snp, [False])
+                self.is_het = numpy.append(self.is_het, [False])
+                self.is_null = numpy.append(self.is_null, [False])
 
     def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC
