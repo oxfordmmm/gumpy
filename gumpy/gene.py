@@ -293,11 +293,6 @@ class Gene(object):
             else:
                 #A deletion at this pos so adjust position
                 new_pos = pos - len(indel_nucleotides[pos]) + 1
-                if new_pos < 0:
-                    #This is an issue because this lies outside of the gene now
-                    #So just retain the deletions within this gene, and mark to be at the start
-                    indel_nucleotides[pos] = indel_nucleotides[pos][:pos+1]
-                    new_pos = 0
                 fixed_indel_nucleotides[new_pos] = ''.join(self._complement(indel_nucleotides[pos][::-1]))
                 fixed_is_indel[new_pos] = True
                 fixed_indel_length[new_pos] = indel_length[pos]
