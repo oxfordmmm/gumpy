@@ -736,6 +736,8 @@ class Genome(object):
             if population[0] in gene_nucleotides:
                 #This minor population is within the gene
                 gene_minor_populations.append(population)
+        
+        vcf_evidence = {idx : self.vcf_evidence[idx] for idx in self.vcf_evidence.keys() if idx in gene_nucleotides}
             
         # instantiate a Gene object
         g = Gene(name=gene,
@@ -752,7 +754,8 @@ class Genome(object):
                     feature_type=self.genes[gene]['type'],
                     ribosomal_shifts=self.genes[gene]['ribosomal_shifts'],
                     minority_populations=gene_minor_populations,
-                    is_deleted=self.is_deleted[mask]
+                    is_deleted=self.is_deleted[mask],
+                    vcf_evidence=vcf_evidence
                 )
 
         return g
@@ -765,15 +768,19 @@ class Genome(object):
             genome (gumpy.Genome): Genome to apply this to
         '''
         marking = 0
+        current_evidence = None
         for idx, length in enumerate(genome.indel_length):
             if length < 0:
                 #We found a deletion, so mark the next N bases as deleted
                 #Deletions are -N here
                 marking -= length
+                current_evidence = genome.vcf_evidence[genome.nucleotide_index[idx]]
 
             if marking > 0:
                 #We mark this as deleted
                 genome.is_deleted[idx] = True
+                #Update evidence too so we can pull out VCF rows from downstream genes
+                genome.vcf_evidence[genome.nucleotide_index[idx]] = current_evidence
                 marking -= 1
 
     def __add__(self, vcf: VCFFile):
@@ -819,7 +826,7 @@ class Genome(object):
 
         # use the calls dict to change the nucleotide indicies in the copy of the genome
         for (idx,type_) in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
-            self.vcf_evidence[idx-1] = vcf.calls[(idx, type_)]['original_vcf_row']
+            genome.vcf_evidence[genome.nucleotide_index[idx-1]] = vcf.calls[(idx, type_)]['original_vcf_row']
 
             # deal with changes at a single nucleotide site
             if type_ in ['snp','null','het']:

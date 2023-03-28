@@ -14,7 +14,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None, minority_populations: list=None, is_deleted: numpy.array=None):
+    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None, minority_populations: list=None, is_deleted: numpy.array=None, vcf_evidence: dict=None):
         '''Constructor for the Gene object.
 
         Args:
@@ -33,6 +33,7 @@ class Gene(object):
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
             minority_populations ([int, str, str|(str,str), int, float], optional): List of minor populations. Each minor population is defined as [position, type, bases - either str or tuple of (ref, alt), depth supporting this, fractional read support]
             is_deleted (numpy.array, optional): Numpy array of booleans showing if a given nucleotide index is deleted. Defaults to None
+            vcf_evidence (dict, optional): Dictionary tracking genome indices which have VCF evidence to support these calls. Defaults to None
         '''
         #Using [] as a default value is dangerous, so convert from None
         if ribosomal_shifts is None:
@@ -85,10 +86,13 @@ class Gene(object):
         self.indel_length = indel_length
         self.minority_populations = [] if minority_populations is None else minority_populations
         self.is_deleted = is_deleted
+        self.vcf_evidence = {} if vcf_evidence is None else vcf_evidence
 
         #As revcomp changes some of the positions for indels, track separately
         # so we can track the genome position they came from
         self.indel_index = copy.deepcopy(self.nucleotide_index)
+
+        self.__adjust_dels()
 
         #Make appropriate changes to the arrays to encorporate the frame shift
         for shift in ribosomal_shifts:
@@ -143,6 +147,27 @@ class Gene(object):
                         pos = pos - len(bases) + 1
             fixed.append([pos, type_, bases, pop[3], pop[4]])
         self.minority_populations = sorted(fixed, key= lambda x: x[0])
+    
+    def __adjust_dels(self) -> None:
+        '''Adjust some of the deletions, such as deletions starting/ending in another gene
+        '''
+        #Starting in another gene
+        if self.is_deleted[0] and self.indel_length[0] == 0:
+            #Find first N contiguous deletions
+            n = 0
+            for i in self.is_deleted:
+                if not i:
+                    break
+                n += 1
+            self.indel_length[0] = -1 * n
+            self.indel_nucleotides[0] = ''.join(self.nucleotide_sequence[:n])
+        
+        #Ending in another (truncating indel_length)
+        for idx, indel in enumerate(self.indel_length):
+            if indel < 0 and -1 * indel > len(self.indel_length[idx :]):
+                #Too long so truncate
+                self.indel_length[idx] = -1 * len(self.indel_length[idx:])
+                self.indel_nucleotides[idx] = ''.join(self.nucleotide_sequence[idx:])
 
     def minority_populations_GARC(self, interpretation: str='reads', reference=None) -> [str]:
         '''Fetch the mutations caused by minority populations in GARC

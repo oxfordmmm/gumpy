@@ -138,8 +138,35 @@ class GenomeDifference(Difference):
         #Checking for the same genes, give a warning is the genes are different
         if self.genome1.genes.keys() != self.genome2.genes.keys():
             self.__raise_mutations_warning(self.genome1, self.genome2)
+        
+        self.__assign_vcf_evidence()
 
         self.update_view(self._view_method)
+    
+    def __assign_vcf_evidence(self) -> None:
+        '''Once we have pulled out all of the variants, find the VCF evidence (if existing) for each
+        '''
+        evidences = []
+        for idx in self.nucleotide_index:
+            evidence1 = self.genome1.vcf_evidence.get(idx)
+            evidence2 = self.genome2.vcf_evidence.get(idx)
+
+            #As we add the vcf evidence for every deleted base
+            #This should only be reported for the actual start 
+            if self.genome1.is_deleted[idx-1] and self.genome1.indel_length[idx-1] >= 0:
+                evidence1 = None
+            if self.genome2.is_deleted[idx-1] and self.genome2.indel_length[idx-1] >= 0:
+                evidence2 = None
+
+            if evidence1 is not None and evidence2 is not None:
+                #We have a collision. For now, just concat FIXME
+                evidences.append([evidence1, evidence2])
+            elif evidence1 is not None:
+                evidences.append(evidence1)
+            elif evidence2 is not None:
+                evidences.append(evidence2)
+
+        self.vcf_evidences = evidences
     
     def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC
@@ -348,8 +375,58 @@ class GeneDifference(Difference):
         self._amino_acids_full = self.__amino_acids()
 
         self.__large_deletions()
+        self.__assign_vcf_evidence()
 
         self.update_view("diff") #Use inherited method to set the view
+    
+    def __assign_vcf_evidence(self) -> None:
+        '''Once we have pulled out all of the mutations, find the VCF evidence (if existing) for each
+        '''
+        evidences = []
+        for idx in self.nucleotide_index:
+            # idx = None if idx is None else int(idx)
+            evidence1 = self.gene1.vcf_evidence.get(idx)
+            evidence2 = self.gene2.vcf_evidence.get(idx)
+
+            #As we add the vcf evidence for every deleted base
+            #This should only be reported for the actual start 
+            if idx is not None and self.gene1.is_deleted[self.gene1.nucleotide_index == idx] and self.gene1.indel_length[self.gene1.nucleotide_index == idx] >= 0:
+                #Checking for if this started in another gene
+                keep = False
+                if self.gene1.reverse_complement:
+                    if (self.gene1.nucleotide_index == idx)[-1]:
+                        #This position is the lowest genome index, so this started in another gene
+                        keep = True
+                else:
+                    if (self.gene1.nucelotide_index == idx)[0]:
+                        #First genome index so started in another gene
+                        keep = True
+                if not keep:
+                    evidence1 = None
+            if idx is not None and self.gene2.is_deleted[self.gene2.nucleotide_index == idx] and self.gene2.indel_length[self.gene2.nucleotide_index == idx] >= 0:
+                #Checking for if this started in another gene
+                keep = False
+                if self.gene2.reverse_complement:
+                    if (self.gene2.nucleotide_index == idx)[-1]:
+                        #This position is the lowest genome index, so this started in another gene
+                        keep = True
+                else:
+                    if (self.gene2.nucelotide_index == idx)[0]:
+                        #First genome index so started in another gene
+                        keep = True
+                if not keep:
+                    evidence2 = None
+
+            if evidence1 is not None and evidence2 is not None:
+                #We have a collision. For now, just concat FIXME
+                evidences.append([evidence1, evidence2])
+            elif evidence1 is not None:
+                evidences.append(evidence1)
+            elif evidence2 is not None:
+                evidences.append(evidence2)
+            else:
+                evidences.append(None)
+        self.vcf_evidences = evidences
     
     def __large_deletions(self):
         '''Check to see what proportion of the gene has been deleted. Report separately than other mutations if >=50% deleted
@@ -367,6 +444,8 @@ class GeneDifference(Difference):
             if percentage >= 0.5:
                 #More than 50% deleted, so give a percentage
                 self.mutations = numpy.append(self.mutations, [f"del_{round(percentage, 2)}"])
+                #Pull out the start of the deletion for vcf evidence
+                self.nucleotide_index = numpy.append(self.nucleotide_index, [self.gene2.nucleotide_index[mask][0]])
             else:
                 #No massive deletions, so find the longest contiguous deletion
                 longest = []
@@ -401,11 +480,11 @@ class GeneDifference(Difference):
                 pos = self.gene2.nucleotide_number[start]
                 bases = ''.join(self.gene2.nucleotide_sequence[start:start+len(longest)+1])
                 self.mutations = numpy.append(self.mutations, [f"{pos}_del_{bases}"])
+                self.nucleotide_index = numpy.append(self.nucleotide_index, [self.gene2.nucleotide_index[start]])
 
             #Common updates
             self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
             self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
-            self.nucleotide_index = numpy.append(self.nucleotide_index, [None])
             self.gene_position = numpy.append(self.gene_position, [None])
             self.is_cds = numpy.append(self.is_cds, [True])
             self.is_promoter = numpy.append(self.is_promoter, [False])

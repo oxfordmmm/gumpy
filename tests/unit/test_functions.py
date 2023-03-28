@@ -710,7 +710,8 @@ def test_large_deletions():
     a2 = sample.build_gene("A")
     diff = a - a2
 
-    assert numpy.all(diff.mutations == ["-1_del_aaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc", 'del_0.93'])
+    assert numpy.all(diff.mutations == ["-1_del_aaaaaaaaccccccccccgggggggggg", 'del_0.93'])
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}, {'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
 
     b = ref.build_gene("B")
     #Entirely deleted
@@ -718,6 +719,7 @@ def test_large_deletions():
     diff = b - b2
 
     assert numpy.all(diff.mutations == ["del_1.0"])
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
 
     c = ref.build_gene("C")
     #Deletes 33%, so reported as normal deletion
@@ -730,6 +732,34 @@ def test_large_deletions():
     #number: [-3 -2 -1  1  2  3  4  5  6] --> starting at gene pos of 4
 
     assert numpy.all(diff.mutations == ["4_del_ggg"])
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+
+    #Checking vcf evidence when two samples are used which affect the same base
+    #Should concat the evidences
+    vcf2 = gumpy.VCFFile("tests/test-cases/TEST-DNA-2.vcf")
+    #Change this vcf's first entry to be base 3 rather than 2
+    #This puts it in the same base as the first VCF
+    vcf2.calls[(3, 'null')] = vcf2.calls[(2, 'null')]
+    del vcf2.calls[(2, 'null')]
+
+    sample2 = ref + vcf2
+
+    diff = sample - sample2
+
+    c1 = {key[0]: vcf.calls[key]['original_vcf_row'] for key in vcf.calls.keys()}
+    c2 = {key[0]: vcf2.calls[key]['original_vcf_row'] for key in vcf2.calls.keys()}
+
+    for idx, evidence in zip(diff.nucleotide_index, diff.vcf_evidences):
+        if idx in c1.keys() and idx in c2.keys():
+            #Both so concat
+            assert evidence == [c1[idx], c2[idx]]
+        elif idx in c1.keys():
+            assert evidence == c1[idx]
+        elif idx in c2.keys():
+            assert evidence == c2[idx]
+        else:
+            assert evidence == None
+
 
 
 def test_misc():
