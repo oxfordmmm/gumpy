@@ -213,7 +213,7 @@ class Gene(object):
             cov = population[coverage]
             if type_ in ['ins', 'del']:
                 #Indels don't need any special treatment
-                mutations.append(f"{self.name}@{pos}_{type_}_{bases}:{cov}")
+                mutations.append(f"{pos}_{type_}_{bases}:{cov}")
             else:
                 #Check for coding as those need extra support
                 if self.codes_protein and pos > 0:
@@ -236,7 +236,7 @@ class Gene(object):
                     #We don't care if these are synonymous
                     if ref == bases[1]:
                         continue
-                    mutations.append(f"{self.name}@{ref}{pos}{bases[1]}:{cov}")
+                    mutations.append(f"{ref}{pos}{bases[1]}:{cov}")
         
         if self.codes_protein:
             #Now check for codon changes
@@ -258,7 +258,7 @@ class Gene(object):
                             mutations.append(synon)
                         else:
                             #Non-synonymous
-                            mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
+                            mutations.append(f"{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
         return sorted(mutations)
 
 
