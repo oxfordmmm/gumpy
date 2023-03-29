@@ -760,6 +760,25 @@ def test_large_deletions():
         else:
             assert evidence == None
 
+            assert evidence == None
+    #Repeat the entry for the start of all genes as this should be picked up in gene diff
+    c1[28] = c1[3]
+    c1[91] = c1[3]
+    
+    for gene in ref.genes.keys():
+        g1 = sample.build_gene(gene)
+        g2 = sample2.build_gene(gene)
+        diff = g1 - g2
+        for idx, evidence in zip(diff.nucleotide_index, diff.vcf_evidences):
+            if idx in c1.keys() and idx in c2.keys():
+                #Both so concat
+                assert evidence == [c1[idx], c2[idx]]
+            elif idx in c1.keys():
+                assert evidence == c1[idx]
+            elif idx in c2.keys():
+                assert evidence == c2[idx]
+            else:
+                assert evidence == None
 
 
 def test_misc():

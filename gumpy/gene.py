@@ -150,6 +150,7 @@ class Gene(object):
     
     def __adjust_dels(self) -> None:
         '''Adjust some of the deletions, such as deletions starting/ending in another gene
+        Also adjust the vcf evidences so they aren't present unless it is the start of the del
         '''
         #Starting in another gene
         if self.is_deleted[0] and self.indel_length[0] == 0:
@@ -168,6 +169,13 @@ class Gene(object):
                 #Too long so truncate
                 self.indel_length[idx] = -1 * len(self.indel_length[idx:])
                 self.indel_nucleotides[idx] = ''.join(self.nucleotide_sequence[idx:])
+        
+        for i, (deleted, length) in enumerate(zip(self.is_deleted, self.indel_length)):
+            if deleted and length >= 0:
+                #Deleted but this isn't the start
+                nucleotide_index = self.nucleotide_index[i]
+                del self.vcf_evidence[nucleotide_index]
+            
 
     def minority_populations_GARC(self, interpretation: str='reads', reference=None) -> [str]:
         '''Fetch the mutations caused by minority populations in GARC

@@ -384,38 +384,8 @@ class GeneDifference(Difference):
         '''
         evidences = []
         for idx in self.nucleotide_index:
-            # idx = None if idx is None else int(idx)
             evidence1 = self.gene1.vcf_evidence.get(idx)
             evidence2 = self.gene2.vcf_evidence.get(idx)
-
-            #As we add the vcf evidence for every deleted base
-            #This should only be reported for the actual start 
-            if idx is not None and self.gene1.is_deleted[self.gene1.nucleotide_index == idx] and self.gene1.indel_length[self.gene1.nucleotide_index == idx] >= 0:
-                #Checking for if this started in another gene
-                keep = False
-                if self.gene1.reverse_complement:
-                    if (self.gene1.nucleotide_index == idx)[-1]:
-                        #This position is the lowest genome index, so this started in another gene
-                        keep = True
-                else:
-                    if (self.gene1.nucelotide_index == idx)[0]:
-                        #First genome index so started in another gene
-                        keep = True
-                if not keep:
-                    evidence1 = None
-            if idx is not None and self.gene2.is_deleted[self.gene2.nucleotide_index == idx] and self.gene2.indel_length[self.gene2.nucleotide_index == idx] >= 0:
-                #Checking for if this started in another gene
-                keep = False
-                if self.gene2.reverse_complement:
-                    if (self.gene2.nucleotide_index == idx)[-1]:
-                        #This position is the lowest genome index, so this started in another gene
-                        keep = True
-                else:
-                    if (self.gene2.nucelotide_index == idx)[0]:
-                        #First genome index so started in another gene
-                        keep = True
-                if not keep:
-                    evidence2 = None
 
             if evidence1 is not None and evidence2 is not None:
                 #We have a collision. For now, just concat FIXME
@@ -446,56 +416,21 @@ class GeneDifference(Difference):
                 self.mutations = numpy.append(self.mutations, [f"del_{round(percentage, 2)}"])
                 #Pull out the start of the deletion for vcf evidence
                 self.nucleotide_index = numpy.append(self.nucleotide_index, [self.gene2.nucleotide_index[mask][0]])
-            else:
-                #No massive deletions, so find the longest contiguous deletion
-                longest = []
-                current = []
-                end = -1
-                for idx, deleted in enumerate(mask):
-                    if deleted:
-                        current.append(deleted)
-                    else:
-                        if len(current) > len(longest):
-                            #New longest on last iter
-                            end = idx - 1
-                            longest = current
-                        #Reset the streak
-                        current = []
-                
-                #Check for last iter
-                if len(current) > len(longest):
-                    #New longest
-                    end = idx
-                    longest = current
-                
-                start = end - len(longest) + 1
-                #Check if this was already included
-                if self.gene1.is_indel[start] and self.gene1.indel_length[start] < 0:
-                    #Already a normal del here, so give up
-                    return
-                if self.gene2.is_indel[start] and self.gene2.indel_length[start] < 0:
-                    #Already a normal del here, so give up
-                    return
 
-                pos = self.gene2.nucleotide_number[start]
-                bases = ''.join(self.gene2.nucleotide_sequence[start:start+len(longest)+1])
-                self.mutations = numpy.append(self.mutations, [f"{pos}_del_{bases}"])
-                self.nucleotide_index = numpy.append(self.nucleotide_index, [self.gene2.nucleotide_index[start]])
+                self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
+                self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
+                self.gene_position = numpy.append(self.gene_position, [None])
+                self.is_cds = numpy.append(self.is_cds, [True])
+                self.is_promoter = numpy.append(self.is_promoter, [False])
+                self.is_indel = numpy.append(self.is_indel, [True])
+                self.indel_length = numpy.append(self.indel_length, [total])
+                self.indel_nucleotides = numpy.append(self.indel_nucleotides, [self.gene1.nucleotide_index[mask]])
+                self.ref_nucleotides = numpy.append(self.ref_nucleotides, [None])
+                self.alt_nucleotides = numpy.append(self.alt_nucleotides, [None])
+                self.is_snp = numpy.append(self.is_snp, [False])
+                self.is_het = numpy.append(self.is_het, [False])
+                self.is_null = numpy.append(self.is_null, [False])
 
-            #Common updates
-            self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
-            self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
-            self.gene_position = numpy.append(self.gene_position, [None])
-            self.is_cds = numpy.append(self.is_cds, [True])
-            self.is_promoter = numpy.append(self.is_promoter, [False])
-            self.is_indel = numpy.append(self.is_indel, [True])
-            self.indel_length = numpy.append(self.indel_length, [total])
-            self.indel_nucleotides = numpy.append(self.indel_nucleotides, [self.gene1.nucleotide_index[mask]])
-            self.ref_nucleotides = numpy.append(self.ref_nucleotides, [None])
-            self.alt_nucleotides = numpy.append(self.alt_nucleotides, [None])
-            self.is_snp = numpy.append(self.is_snp, [False])
-            self.is_het = numpy.append(self.is_het, [False])
-            self.is_null = numpy.append(self.is_null, [False])
 
     def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC
