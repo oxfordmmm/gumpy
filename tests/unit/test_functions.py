@@ -529,6 +529,15 @@ def test_valid_variant():
     assert gene.valid_variant("-2_ins_agaaat:3")
     assert gene.valid_variant("-2_ins_agaaat:375")
 
+    #Percentage deletions
+    assert gene.valid_variant("A@del_1.0")
+    assert gene.valid_variant("A@del_0.0")
+    assert gene.valid_variant("A@del_0.5")
+    assert gene.valid_variant("A@del_0.05")
+    assert gene.valid_variant("del_0.05")
+    assert gene.valid_variant("del_0.05:0.02")
+    assert gene.valid_variant("del_0.05:4")
+
     #Invalid variants
     with pytest.raises(Exception) as e_info:
         assert not gene.valid_variant("")

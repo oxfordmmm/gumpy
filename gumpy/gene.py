@@ -639,5 +639,19 @@ class Gene(object):
                 #Just check that the position specified lies within the gene
                 valid = valid and pos in self.nucleotide_number
             return valid
+        #Checking for percentage deletion
+        deletion = re.compile(r"""
+                            ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                            del_ #Deletion
+                            ([01]\.[0-9]+)
+                            """, re.VERBOSE)
+        if deletion.fullmatch(variant):
+            name, percent = deletion.fullmatch(variant).groups()
+            valid = True
+            if name is not None:
+                valid = valid and name[:-1] == self.name
+            percent = float(percent)
+            valid = valid and percent <= 1 and percent >= 0
+            return valid
         #If none of the mutations have matched, return False
         return False
