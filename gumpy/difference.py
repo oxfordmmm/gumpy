@@ -386,7 +386,6 @@ class GeneDifference(Difference):
         for idx, length in zip(self.nucleotide_index, self.indel_length):
             evidence1 = self.gene1.vcf_evidence.get(idx)
             evidence2 = self.gene2.vcf_evidence.get(idx)
-            print(idx, evidence1, evidence2)
 
             if evidence1 is not None and evidence2 is not None:
                 #We have a collision. For now, just concat FIXME
@@ -397,14 +396,6 @@ class GeneDifference(Difference):
                 evidences.append(evidence2)
             else:
                 evidences.append(None)
-        print("###########")
-        for key in self.gene1.vcf_evidence.keys():
-            print(key, self.gene1.vcf_evidence[key])
-        print("-------------")
-        for key in self.gene2.vcf_evidence.keys():
-            print(key, self.gene2.vcf_evidence[key])
-
-        print()
         self.vcf_evidences = evidences
     
     def __large_deletions(self):
