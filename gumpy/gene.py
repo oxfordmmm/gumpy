@@ -170,6 +170,7 @@ class Gene(object):
                 self.indel_length[idx] = -1 * len(self.indel_length[idx:])
                 self.indel_nucleotides[idx] = ''.join(self.nucleotide_sequence[idx:])
         
+        #Clean up vcf_evidences so only the start of a del has the evidence (to avoid erroneous evidences)
         for i, (deleted, length) in enumerate(zip(self.is_deleted, self.indel_length)):
             if deleted and length >= 0:
                 #Deleted but this isn't the start
@@ -302,7 +303,10 @@ class Gene(object):
                 #A deletion at this pos so adjust position
                 new_pos = pos - len(indel_nucleotides[pos]) + 1
                 fixed_indel_nucleotides[new_pos] = ''.join(self._complement(indel_nucleotides[pos][::-1]))
-                fixed_is_indel[new_pos] = True
+                #Only set is_indel if it was set before 
+                #In cases of large deletions, we don't want this set
+                if is_indel[pos]:
+                    fixed_is_indel[new_pos] = True
                 fixed_indel_length[new_pos] = indel_length[pos]
                 fixed_indel_index[new_pos] = fixed_indel_index[pos]
 
