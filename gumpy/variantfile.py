@@ -50,7 +50,10 @@ class VCFRecord(object):
         self.contig = record.contig
         self.pos = record.pos
         self.ref = record.ref.lower()
-        self.alts = tuple([i.lower() for i in record.alts])
+        if record.alts is not None:
+            self.alts = tuple([i.lower() for i in record.alts])
+        else:
+            self.alts = None
         self.qual = record.qual
 
         #Get the filter attribute value
