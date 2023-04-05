@@ -534,7 +534,7 @@ class Gene(object):
 
         #Match promoter/non-coding SNP format
         promoter = re.compile(r"""
-                ([a-zA-Z_0-9]+@)? #Possibly a leading gene name
+                ([a-zA-Z_0-9.()]+@)? #Possibly a leading gene name
                 ([acgtzx]) #Reference base
                 (-?[0-9]+) #Position
                 ([acgtzx]) #Alt base
@@ -556,7 +556,7 @@ class Gene(object):
             return valid
         #Match amino acid SNP
         snp = re.compile(r"""
-                    ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                    ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                     ([A-Z!]) #Reference amino acid
                     ([0-9]+) #Position
                     ([A-Z!]) #Alt amino acid
@@ -577,7 +577,7 @@ class Gene(object):
 
         #Match amino acid synon-mutation
         synon = re.compile(r"""
-                        ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                        ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                         ([0-9]+) #Pos
                         = #Synonymous amino acid
                         """, re.VERBOSE)
@@ -593,7 +593,7 @@ class Gene(object):
 
         #Match indel
         indel = re.compile(r"""
-                    ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                    ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                     (-?[0-9]+) #Position
                     _(ins|del|indel)_? #Type
                     ([0-9]+|[acgtzx]+)? #Bases deleted/inserted
@@ -645,7 +645,7 @@ class Gene(object):
             return valid
         #Checking for percentage deletion
         deletion = re.compile(r"""
-                            ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                            ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                             del_ #Deletion
                             ([01]\.[0-9]+)
                             """, re.VERBOSE)

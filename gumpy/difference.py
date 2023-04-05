@@ -383,7 +383,7 @@ class GeneDifference(Difference):
         '''Once we have pulled out all of the mutations, find the VCF evidence (if existing) for each
         '''
         evidences = []
-        for idx, length in zip(self.nucleotide_index, self.indel_length):
+        for idx in self.nucleotide_index:
             evidence1 = self.gene1.vcf_evidence.get(idx)
             evidence2 = self.gene2.vcf_evidence.get(idx)
 
