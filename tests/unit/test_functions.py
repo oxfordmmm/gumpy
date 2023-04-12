@@ -491,6 +491,17 @@ def test_gene_difference():
     assert numpy.all(diff.nucleotides == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z'])
     assert numpy.all(sorted(diff.mutations) == sorted(['a-2x', 'a3x', 'a4x', 'a5x', 'c9t', 'c11g', 'c13t', 'c14g', 'g19z', 'g21z', 'g23z', 'g24z', 'g25z', 'g26z']))
 
+    with pytest.warns(UserWarning) as w:
+        #As this contains het calls of 1/2 etc, this should cause warnings to be raised
+        genome2 = genome1+gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf", minor_population_indices=range(len(genome1)))
+    assert len(w) == 3
+    expected_warnings = [
+        "Minor population detected at position 22, which doesn't include a wildtype call. Call: (1, 2). Note that there may be multiple mutations given at this index",
+        "Minor population detected at position 26, which doesn't include a wildtype call. Call: (1, 2). Note that there may be multiple mutations given at this index",
+        "Minor population detected at position 28, which doesn't include a wildtype call. Call: (1, 3). Note that there may be multiple mutations given at this index"
+    ]
+    for i, e in zip(w, expected_warnings):
+        assert i.message.args[0] == e
 
 
 def test_valid_variant():
