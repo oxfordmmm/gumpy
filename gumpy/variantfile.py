@@ -3,6 +3,7 @@ Classes used to parse and store VCF data
 '''
 import copy
 import pathlib
+import warnings
 from collections import defaultdict
 
 import numpy
@@ -292,6 +293,12 @@ class VCFFile(object):
                 continue
             else:
                 seen.append(self.calls[(idx, type_)]['original_vcf_row'])
+
+            #Checking for het calls
+            if self.calls[(idx, type_)]['call'] == "z":
+                if 0 not in self.calls[(idx, type_)]['original_vcf_row']['GT']:
+                    #Het call without a wildtype call, so warn about weird behaviour
+                    warnings.warn(f"Minor population detected at position {idx}, which doesn't include a wildtype call. Call: {self.calls[(idx, type_)]['original_vcf_row']['GT']}. Note that there may be multiple mutations given at this index", UserWarning)
 
             #Reference base(s)
             ref = self.calls[(idx, type_)]['original_vcf_row']["REF"]

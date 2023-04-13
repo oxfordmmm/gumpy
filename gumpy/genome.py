@@ -612,6 +612,12 @@ class Genome(object):
         #Use a list to track minority populations
         self.minor_populations = []
 
+        #Track which nucleotides are deleted
+        self.is_deleted = numpy.array([False for i in self.nucleotide_index])
+
+        #Use a dict to track VCF evidence as req
+        self.vcf_evidence = dict()
+
     def __assign_promoter_regions(self):
         '''
         Private function to assign promoter regions to genes
@@ -730,7 +736,9 @@ class Genome(object):
             if population[0] in gene_nucleotides:
                 #This minor population is within the gene
                 gene_minor_populations.append(population)
-
+        
+        vcf_evidence = {idx : self.vcf_evidence[idx] for idx in self.vcf_evidence.keys() if idx in gene_nucleotides}
+            
         # instantiate a Gene object
         g = Gene(name=gene,
                     nucleotide_sequence=nucleotide_seq,
@@ -745,10 +753,35 @@ class Genome(object):
                     reverse_complement=self.genes[gene]['reverse_complement'],
                     feature_type=self.genes[gene]['type'],
                     ribosomal_shifts=self.genes[gene]['ribosomal_shifts'],
-                    minority_populations=gene_minor_populations
+                    minority_populations=gene_minor_populations,
+                    is_deleted=self.is_deleted[mask],
+                    vcf_evidence=vcf_evidence
                 )
 
         return g
+    
+    def __assign_deleted(self, genome) -> None:
+        '''Assign a boolean array of which nucleotides are deleted by indels.
+        This holds the same 1-1 relationship as nucleotide_index <-> nucleotide_sequence
+
+        Args:
+            genome (gumpy.Genome): Genome to apply this to
+        '''
+        marking = 0
+        current_evidence = None
+        for idx, length in enumerate(genome.indel_length):
+            if length < 0:
+                #We found a deletion, so mark the next N bases as deleted
+                #Deletions are -N here
+                marking -= length
+                current_evidence = genome.vcf_evidence[genome.nucleotide_index[idx]]
+
+            if marking > 0:
+                #We mark this as deleted
+                genome.is_deleted[idx] = True
+                #Update evidence too so we can pull out VCF rows from downstream genes
+                genome.vcf_evidence[genome.nucleotide_index[idx]] = current_evidence
+                marking -= 1
 
     def __add__(self, vcf: VCFFile):
         '''Function to apply a VCF file to the genome  - producing a replica genome with the specified changes
@@ -793,6 +826,7 @@ class Genome(object):
 
         # use the calls dict to change the nucleotide indicies in the copy of the genome
         for (idx,type_) in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
+            genome.vcf_evidence[genome.nucleotide_index[idx-1]] = vcf.calls[(idx, type_)]['original_vcf_row']
 
             # deal with changes at a single nucleotide site
             if type_ in ['snp','null','het']:
@@ -816,6 +850,9 @@ class Genome(object):
                 pass
 
         genome.minor_populations = vcf.minor_populations
+
+        #Let's assign some deleted regions (if exist)
+        self.__assign_deleted(genome)
 
         # the genome has been altered so not a reference genome
         genome.is_reference = False

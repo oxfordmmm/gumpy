@@ -491,6 +491,17 @@ def test_gene_difference():
     assert numpy.all(diff.nucleotides == ['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z'])
     assert numpy.all(sorted(diff.mutations) == sorted(['a-2x', 'a3x', 'a4x', 'a5x', 'c9t', 'c11g', 'c13t', 'c14g', 'g19z', 'g21z', 'g23z', 'g24z', 'g25z', 'g26z']))
 
+    with pytest.warns(UserWarning) as w:
+        #As this contains het calls of 1/2 etc, this should cause warnings to be raised
+        genome2 = genome1+gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf", minor_population_indices=range(len(genome1)))
+    assert len(w) == 3
+    expected_warnings = [
+        "Minor population detected at position 22, which doesn't include a wildtype call. Call: (1, 2). Note that there may be multiple mutations given at this index",
+        "Minor population detected at position 26, which doesn't include a wildtype call. Call: (1, 2). Note that there may be multiple mutations given at this index",
+        "Minor population detected at position 28, which doesn't include a wildtype call. Call: (1, 3). Note that there may be multiple mutations given at this index"
+    ]
+    for i, e in zip(w, expected_warnings):
+        assert i.message.args[0] == e
 
 
 def test_valid_variant():
@@ -528,6 +539,15 @@ def test_valid_variant():
     assert gene.valid_variant("A@P5C:0.05")
     assert gene.valid_variant("-2_ins_agaaat:3")
     assert gene.valid_variant("-2_ins_agaaat:375")
+
+    #Percentage deletions
+    assert gene.valid_variant("A@del_1.0")
+    assert gene.valid_variant("A@del_0.0")
+    assert gene.valid_variant("A@del_0.5")
+    assert gene.valid_variant("A@del_0.05")
+    assert gene.valid_variant("del_0.05")
+    assert gene.valid_variant("del_0.05:0.02")
+    assert gene.valid_variant("del_0.05:4")
 
     #Invalid variants
     with pytest.raises(Exception) as e_info:
@@ -697,6 +717,89 @@ def test_simplify_calls():
 
     assert sorted(vcf._simplify_call("a", "gga")) == [(-1, "ins", "gg")]
     assert sorted(vcf._simplify_call("gga",'a')) == [(0, "del", "gg")]
+
+def test_large_deletions():
+    '''Test large deletion detection
+    '''
+    ref = gumpy.Genome("config/TEST-DNA.gbk")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-4.vcf")
+    sample = ref + vcf
+
+    a = ref.build_gene("A")
+    #Deletes all but first promoter
+    a2 = sample.build_gene("A")
+    diff = a - a2
+
+    assert numpy.all(diff.mutations == ["-1_del_aaaaaaaaccccccccccgggggggggg", 'del_0.93'])
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}, {'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+
+    b = ref.build_gene("B")
+    #Entirely deleted
+    b2 = sample.build_gene("B")
+    diff = b - b2
+
+    assert numpy.all(diff.mutations == ["del_1.0"])
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+
+    c = ref.build_gene("C")
+    #Deletes 33%, so reported as normal deletion
+    c2 = sample.build_gene("C")
+    diff = c - c2
+
+    #This might look wrong, but C is revcomp
+    #Bases 91, 92, 93 are deleted here
+    #index:  [99 98 97 96 95 94 93 92 91]
+    #number: [-3 -2 -1  1  2  3  4  5  6] --> starting at gene pos of 4
+
+    assert numpy.all(diff.mutations == ["4_del_ggg"])
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+
+    #Checking vcf evidence when two samples are used which affect the same base
+    #Should concat the evidences
+    vcf2 = gumpy.VCFFile("tests/test-cases/TEST-DNA-2.vcf")
+    #Change this vcf's first entry to be base 3 rather than 2
+    #This puts it in the same base as the first VCF
+    vcf2.calls[(3, 'null')] = vcf2.calls[(2, 'null')]
+    del vcf2.calls[(2, 'null')]
+
+    sample2 = ref + vcf2
+
+    diff = sample - sample2
+
+    c1 = {key[0]: vcf.calls[key]['original_vcf_row'] for key in vcf.calls.keys()}
+    c2 = {key[0]: vcf2.calls[key]['original_vcf_row'] for key in vcf2.calls.keys()}
+
+    for idx, evidence in zip(diff.nucleotide_index, diff.vcf_evidences):
+        if idx in c1.keys() and idx in c2.keys():
+            #Both so concat
+            assert evidence == [c1[idx], c2[idx]]
+        elif idx in c1.keys():
+            assert evidence == c1[idx]
+        elif idx in c2.keys():
+            assert evidence == c2[idx]
+        else:
+            assert evidence == None
+
+            assert evidence == None
+    #Repeat the entry for the start of all genes as this should be picked up in gene diff
+    c1[28] = c1[3]
+    c1[91] = c1[3]
+    
+    for gene in ref.genes.keys():
+        g1 = sample.build_gene(gene)
+        g2 = sample2.build_gene(gene)
+        diff = g1 - g2
+        for idx, evidence in zip(diff.nucleotide_index, diff.vcf_evidences):
+            if idx in c1.keys() and idx in c2.keys():
+                #Both so concat
+                assert evidence == [c1[idx], c2[idx]]
+            elif idx in c1.keys():
+                assert evidence == c1[idx]
+            elif idx in c2.keys():
+                assert evidence == c2[idx]
+            else:
+                assert evidence == None
+
 
 def test_misc():
     '''Misc edge case testing

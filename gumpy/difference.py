@@ -138,8 +138,35 @@ class GenomeDifference(Difference):
         #Checking for the same genes, give a warning is the genes are different
         if self.genome1.genes.keys() != self.genome2.genes.keys():
             self.__raise_mutations_warning(self.genome1, self.genome2)
+        
+        self.__assign_vcf_evidence()
 
         self.update_view(self._view_method)
+    
+    def __assign_vcf_evidence(self) -> None:
+        '''Once we have pulled out all of the variants, find the VCF evidence (if existing) for each
+        '''
+        evidences = []
+        for idx in self.nucleotide_index:
+            evidence1 = self.genome1.vcf_evidence.get(idx)
+            evidence2 = self.genome2.vcf_evidence.get(idx)
+
+            #As we add the vcf evidence for every deleted base
+            #This should only be reported for the actual start 
+            if self.genome1.is_deleted[idx-1] and self.genome1.indel_length[idx-1] >= 0:
+                evidence1 = None
+            if self.genome2.is_deleted[idx-1] and self.genome2.indel_length[idx-1] >= 0:
+                evidence2 = None
+
+            if evidence1 is not None and evidence2 is not None:
+                #We have a collision. For now, just concat FIXME
+                evidences.append([evidence1, evidence2])
+            elif evidence1 is not None:
+                evidences.append(evidence1)
+            elif evidence2 is not None:
+                evidences.append(evidence2)
+
+        self.vcf_evidences = evidences
     
     def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC
@@ -347,8 +374,126 @@ class GeneDifference(Difference):
         self._codons_full = self.__codons()
         self._amino_acids_full = self.__amino_acids()
 
+        self.__large_deletions()
+        self.__assign_vcf_evidence()
+
         self.update_view("diff") #Use inherited method to set the view
     
+    def __assign_vcf_evidence(self) -> None:
+        '''Once we have pulled out all of the mutations, find the VCF evidence (if existing) for each
+        '''
+        evidences = []
+        for idx in self.nucleotide_index:
+            evidence1 = self.gene1.vcf_evidence.get(idx)
+            evidence2 = self.gene2.vcf_evidence.get(idx)
+
+            if evidence1 is not None and evidence2 is not None:
+                #We have a collision. For now, just concat FIXME
+                evidences.append([evidence1, evidence2])
+            elif evidence1 is not None:
+                evidences.append(evidence1)
+            elif evidence2 is not None:
+                evidences.append(evidence2)
+            else:
+                evidences.append(None)
+        self.vcf_evidences = evidences
+    
+    def __large_deletions(self):
+        '''Check to see what proportion of the gene has been deleted. Report separately than other mutations if >=50% deleted
+        Updates internal arrays to denote a new mutation if deletion above threshold.
+        '''
+        #Find everywhere that we have different deletion within coding regions
+        mask = self.gene1.is_deleted != self.gene2.is_deleted
+
+        #Find out how much of the gene we have deleted
+        total = sum(self.gene1.is_deleted[mask]) + sum(self.gene2.is_deleted[mask])
+
+        if total > 0:
+            #We have some deletions
+            percentage = total / len(self.gene1.nucleotide_sequence)
+            if percentage >= 0.5:
+                #More than 50% deleted, so give a percentage
+                self.mutations = numpy.append(self.mutations, [f"del_{round(percentage, 2)}"])
+                #Pull out the start of the deletion for vcf evidence
+                self.nucleotide_index = numpy.append(self.nucleotide_index, [self.gene2.nucleotide_index[mask][0]])
+
+                self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
+                self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
+                self.gene_position = numpy.append(self.gene_position, [None])
+                self.is_cds = numpy.append(self.is_cds, [True])
+                self.is_promoter = numpy.append(self.is_promoter, [False])
+                self.is_indel = numpy.append(self.is_indel, [True])
+                self.indel_length = numpy.append(self.indel_length, [-1*total])
+                self.indel_nucleotides = numpy.append(self.indel_nucleotides, [''.join(self.gene1.nucleotide_sequence[mask])])
+                self.ref_nucleotides = numpy.append(self.ref_nucleotides, [None])
+                self.alt_nucleotides = numpy.append(self.alt_nucleotides, [None])
+                self.is_snp = numpy.append(self.is_snp, [False])
+                self.is_het = numpy.append(self.is_het, [False])
+                self.is_null = numpy.append(self.is_null, [False])
+            else:
+                #Check for a deletion at the start of the gene which is the result of an upstream del
+                if self.gene1.reverse_complement:
+                    #This is difficult as revcomp shifts dels upstream by the length of the del
+                    #So we have to find a del in the RHS of the gene which would be the last item if not shifted
+                    pos = -1
+                    while pos * -1 < len(self.gene1.nucleotide_sequence) / 2:
+                        if self.gene1.indel_length[pos] < 0 and not self.gene1.is_indel[pos]:
+                            #Del here in gene1 so check for validity
+                            if self.gene1.nucleotide_index[pos] + self.gene1.indel_length[pos] + 1 == self.gene1.nucleotide_index[-1]:
+                                #Re-adusting for deletion, this matches
+                                break
+                        if self.gene2.indel_length[pos] < 0 and not self.gene2.is_indel[pos]:
+                            #Del here in gene2 so check for validity
+                            if self.gene2.nucleotide_index[pos] + self.gene2.indel_length[pos] + 1 == self.gene2.nucleotide_index[-1]:
+                                #Re-adusting for deletion, this matches
+                                break
+                        pos -= 1
+                else:
+                    #If not revcomp, the del is the first item
+                    pos = 0
+                
+                if (self.gene1.indel_length[pos] < 0 and not self.gene1.is_indel[pos]) and (self.gene2.indel_length[pos] < 0 and not self.gene2.is_indel[pos]):
+                    #Both have a del, so no difference
+                    return
+                
+                if (self.gene1.indel_length[pos] < 0 and not self.gene1.is_indel[pos]):
+                    deleted = self.gene1.indel_nucleotides[pos]
+                elif (self.gene2.indel_length[pos] < 0 and not self.gene2.is_indel[pos]):
+                    deleted = self.gene2.indel_nucleotides[pos]
+                else:
+                    #Neither, so no difference either
+                    return
+                
+                #Adjust idx to point to the  right VCF evidence 
+                if self.gene1.reverse_complement:
+                    idx = self.gene1.nucleotide_index[pos + len(deleted) - 1]
+                else:
+                    idx = self.gene1.nucleotide_index[pos]
+
+                pos = self.gene1.nucleotide_number[pos]
+                
+                self.mutations = numpy.append(self.mutations, [f"{pos}_del_{deleted}"])
+                #Pull out the start of the deletion for vcf evidence
+                self.nucleotide_index = numpy.append(self.nucleotide_index, [idx])
+                self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
+                self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
+                self.gene_position = numpy.append(self.gene_position, [None])
+                self.is_cds = numpy.append(self.is_cds, [True])
+                self.is_promoter = numpy.append(self.is_promoter, [False])
+                self.is_indel = numpy.append(self.is_indel, [True])
+                self.indel_length = numpy.append(self.indel_length, [len(deleted)])
+                self.indel_nucleotides = numpy.append(self.indel_nucleotides, [deleted])
+                self.ref_nucleotides = numpy.append(self.ref_nucleotides, [None])
+                self.alt_nucleotides = numpy.append(self.alt_nucleotides, [None])
+                self.is_snp = numpy.append(self.is_snp, [False])
+                self.is_het = numpy.append(self.is_het, [False])
+                self.is_null = numpy.append(self.is_null, [False])
+                
+                
+
+                
+
+
     def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC
 

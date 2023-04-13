@@ -14,7 +14,7 @@ class Gene(object):
 
     """Gene object that uses underlying numpy arrays"""
 
-    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None, minority_populations: list=None):
+    def __init__(self, name: str=None, nucleotide_sequence: numpy.array=None, nucleotide_index: numpy.array=None, nucleotide_number: numpy.array=None, is_cds: numpy.array=None, is_promoter: numpy.array=None, is_indel: numpy.array=None, indel_length: numpy.array=None, indel_nucleotides: numpy.array=None, reverse_complement: bool=False, codes_protein: bool=True, feature_type: str=None, ribosomal_shifts: [int]=None, minority_populations: list=None, is_deleted: numpy.array=None, vcf_evidence: dict=None):
         '''Constructor for the Gene object.
 
         Args:
@@ -32,10 +32,14 @@ class Gene(object):
             feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
             ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
             minority_populations ([int, str, str|(str,str), int, float], optional): List of minor populations. Each minor population is defined as [position, type, bases - either str or tuple of (ref, alt), depth supporting this, fractional read support]
+            is_deleted (numpy.array, optional): Numpy array of booleans showing if a given nucleotide index is deleted. Defaults to None
+            vcf_evidence (dict, optional): Dictionary tracking genome indices which have VCF evidence to support these calls. Defaults to None
         '''
         #Using [] as a default value is dangerous, so convert from None
         if ribosomal_shifts is None:
             ribosomal_shifts = []
+        if is_deleted is None:
+            is_deleted = [i for i in nucleotide_index]
 
         assert name is not None, "must provide a gene name!"
         assert isinstance(name, str)
@@ -67,6 +71,7 @@ class Gene(object):
         assert len(nucleotide_index) == len(is_indel), 'all inputs arrays must be the same length!'
         assert len(nucleotide_index) == len(indel_length), 'all inputs arrays must be the same length!'
         assert len(nucleotide_index) == len(indel_nucleotides), 'all inputs arrays must be the same length!'
+        assert len(nucleotide_index) == len(is_deleted), 'all inputs arrays must be the same length!'
 
         nucleotide_sequence = numpy.char.lower(nucleotide_sequence)
         assert numpy.count_nonzero(numpy.isin(nucleotide_sequence,['a','t','c','g','x','z','o']))==len(nucleotide_sequence), name+": sequence can only contain a,t,c,g,z,x"
@@ -80,10 +85,14 @@ class Gene(object):
         self.indel_nucleotides = indel_nucleotides
         self.indel_length = indel_length
         self.minority_populations = [] if minority_populations is None else minority_populations
+        self.is_deleted = is_deleted
+        self.vcf_evidence = {} if vcf_evidence is None else vcf_evidence
 
         #As revcomp changes some of the positions for indels, track separately
         # so we can track the genome position they came from
         self.indel_index = copy.deepcopy(self.nucleotide_index)
+
+        self.__adjust_dels()
 
         #Make appropriate changes to the arrays to encorporate the frame shift
         for shift in ribosomal_shifts:
@@ -138,6 +147,36 @@ class Gene(object):
                         pos = pos - len(bases) + 1
             fixed.append([pos, type_, bases, pop[3], pop[4]])
         self.minority_populations = sorted(fixed, key= lambda x: x[0])
+    
+    def __adjust_dels(self) -> None:
+        '''Adjust some of the deletions, such as deletions starting/ending in another gene
+        Also adjust the vcf evidences so they aren't present unless it is the start of the del
+        '''
+        #Starting in another gene
+        if self.is_deleted[0] and self.indel_length[0] == 0:
+            #Find first N contiguous deletions
+            n = 0
+            for i in self.is_deleted:
+                if not i:
+                    break
+                n += 1
+            self.indel_length[0] = -1 * n
+            self.indel_nucleotides[0] = ''.join(self.nucleotide_sequence[:n])
+        
+        #Ending in another (truncating indel_length)
+        for idx, indel in enumerate(self.indel_length):
+            if indel < 0 and -1 * indel > len(self.indel_length[idx :]):
+                #Too long so truncate
+                self.indel_length[idx] = -1 * len(self.indel_length[idx:])
+                self.indel_nucleotides[idx] = ''.join(self.nucleotide_sequence[idx:])
+        
+        #Clean up vcf_evidences so only the start of a del has the evidence (to avoid erroneous evidences)
+        for i, (deleted, length) in enumerate(zip(self.is_deleted, self.indel_length)):
+            if deleted and length >= 0:
+                #Deleted but this isn't the start
+                nucleotide_index = self.nucleotide_index[i]
+                del self.vcf_evidence[nucleotide_index]
+            
 
     def minority_populations_GARC(self, interpretation: str='reads', reference=None) -> [str]:
         '''Fetch the mutations caused by minority populations in GARC
@@ -175,7 +214,7 @@ class Gene(object):
             cov = population[coverage]
             if type_ in ['ins', 'del']:
                 #Indels don't need any special treatment
-                mutations.append(f"{self.name}@{pos}_{type_}_{bases}:{cov}")
+                mutations.append(f"{pos}_{type_}_{bases}:{cov}")
             else:
                 #Check for coding as those need extra support
                 if self.codes_protein and pos > 0:
@@ -198,7 +237,7 @@ class Gene(object):
                     #We don't care if these are synonymous
                     if ref == bases[1]:
                         continue
-                    mutations.append(f"{self.name}@{ref}{pos}{bases[1]}:{cov}")
+                    mutations.append(f"{ref}{pos}{bases[1]}:{cov}")
         
         if self.codes_protein:
             #Now check for codon changes
@@ -220,7 +259,7 @@ class Gene(object):
                             mutations.append(synon)
                         else:
                             #Non-synonymous
-                            mutations.append(f"{self.name}@{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
+                            mutations.append(f"{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
         return sorted(mutations)
 
 
@@ -239,6 +278,7 @@ class Gene(object):
         indel_length=self.indel_length[::-1]
         indel_nucleotides = self.indel_nucleotides[::-1]
         fixed_indel_index = self.indel_index[::-1]
+        self.is_deleted = self.is_deleted[::-1]
 
         #Check for positions where there actually is an indel
         positions = numpy.where(indel_length != 0)
@@ -262,13 +302,11 @@ class Gene(object):
             else:
                 #A deletion at this pos so adjust position
                 new_pos = pos - len(indel_nucleotides[pos]) + 1
-                if new_pos < 0:
-                    #This is an issue because this lies outside of the gene now
-                    #So just retain the deletions within this gene, and mark to be at the start
-                    indel_nucleotides[pos] = indel_nucleotides[pos][:pos+1]
-                    new_pos = 0
                 fixed_indel_nucleotides[new_pos] = ''.join(self._complement(indel_nucleotides[pos][::-1]))
-                fixed_is_indel[new_pos] = True
+                #Only set is_indel if it was set before 
+                #In cases of large deletions, we don't want this set
+                if is_indel[pos]:
+                    fixed_is_indel[new_pos] = True
                 fixed_indel_length[new_pos] = indel_length[pos]
                 fixed_indel_index[new_pos] = fixed_indel_index[pos]
 
@@ -496,7 +534,7 @@ class Gene(object):
 
         #Match promoter/non-coding SNP format
         promoter = re.compile(r"""
-                ([a-zA-Z_0-9]+@)? #Possibly a leading gene name
+                ([a-zA-Z_0-9.()]+@)? #Possibly a leading gene name
                 ([acgtzx]) #Reference base
                 (-?[0-9]+) #Position
                 ([acgtzx]) #Alt base
@@ -518,7 +556,7 @@ class Gene(object):
             return valid
         #Match amino acid SNP
         snp = re.compile(r"""
-                    ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                    ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                     ([A-Z!]) #Reference amino acid
                     ([0-9]+) #Position
                     ([A-Z!]) #Alt amino acid
@@ -539,7 +577,7 @@ class Gene(object):
 
         #Match amino acid synon-mutation
         synon = re.compile(r"""
-                        ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                        ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                         ([0-9]+) #Pos
                         = #Synonymous amino acid
                         """, re.VERBOSE)
@@ -555,7 +593,7 @@ class Gene(object):
 
         #Match indel
         indel = re.compile(r"""
-                    ([a-zA-Z_0-9]+@)? #Possibly leading gene name
+                    ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                     (-?[0-9]+) #Position
                     _(ins|del|indel)_? #Type
                     ([0-9]+|[acgtzx]+)? #Bases deleted/inserted
@@ -604,6 +642,20 @@ class Gene(object):
             if type_ == "ins":
                 #Just check that the position specified lies within the gene
                 valid = valid and pos in self.nucleotide_number
+            return valid
+        #Checking for percentage deletion
+        deletion = re.compile(r"""
+                            ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
+                            del_ #Deletion
+                            ([01]\.[0-9]+)
+                            """, re.VERBOSE)
+        if deletion.fullmatch(variant):
+            name, percent = deletion.fullmatch(variant).groups()
+            valid = True
+            if name is not None:
+                valid = valid and name[:-1] == self.name
+            percent = float(percent)
+            valid = valid and percent <= 1 and percent >= 0
             return valid
         #If none of the mutations have matched, return False
         return False
