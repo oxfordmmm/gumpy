@@ -477,7 +477,7 @@ class GeneDifference(Difference):
                 self.nucleotide_index = numpy.append(self.nucleotide_index, [idx])
                 self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
                 self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
-                self.gene_position = numpy.append(self.gene_position, [None])
+                self.gene_position = numpy.append(self.gene_position, [pos])
                 self.is_cds = numpy.append(self.is_cds, [True])
                 self.is_promoter = numpy.append(self.is_promoter, [False])
                 self.is_indel = numpy.append(self.is_indel, [True])
