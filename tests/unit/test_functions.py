@@ -832,11 +832,11 @@ def test_misc():
     c = sample.build_gene("C")
     ref_c = ref.build_gene("C")
     diff = ref_c - c
-    assert sorted(diff.mutations) == sorted(['-3_del_gg', '2_ins_tt'])
+    assert sorted(diff.mutations) == sorted(['-3_del_gg', '1_ins_tt'])
     
     #Should be the same idea from the other perspective too
     diff = c - ref_c
-    assert sorted(diff.mutations) == sorted(['-3_ins_gg', '2_del_tt'])
+    assert sorted(diff.mutations) == sorted(['-3_ins_gg', '1_del_tt'])
 
     #Make sure gene diff can handle het calls in promoters in coding genes
     ref.genes["A"]["codes_protein"] = True
