@@ -175,7 +175,9 @@ class Gene(object):
             if deleted and length >= 0:
                 #Deleted but this isn't the start
                 nucleotide_index = self.nucleotide_index[i]
-                del self.vcf_evidence[nucleotide_index]
+                if self.vcf_evidence.get(nucleotide_index, None) is not None:
+                    #Delete if exists
+                    del self.vcf_evidence[nucleotide_index]
             
 
     def minority_populations_GARC(self, interpretation: str='reads', reference=None) -> [str]:
