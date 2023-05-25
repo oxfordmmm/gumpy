@@ -2,7 +2,7 @@ repo_url: https://github.com/oxfordmmm/gumpy
 repo_name: gumpy
 site_name: Gumpy Documentation
 docs_dir: docs/
-site_dir: /
+site_dir: public/
 
 theme:
   name: material
