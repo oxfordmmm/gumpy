@@ -3,23 +3,23 @@
 Utilises numpy arrays internally for improved speed when parsing genomes and assigning promoters.
 
 Provides features including:
-    Parsing genbank files to produce Genome (and Gene) objects;
-    Handle assignment of promoter regions to genes within a genome;
-    Parsing VCF files to produce VCFFile (and VCFRecord) objects;
-    Applying a VCF file to a reference genome to produce a new genome;
-    Finding in-depth differences between two genomes such as indels;
-    Finding in-depth differences caused by a VCF such as SNPs, het and null calls;
-    Finding in-depth differences between two genes such as SNPs, indels and mutations in GARC;
-    Handle intricacies of genomes such as reverse complement genes and -1 PRF.
+    * Parsing genbank files to produce Genome (and Gene) objects;
+    * Handle assignment of promoter regions to genes within a genome;
+    * Parsing VCF files to produce VCFFile (and VCFRecord) objects;
+    * Applying a VCF file to a reference genome to produce a new genome;
+    * Finding in-depth differences between two genomes such as indels;
+    * Finding in-depth differences caused by a VCF such as SNPs, het and null calls;
+    * Finding in-depth differences between two genes such as SNPs, indels and mutations in GARC;
+    * Handle intricacies of genomes such as reverse complement genes and -1 PRF.
 
 
 Classes:
-    Genome
-    Gene
-    VCFFile
-    VCFRecord
-    GenomeDifference
-    GeneDifference
+    * Genome
+    * Gene
+    * VCFFile
+    * VCFRecord
+    * GenomeDifference
+    * GeneDifference
 '''
 import importlib.metadata
 
