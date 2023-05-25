@@ -6,9 +6,9 @@ import mkdocs_gen_files
 
 nav = mkdocs_gen_files.Nav()
 
-for path in sorted(Path("gpas").rglob("*.py")):
-    module_path = path.relative_to("gpas").with_suffix("")
-    doc_path = path.relative_to("gpas").with_suffix(".md")
+for path in sorted(Path("gumpy").rglob("*.py")):
+    module_path = path.relative_to("gumpy").with_suffix("")
+    doc_path = path.relative_to("gumpy").with_suffix(".md")
     full_doc_path = Path("reference", doc_path)
 
     parts = tuple(module_path.parts)
@@ -21,7 +21,7 @@ for path in sorted(Path("gpas").rglob("*.py")):
         continue
 
     if parts == tuple():
-        parts = ("gpas",)
+        parts = ("gumpy",)
     nav[parts] = doc_path.as_posix()
 
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
