@@ -1,7 +1,7 @@
 repo_url: https://github.com/oxfordmmm/gumpy
 repo_name: gumpy
 site_name: Gumpy Documentation
-docs_dir: docs/
+docs_dir: /
 
 theme:
   name: material
@@ -13,12 +13,12 @@ theme:
     - navigation.tracking
 
 nav:
-  - Home: readme.md
+  - Home: README.md
   - Code Reference: reference/
 
 extra:
   version:
-    provider: mike
+    provider: jeremy
 plugins:
   - include-markdown
   - search
