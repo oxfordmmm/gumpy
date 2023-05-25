@@ -144,7 +144,7 @@ class Genome(object):
         return(GenomeDifference(self,other))
 
     def __eq__(self, other) -> bool:
-        '''Overloading the equality operator so two Genome objects can be compared directly
+        '''Overloading the equality operator so two Genome objects can be compared directly. 
         Checks for the equality based on fields, but does not check for filename equality
         Args:
             other (gumpy.Genome) : The other Genome object to compare to
@@ -512,7 +512,7 @@ class Genome(object):
     def __fit_gene(self, mask: numpy.array, genes: numpy.array, genes_mask: numpy.array, start: int, end: int, gene_name: str, rev_comp: bool) -> (numpy.array, numpy.array):
         '''
         Private function to fit a gene into the genes based on the dot product of the masks
-            numpy.dot([bool], [bool])-> bool showing if there are collisions of True values within args
+            numpy.dot([bool], [bool])-> bool showing if there are collisions of True values within args.
             This takes 10^-5 seconds which is a significant improvement on use of numpy.all() iteration of 10^-2 seconds for TB length genome
         Args:
             mask (numpy.array) : Boolean array showing positions where the gene lies
@@ -549,9 +549,9 @@ class Genome(object):
 
     def __find_overlaps(self):
         '''
-        Private function to find the sections of the genome in which there are overlapping genes
-        This should be more efficient than the older version as it avoids consistent genome iteration
-        Use of the dot product on boolean arrays returns a single boolean showing collisions in almost constant time (10^-5 secs for TB size)
+        Private function to find the sections of the genome in which there are overlapping genes. 
+        This should be more efficient than the older version as it avoids consistent genome iteration. 
+        Use of the dot product on boolean arrays returns a single boolean showing collisions in almost constant time (10^-5 secs for TB size). 
             This can be used to determine which row the gene should be in
         '''
 
