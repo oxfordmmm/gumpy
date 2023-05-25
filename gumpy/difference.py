@@ -2,16 +2,16 @@
 Used to find differences between Genomes and Genes, as well as the impact a VCF has on a genome.
 
 Abstract classes:
-    Difference - Abstract class providing the ability to change data views
+    * Difference - Abstract class providing the ability to change data views
 Classes:
-    GenomeDifference
-    GeneDifference
+    * GenomeDifference
+    * GeneDifference
 Exceptions:
-    FailedComparison
+    * FailedComparison
 Functions:
-    convert_nucleotides_codons(numpy.array) -> numpy.array: Converts an array of nucleotides to an array of codons.
-    setup_codon_aa_dict() -> dict: Returns a dictionary mapping codon->amino_acid
-    collapse_inner_dict(dict) -> dict: Converts a dictionary with an inner dictionary to a single dictionary. Key collisions are not considered
+    * convert_nucleotides_codons(numpy.array) -> numpy.array: Converts an array of nucleotides to an array of codons.
+    * setup_codon_aa_dict() -> dict: Returns a dictionary mapping codon->amino_acid
+    * collapse_inner_dict(dict) -> dict: Converts a dictionary with an inner dictionary to a single dictionary. Key collisions are not considered
                                         intentionally as this should not be an issue with this use case
 '''
 import warnings
@@ -46,8 +46,8 @@ class Difference(ABC):
 
     def update_view(self, method: str):
         '''Update the viewing method. Can either be `diff` or `full`:
-        `diff`: Where applicable, variables return arrays of values from object1 where they are not equal to object 2
-        `full`: Where applicable, variables return arrays of tuples showing (object1_val, object2_val) where values are not equal between objects.
+        * `diff`: Where applicable, variables return arrays of values from object1 where they are not equal to object 2
+        * `full`: Where applicable, variables return arrays of tuples showing (object1_val, object2_val) where values are not equal between objects.
 
         Args:
             method (str): Name of the viewing method. Must be within `['diff', 'full']`
@@ -81,26 +81,26 @@ class GenomeDifference(Difference):
     '''
     GenomeDifference object captures the difference between two genomes.
 
-    The difference can be viewed in one of two ways:
-        `diff`: Arrays of the values from genome1 where there are different values in genome2,
+    * The difference can be viewed in one of two ways:
+        * `diff`: Arrays of the values from genome1 where there are different values in genome2,
                 or values which exist in genome1 but not genome2 depending on which is more appropriate (closer to classical subtraction).
                 This is the default view.
-        `full`: Arrays of tuples consisting of (genome1_val, genome2_val) - more information but less like classical subtraction
+        * `full`: Arrays of tuples consisting of (genome1_val, genome2_val) - more information but less like classical subtraction
                 and more difficult to wrangle meaningful information from.
-    This option can be set by using the update_view() method
+        * This option can be set by using the update_view() method
 
-    Instance variables:
-        snp_distance (int): SNP distance between the two genomes
-        indices (numpy.array): Array of genome indices where the two genomes differ in nucleotides
-        nucleotides (numpy.array): Array of differences in nucleotides. Format depends on the current view.
-        indels (numpy.array): Array of differences in inels. Format depends on the current view.
-    Functions:
-        variants(int) -> dict: Takes a genome index and returns a dictionary mapping field->(genome1_val, genome2_val) for all fields
+    * Instance variables:
+        * snp_distance (int): SNP distance between the two genomes
+        * indices (numpy.array): Array of genome indices where the two genomes differ in nucleotides
+        * nucleotides (numpy.array): Array of differences in nucleotides. Format depends on the current view.
+        * indels (numpy.array): Array of differences in inels. Format depends on the current view.
+    * Functions:
+        * variants(int) -> dict: Takes a genome index and returns a dictionary mapping field->(genome1_val, genome2_val) for all fields
                                 of a vcf file (if applicable)
-        gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects
-        minor_populations() -> [str]: Returns a list of minor population mutations in GARC
-    Inherited functions:
-        update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
+        * gene_differences() -> [GeneDifference]: Returns a list of GeneDifference objects
+        * minor_populations() -> [str]: Returns a list of minor population mutations in GARC
+    * Inherited functions:
+        * update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
 
     def __init__(self, genome1, genome2):
@@ -321,27 +321,27 @@ class GenomeDifference(Difference):
 
 class GeneDifference(Difference):
     '''Object to store the differences within genes. The view system is inherited from the Difference class.
-    Set to `full` for arrays of tuple values where applicable.
-    Set to `diff` for arrays of values from gene1 where the values vary. Default.
-    This can be updated using the update_view function.
+    * Set to `full` for arrays of tuple values where applicable.
+    * Set to `diff` for arrays of values from gene1 where the values vary. Default.
+    * This can be updated using the update_view function.
 
-    Instance variables:
-        gene1 (gumpy.Gene): Gene object 1
-        gene2 (gumpy.Gene): Gene object 2
-        nucleotides (numpy.array): Array of the nucleotides at which the genes differ. Format depends on the current view.
-        mutations (numpy.array): Array of mutations in GARC between the two Gene objects.
-        indels (numpy.array): Array of indel lengths where the indel lengths differ. Format depends on the current view.
-        codons (numpy.array): Array of codons where the two Gene objects have different codons. Format depends on the current view.
-        amino_acid_sequence (numpy.array): Array of amino acids where the two Gene objects have different amino acids. Format depends on the current view.
-    Functions:
-        amino_acid_variants(int) -> dict: Takes an amino acid index and returns a dictionary containing data from a vcf
+    * Instance variables:
+        * gene1 (gumpy.Gene): Gene object 1
+        * gene2 (gumpy.Gene): Gene object 2
+        * nucleotides (numpy.array): Array of the nucleotides at which the genes differ. Format depends on the current view.
+        * mutations (numpy.array): Array of mutations in GARC between the two Gene objects.
+        * indels (numpy.array): Array of indel lengths where the indel lengths differ. Format depends on the current view.
+        * codons (numpy.array): Array of codons where the two Gene objects have different codons. Format depends on the current view.
+        * amino_acid_sequence (numpy.array): Array of amino acids where the two Gene objects have different amino acids. Format depends on the current view.
+    * Functions:
+        * amino_acid_variants(int) -> dict: Takes an amino acid index and returns a dictionary containing data from a vcf
                                             file (if applicable) for attributes such as calls, ref, and alt for all nucleotides
                                             within the codons for this amino acid index. If these genes do not code protien, returns {}
-        nucleotide_variants(int) -> dict: Takes a nucleotide index and returns a dictionary containing data from a vcf
+        * nucleotide_variants(int) -> dict: Takes a nucleotide index and returns a dictionary containing data from a vcf
                                             file (if applicable) for attributes such as calls, ref, and alt at the given index
-        minor_populations() -> [str]: Returns a list of minor population mutations in GARC
-    Inherited functions:
-        update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
+        * minor_populations() -> [str]: Returns a list of minor population mutations in GARC
+    * Inherited functions:
+        * update_view(str) -> None: Used to change the viewing method for instance variables. Input values are either `diff` or `full`
     '''
     def __init__(self, gene1, gene2):
         '''

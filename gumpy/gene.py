@@ -149,7 +149,7 @@ class Gene(object):
         self.minority_populations = sorted(fixed, key= lambda x: x[0])
     
     def __adjust_dels(self) -> None:
-        '''Adjust some of the deletions, such as deletions starting/ending in another gene
+        '''Adjust some of the deletions, such as deletions starting/ending in another gene. 
         Also adjust the vcf evidences so they aren't present unless it is the start of the del
         '''
         #Starting in another gene
@@ -267,13 +267,13 @@ class Gene(object):
 
         
     def __revcomp_indel(self) -> None:
-        '''Make some adjustments for deletions within revcomp genes
-        The largest of which is that the gene position of the deletion needs adjusting for revcomp
-        In a normal gene, the position x says delete to the left y bases
-        In a revcomp gene we want to say the position x says delete to the right y bases
-        So the pos needs changing, and indel_nucleotides need revcomping
+        '''Make some adjustments for deletions within revcomp genes. 
+        The largest of which is that the gene position of the deletion needs adjusting for revcomp. 
+        In a normal gene, the position x says delete to the left y bases. 
+        In a revcomp gene we want to say the position x says delete to the right y bases. 
+        So the pos needs changing, and indel_nucleotides need revcomping. 
 
-        Because its going the opposite direction, the same indel will refer to a different nucleotide position
+        Because its going the opposite direction, the same indel will refer to a different nucleotide position.
         '''
         #Reverse the indel arrays
         is_indel=self.is_indel[::-1]
@@ -396,7 +396,7 @@ class Gene(object):
     def _complement(nucleotides_array: [str]) -> numpy.array:
         """Simple private method for returning the complement of an array of bases.
 
-        Note that takes account of HET and NULL calls via z and x, respectively
+        * Note that takes account of HET and NULL calls via z and x, respectively
 
         Args:
             nucleotides_array (Iterable(str)): Some iterable of nucleotide bases. Usually a numpy.array or list

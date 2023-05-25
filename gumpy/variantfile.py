@@ -13,23 +13,23 @@ import pysam
 
 class VCFRecord(object):
     '''
-    Class for VCF records
-    Instance variables:
-        `chrom` (str): Name of the sample.
-        `pos` (int): Genome index for the change.
-        `ref` (str): Reference value for the nucleotide.
-        `alts` (tuple(str)): Alternative calls. Tuple can contain single values and indels.
-        `qual` (None): Values for quality (values other than None have yet to be found in testing files...).
-        `filter` (str): Whether this record has pass the filter.
-        `info` (dict): Dictionary of key->value for the info fields.
-        `values` (dict): Dictionary of key->value for the values. Usually this is the FORMAT field names with their corresponding values.
-        `is_filter_pass` (bool): does the filter column contain PASS?
-        `call1` (int): the index of the first call
-        `call2` (int): the index of the second call
-        `is_reference` (bool): is the call for the reference?
-        `is_null` (bool): is the call a null call?
-        `is_heterozygous` (bool): is it a is_heterozygous call i.e. call1!=call2?
-        `is_alt` (bool): or, is the call for a single specified alt
+    * Class for VCF records
+    * Instance variables:
+        * `chrom` (str): Name of the sample.
+        * `pos` (int): Genome index for the change.
+        * `ref` (str): Reference value for the nucleotide.
+        * `alts` (tuple(str)): Alternative calls. Tuple can contain single values and indels.
+        * `qual` (None): Values for quality (values other than None have yet to be found in testing files...).
+        * `filter` (str): Whether this record has pass the filter.
+        * `info` (dict): Dictionary of key->value for the info fields.
+        * `values` (dict): Dictionary of key->value for the values. Usually this is the FORMAT field names with their corresponding values.
+        * `is_filter_pass` (bool): does the filter column contain PASS?
+        * `call1` (int): the index of the first call
+        * `call2` (int): the index of the second call
+        * `is_reference` (bool): is the call for the reference?
+        * `is_null` (bool): is the call a null call?
+        * `is_heterozygous` (bool): is it a is_heterozygous call i.e. call1!=call2?
+        * `is_alt` (bool): or, is the call for a single specified alt
     '''
     def __init__(self, record: pysam.libcbcf.VariantRecord, sample: str):
         '''Constructor for the VCFRecord object.
@@ -115,27 +115,27 @@ class VCFRecord(object):
 
 class VCFFile(object):
     '''
-    Class to instanciate a variant file (VCF)
-    Used to apply a VCF file to a genome
-    Instance variables:
-        `filename` (str): path to the VCF file
-        `vcf_version` (tuple(int)): Tuple of ints to show the VCF version of the file. e.g 3.2 would be (3, 2).
-        `contig_lengths` (dict): Dictionary mapping contig_name->length for all defined contigs.
-        `format_fields_description` (dict): Dictionary mapping format_name->dict(description, id, type).
-        `records` (list(VCFRecord)): List of VCFRecord objects for each record within the file.
-        `calls` (dict): Dict of definite calls made in the VCF file, after any additional filtering has been applied
-        `ignore_filter` (bool): whether to ignore the FILTER in the VCF file
-        `format_fields_min_thresholds` (dict): dictionary specifying minimum thresholds to be applied to fields in the FORMAT field e.g. {'GTCONF':5}
-        `variants` (numpy.array): Numpy array of the detected variants in the VCF file
-        `nucleotide_index` (numpy.array): Array of genome indices which are affected by the VCF
-        `ref_nucleotides` (numpy.array): Array of REF bases
-        `alt_nucleotides` (numpy.array): Array of ALT bases
-        `indel_length` (numpy.array): Array of lengths of insertions (+ve) or deletions (-ve) at each site
-        `is_snp` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are SNPs
-        `is_het` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are heterozygous calls
-        `is_null` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are null calls
-        `is_indel` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are indel calls
-        `snp_distance` (int): SNP distance caused by the VCF
+    * Class to instanciate a variant file (VCF)
+    * Used to apply a VCF file to a genome
+    * Instance variables:
+        * `filename` (str): path to the VCF file
+        * `vcf_version` (tuple(int)): Tuple of ints to show the VCF version of the file. e.g 3.2 would be (3, 2).
+        * `contig_lengths` (dict): Dictionary mapping contig_name->length for all defined contigs.
+        * `format_fields_description` (dict): Dictionary mapping format_name->dict(description, id, type).
+        * `records` (list(VCFRecord)): List of VCFRecord objects for each record within the file.
+        * `calls` (dict): Dict of definite calls made in the VCF file, after any additional filtering has been applied
+        * `ignore_filter` (bool): whether to ignore the FILTER in the VCF file
+        * `format_fields_min_thresholds` (dict): dictionary specifying minimum thresholds to be applied to fields in the FORMAT field e.g. {'GTCONF':5}
+        * `variants` (numpy.array): Numpy array of the detected variants in the VCF file
+        * `nucleotide_index` (numpy.array): Array of genome indices which are affected by the VCF
+        * `ref_nucleotides` (numpy.array): Array of REF bases
+        * `alt_nucleotides` (numpy.array): Array of ALT bases
+        * `indel_length` (numpy.array): Array of lengths of insertions (+ve) or deletions (-ve) at each site
+        * `is_snp` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are SNPs
+        * `is_het` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are heterozygous calls
+        * `is_null` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are null calls
+        * `is_indel` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are indel calls
+        * `snp_distance` (int): SNP distance caused by the VCF
     '''
     def __init__(self, filename: str, ignore_filter: bool=False, bypass_reference_calls: bool=False, format_fields_min_thresholds: {str: int}=None, minor_population_indices: {int}=None):
         '''
@@ -255,20 +255,20 @@ class VCFFile(object):
         return output
     
     def _find_minor_populations(self):
-        '''Find the minor populations for this VCF based on the minor population positions given
+        '''Find the minor populations for this VCF based on the minor population positions given. 
         Deconstructs these into actual mutations of SNP/INDEL too as this logic already exists here
 
-        Minor populations are intentionally kept very separate from other variants.
-        They are very infrequent compared to other variants so storing in similar structures would be resource heavy.
-        They are instead stored consistently in the form of calls:
-            [position, type, bases, depth, frs]
-            position: Genome position (or Gene position if within genes)
-            type: String denoting type of variant. One of ['ref', 'snp', 'ins', 'del']
-            bases: Descripton of the bases.
-                If type in ['ref', 'snp'], of the format (ref base, alt base)
-                If type in ['ins', 'del'], string of the bases inserted or deleted
-            depth: number of reads supporting this call
-            frs: fractional read support (i.e depth/total coverage at this point)
+        * Minor populations are intentionally kept very separate from other variants.
+        * They are very infrequent compared to other variants so storing in similar structures would be resource heavy.
+        * They are instead stored consistently in the form of calls:
+            * [position, type, bases, depth, frs]
+                * position: Genome position (or Gene position if within genes)
+                * type: String denoting type of variant. One of ['ref', 'snp', 'ins', 'del']
+                * bases: Descripton of the bases.
+                    * If type in ['ref', 'snp'], of the format (ref base, alt base)
+                    * If type in ['ins', 'del'], string of the bases inserted or deleted
+                * depth: number of reads supporting this call
+                * frs: fractional read support (i.e depth/total coverage at this point)
         '''
         self.minor_populations = []
         simple_calls = []
