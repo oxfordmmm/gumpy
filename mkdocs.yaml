@@ -14,7 +14,7 @@ theme:
     - navigation.tracking
 
 nav:
-  - Home: README.md
+  - Home: readme.md
   - Code Reference: reference/
 
 extra:
