@@ -304,6 +304,8 @@ class Gene(object):
                 fixed_indel_nucleotides[pos] = ''.join(self._complement(indel_nucleotides[old_pos][::-1]))
                 fixed_is_indel[pos] = True
                 fixed_indel_length[pos] = indel_length[old_pos]
+                self.vcf_evidence[self.nucleotide_index[pos]] = self.vcf_evidence[self.nucleotide_index[old_pos]]
+                del self.vcf_evidence[self.nucleotide_index[old_pos]]
             else:
                 #A deletion at this pos so adjust position
                 new_pos = pos - len(indel_nucleotides[pos]) + 1
