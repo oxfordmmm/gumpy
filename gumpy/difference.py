@@ -537,6 +537,7 @@ class GeneDifference(Difference):
         is_snp=[]
         is_het=[]
         is_null=[]
+        variants = []
 
         if self.codes_protein:
 
@@ -572,7 +573,17 @@ class GeneDifference(Difference):
                 indel_nucleotides.append(None)
                 ref_nucleotides.append(codon1)
                 alt_nucleotides.append(codon2)
-                
+
+                #Reconstruct the variant which caused this mutation to allow joining mutation and variant tables
+                codon_nucleotide_indices = self.gene1.nucleotide_index[self.gene1.is_cds][self.gene1.codon_number == num]
+                v = ""
+                for i, (r_, a_) in enumerate(zip(codon1, codon2)):
+                    if r_ != a_:
+                        v += str(codon_nucleotide_indices[i]) + r_ + ">" + a_ + "&"
+                if v[-1] == "&":
+                    v = v[:-1]
+                variants.append(v)
+
                 #If synonymous mutation, pull out nucelotide variants too
                 #This lets us determine effects of mutations such as fabG1@L203L more precisely
                 if r == a:
@@ -593,6 +604,8 @@ class GeneDifference(Difference):
                             indel_nucleotides.append(None)
                             ref_nucleotides.append(rn)
                             alt_nucleotides.append(an)
+
+                            variants.append(str(codon_nucleotide_indices[i]) + rn + ">" + an)
 
                             
 
@@ -629,6 +642,9 @@ class GeneDifference(Difference):
                     is_null.append(False)
                     is_het.append(False)
                     is_snp.append(True)
+                
+                #Reconstruct the variant which caused this mutation to allow joining mutation and variant tables
+                variants.append(str(idx) + r + ">" + a)
 
         else:
 
@@ -669,6 +685,9 @@ class GeneDifference(Difference):
                     is_het.append(False)
                     is_snp.append(True)
 
+                #Reconstruct the variant which caused this mutation to allow joining mutation and variant tables
+                variants.append(str(idx) + r + ">" + a)
+
         # now let's do indels
         assert numpy.sum((self.gene1.is_indel & self.gene2.is_indel) & (self.gene1.indel_nucleotides!=self.gene2.indel_nucleotides))==0, 'both genes have different indels at one or more of the same positions -- this cannot be easily be resolved!'
 
@@ -703,6 +722,16 @@ class GeneDifference(Difference):
             is_het.append(False)
             is_snp.append(False)
 
+            #Reconstruct the variant which caused this mutation to allow joining mutation and variant tables
+            m = mutations[-1].split("_")[1:]
+            if self.gene2.reverse_complement:
+                #These are slightly different as revcomp need changes
+                variants.append('_'.join([self.gene2.revcomp_indel_nc_index[str(num)]]+m))
+            else:
+                variants.append('_'.join([self.gene2.nucleotide_index[self.gene2.nucleotide_number == num]] + m))
+            
+
+
         mask=self.gene1.is_indel & (self.gene1.indel_nucleotides!=self.gene2.indel_nucleotides)
 
         for (num,length,alt,idx) in zip(    self.gene1.nucleotide_number[mask],\
@@ -735,6 +764,13 @@ class GeneDifference(Difference):
             is_het.append(False)
             is_snp.append(False)
 
+            #Reconstruct the variant which caused this mutation to allow joining mutation and variant tables
+            m = mutations[-1].split("_")[1:]
+            if self.gene1.reverse_complement:
+                #These are slightly different as revcomp need changes
+                variants.append('_'.join([self.gene1.revcomp_indel_nc_index[str(num)]]+m))
+            else:
+                variants.append('_'.join([self.gene1.nucleotide_index[self.gene1.nucleotide_number == num]] + m))
         self.mutations=numpy.array(mutations)
         self.amino_acid_number=numpy.array(amino_acid_number)
         self.nucleotide_number=numpy.array(nucleotide_number)
@@ -750,6 +786,7 @@ class GeneDifference(Difference):
         self.is_snp=numpy.array(is_snp)
         self.is_het=numpy.array(is_het)
         self.is_null=numpy.array(is_null)
+        self.variants = variants
 
     def __codons(self) -> numpy.array:
         '''Find the codon positions which are different within the genes (within codon regions)

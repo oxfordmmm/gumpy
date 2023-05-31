@@ -89,6 +89,10 @@ class Gene(object):
         self.vcf_evidence = {} if vcf_evidence is None else vcf_evidence
 
         self.minor_codons = {}
+        
+        #Track the original nucleotide position of each indel if this gene is revcomp
+        self.revcomp_indel_nc_index = {}
+
 
         #As revcomp changes some of the positions for indels, track separately
         # so we can track the genome position they came from
@@ -310,6 +314,7 @@ class Gene(object):
                 fixed_indel_length[pos] = indel_length[old_pos]
                 self.vcf_evidence[self.nucleotide_index[pos]] = self.vcf_evidence[self.nucleotide_index[old_pos]]
                 del self.vcf_evidence[self.nucleotide_index[old_pos]]
+                self.revcomp_indel_nc_index[str(self.nucleotide_number[pos])] = str(self.nucleotide_index[old_pos])
             else:
                 #A deletion at this pos so adjust position
                 new_pos = pos - len(indel_nucleotides[pos]) + 1
@@ -320,6 +325,7 @@ class Gene(object):
                     fixed_is_indel[new_pos] = True
                 fixed_indel_length[new_pos] = indel_length[pos]
                 fixed_indel_index[new_pos] = fixed_indel_index[pos]
+                self.revcomp_indel_nc_index[str(self.nucleotide_number[new_pos])] = str(self.nucleotide_index[pos])
 
         #Update instance variables
         self.is_indel = fixed_is_indel
