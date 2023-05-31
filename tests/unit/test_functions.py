@@ -825,7 +825,7 @@ def test_misc():
 
     #Edge cases of indels within revcomp genes
 
-    #This VCF has 95_ins_aa and 97_del_ccc
+    #This VCF has 95_ins_aa and 97_del_ccc (but there's only 2 bases to delete)
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-3.vcf")
     sample = ref + vcf
 
@@ -833,7 +833,8 @@ def test_misc():
     ref_c = ref.build_gene("C")
     diff = ref_c - c
     assert sorted(diff.mutations) == sorted(['-3_del_gg', '1_ins_tt'])
-    
+    assert len(diff.vcf_evidences) == 2
+
     #Should be the same idea from the other perspective too
     diff = c - ref_c
     assert sorted(diff.mutations) == sorted(['-3_ins_gg', '1_del_tt'])

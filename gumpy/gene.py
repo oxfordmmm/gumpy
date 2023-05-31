@@ -88,6 +88,8 @@ class Gene(object):
         self.is_deleted = is_deleted
         self.vcf_evidence = {} if vcf_evidence is None else vcf_evidence
 
+        self.minor_codons = {}
+
         #As revcomp changes some of the positions for indels, track separately
         # so we can track the genome position they came from
         self.indel_index = copy.deepcopy(self.nucleotide_index)
@@ -262,6 +264,8 @@ class Gene(object):
                         else:
                             #Non-synonymous
                             mutations.append(f"{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
+                        #Add the appropriate minor codon to the dict with the minor mutation as the key
+                        self.minor_codons[mutations[-1]] = minor
         return sorted(mutations)
 
 
@@ -304,6 +308,8 @@ class Gene(object):
                 fixed_indel_nucleotides[pos] = ''.join(self._complement(indel_nucleotides[old_pos][::-1]))
                 fixed_is_indel[pos] = True
                 fixed_indel_length[pos] = indel_length[old_pos]
+                self.vcf_evidence[self.nucleotide_index[pos]] = self.vcf_evidence[self.nucleotide_index[old_pos]]
+                del self.vcf_evidence[self.nucleotide_index[old_pos]]
             else:
                 #A deletion at this pos so adjust position
                 new_pos = pos - len(indel_nucleotides[pos]) + 1
