@@ -728,7 +728,7 @@ class GeneDifference(Difference):
                 #These are slightly different as revcomp need changes
                 variants.append('_'.join([self.gene2.revcomp_indel_nc_index[str(num)]]+m))
             else:
-                variants.append('_'.join([self.gene2.nucleotide_index[self.gene2.nucleotide_number == num]] + m))
+                variants.append('_'.join([str(i) for i in self.gene2.nucleotide_index[self.gene2.nucleotide_number == num]] + m))
             
 
 
@@ -770,7 +770,7 @@ class GeneDifference(Difference):
                 #These are slightly different as revcomp need changes
                 variants.append('_'.join([self.gene1.revcomp_indel_nc_index[str(num)]]+m))
             else:
-                variants.append('_'.join([self.gene1.nucleotide_index[self.gene1.nucleotide_number == num]] + m))
+                variants.append('_'.join([str(i) for i in self.gene1.nucleotide_index[self.gene1.nucleotide_number == num]] + m))
         self.mutations=numpy.array(mutations)
         self.amino_acid_number=numpy.array(amino_acid_number)
         self.nucleotide_number=numpy.array(nucleotide_number)
