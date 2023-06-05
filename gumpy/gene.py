@@ -214,6 +214,7 @@ class Gene(object):
             minor_codons = copy.deepcopy(self.codons)
             #Set an arbitrarily high default coverage (we care about smallest available)
             codon_cov = [9999999 for i in minor_codons]
+            minor_bases = {}
         mutations = []
         for population in self.minority_populations:
             pos = population[0]
@@ -229,6 +230,13 @@ class Gene(object):
                     #Find the codon and change the right nucleotide
                     codon_idx = self.codon_number[self.codon_number == (pos+2)//3][0] - 1
                     codon = list(minor_codons[codon_idx])
+
+                    ref = self.codon_to_amino_acid[''.join(codon)]
+                    if codon_idx in minor_bases.keys():
+                        #Already tracked, so add another base to the multi
+                        minor_bases[codon_idx].append((bases[0], bases[1], pos, cov))
+                    else:
+                        minor_bases[codon_idx] = [(bases[0], bases[1], pos, cov)]
                     #Index within the codon
                     p = (pos % 3) - 1
                     #Update codon
@@ -253,23 +261,12 @@ class Gene(object):
                 if minor != original:
                     #We have a minor AA change!
                     #Check to make sure this is also different from the reference
-                    ref_codon = reference.codons[i]
-                    if minor != ref_codon:
-                        minor_aa = self.codon_to_amino_acid[minor]
-                        original_aa = reference.codon_to_amino_acid[ref_codon]
-
-                        if original_aa == minor_aa:
-                            #Synonymous so find nucleotide changes and form a multi
-                            synon = f"{self.name}@{i+1}=:{codon_cov[i]}"
-                            for j, (ref, alt) in enumerate(zip(ref_codon, minor)):
-                                if ref != alt:
-                                    synon += f"&{self.name}@{ref}{i * 3 + 1 + j}{alt}:{codon_cov[i]}"
-                            mutations.append(synon)
-                        else:
-                            #Non-synonymous
-                            mutations.append(f"{original_aa}{i+1}{minor_aa}:{codon_cov[i]}")
-                        #Add the appropriate minor codon to the dict with the minor mutation as the key
-                        self.minor_codons[mutations[-1]] = minor
+                    these_minor_bases = minor_bases[i]
+                    ref = self.codon_to_amino_acid[original]
+                    m = self.name + "@" + ref + str(i + 1) + "Z:" + str(codon_cov[i])
+                    for o, b, p, c in these_minor_bases:
+                        m += "&" + self.name + "@" + o + str(p) + b + ":" + str(c)
+                    mutations.append(m)
         return sorted(mutations)
 
 
