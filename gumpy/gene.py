@@ -213,7 +213,7 @@ class Gene(object):
             #Copy the codons to allow minor changes
             minor_codons = copy.deepcopy(self.codons)
             #Set an arbitrarily high default coverage (we care about smallest available)
-            codon_cov = [9999999 for i in minor_codons]
+            codon_cov = [0 for i in minor_codons]
             minor_bases = {}
         mutations = []
         for population in self.minority_populations:
@@ -245,7 +245,7 @@ class Gene(object):
                     minor_codons[codon_idx] = codon
 
                     #Update codon cov as req
-                    if codon_cov[codon_idx] > cov:
+                    if codon_cov[codon_idx] < cov:
                         codon_cov[codon_idx] = cov
                 else:
                     #Not coding, so just SNPs
