@@ -6,6 +6,7 @@ import re
 
 import numpy
 
+from collections import defaultdict, Counter
 from gumpy import GeneDifference
 
 
@@ -88,8 +89,8 @@ class Gene(object):
         self.is_deleted = is_deleted
         self.vcf_evidence = {} if vcf_evidence is None else vcf_evidence
 
-        self.minor_codons = {}
-        
+        self.minor_nc_changes = {}
+
         #Track the original nucleotide position of each indel if this gene is revcomp
         self.revcomp_indel_nc_index = {}
 
@@ -209,64 +210,55 @@ class Gene(object):
         else:
             assert len(reference.minority_populations) == 0, "Minority populations can only be compared when 1 Gene does not have them!"
 
-        if self.codes_protein:
-            #Copy the codons to allow minor changes
-            minor_codons = copy.deepcopy(self.codons)
-            #Set an arbitrarily high default coverage (we care about smallest available)
-            codon_cov = [0 for i in minor_codons]
-            minor_bases = {}
-        mutations = []
+        #Map gene_position-->[minor populations at this position]
+        #This also groups codons together
+        gene_pos_map = defaultdict(list)
         for population in self.minority_populations:
-            pos = population[0]
-            type_ = population[1]
-            bases = population[2]
-            cov = population[coverage]
-            if type_ in ['ins', 'del']:
-                #Indels don't need any special treatment
-                mutations.append(f"{pos}_{type_}_{bases}:{cov}")
-            else:
-                #Check for coding as those need extra support
-                if self.codes_protein and pos > 0:
-                    #Find the codon and change the right nucleotide
-                    codon_idx = self.codon_number[self.codon_number == (pos+2)//3][0] - 1
-                    codon = list(minor_codons[codon_idx])
-
-                    ref = self.codon_to_amino_acid[''.join(codon)]
-                    if codon_idx in minor_bases.keys():
-                        #Already tracked, so add another base to the multi
-                        minor_bases[codon_idx].append((bases[0], bases[1], pos, cov))
-                    else:
-                        minor_bases[codon_idx] = [(bases[0], bases[1], pos, cov)]
-                    #Index within the codon
-                    p = (pos % 3) - 1
-                    #Update codon
-                    codon[p] = bases[1]
-                    codon = ''.join(codon)
-                    minor_codons[codon_idx] = codon
-
-                    #Update codon cov as req
-                    if codon_cov[codon_idx] < cov:
-                        codon_cov[codon_idx] = cov
-                else:
-                    #Not coding, so just SNPs
-                    ref = reference.nucleotide_sequence[reference.nucleotide_number == pos][0]
-                    #We don't care if these are synonymous
-                    if ref == bases[1]:
-                        continue
-                    mutations.append(f"{ref}{pos}{bases[1]}:{cov}")
+            pos = self.gene_position[self.nucleotide_number == population[0]][0]
+            gene_pos_map[pos].append(population)
         
-        if self.codes_protein:
-            #Now check for codon changes
-            for (i, (minor, original)) in enumerate(zip(minor_codons, self.codons)):
-                if minor != original:
-                    #We have a minor AA change!
-                    #Check to make sure this is also different from the reference
-                    these_minor_bases = minor_bases[i]
-                    ref = self.codon_to_amino_acid[original]
-                    m = self.name + "@" + ref + str(i + 1) + "Z:" + str(codon_cov[i])
-                    for o, b, p, c in these_minor_bases:
-                        m += "&" + self.name + "@" + o + str(p) + b + ":" + str(c)
-                    mutations.append(m)
+        mutations = []
+        for gene_pos in gene_pos_map.keys():
+            populations = gene_pos_map[gene_pos]
+            #As these don't have alt codons for Z calls, track the number of nucleotide changes separately
+            self.minor_nc_changes[gene_pos] = len(populations)
+            if len(populations) == 1:
+                #We have exactly one so return it
+                pos, type_, bases, cov, frs = populations[0]
+                if type_ == "snp":
+                    if self.codes_protein and gene_pos > 0:
+                        #Get the ref codon to build the ref/alt AAs
+                        ref_codon = list(reference.codons[self.amino_acid_number == gene_pos])
+                        codon_idx = pos % 3
+                        alt_codon = copy.deepcopy(ref_codon)
+                        alt_codon[codon_idx] = bases[1]
+                        ref = self.codon_to_amino_acid[''.join(ref_codon)]
+                        alt = self.codon_to_amino_acid[''.join(alt_codon)]
+                        mutations.append(ref + str(gene_pos) + alt + ":" + str(populations[0][coverage]))
+                    else:
+                        ref = reference.nucleotide_sequence[self.nucleotide_number == gene_pos]
+                        alt = bases[1]
+                        mutations.append(ref + str(gene_pos) + alt + ":" + str(populations[0][coverage]))
+                else:
+                    mutations.append(str(gene_pos) + "_" + type_ + "_" + bases + ":" + str(populations[0][coverage]))
+            else:
+                #We have a mixture here so report as Zs
+                #Other than if we have conflicting indels at a gene index (in that case, crash)
+                c = Counter([(nc_idx, type_) for nc_idx, type_, bases, cov, frs in gene_pos_map[gene_pos]])
+                for (i, t), count in c.items():
+                    if t in ["ins", "del"] and count > 1:
+                        #We have a single index with > 1 indel so complain
+                        assert False, f"A minor population exists in gene {self.name} which has > 1 indel at gene index {i}!"
+                
+                cov = max([pop[coverage] for pop in populations])
+                if self.codes_protein and gene_pos > 0:
+                    #These need a little extra effort to pull out the ref AA
+                    ref = self.codon_to_amino_acid[reference.codons[self.amino_acid_number == gene_pos][0]]
+                    mutations.append(ref + str(gene_pos) + "Z:" + str(cov))
+                else:
+                    ref = reference.nucleotide_sequence[self.gene_position == gene_pos]
+                    mutations.append(ref + str(gene_pos) + "z:" + str(cov))
+                    
         return sorted(mutations)
 
 
