@@ -1,5 +1,6 @@
 [![Tests](https://github.com/oxfordmmm/gumpy/actions/workflows/tests.yaml/badge.svg)](https://github.com/oxfordmmm/gumpy/actions/workflows/tests.yaml)
-[![codecov](https://codecov.io/gh/oxfordmmm/gumpy/branch/master/graph/badge.svg)](https://codecov.io/gh/oxfordmmm/gumpy) [![Documentation Status](https://readthedocs.org/projects/gumpy/badge/?version=latest)](https://gumpy.readthedocs.io/en/latest/?badge=latest) 
+[![codecov](https://codecov.io/gh/oxfordmmm/gumpy/branch/master/graph/badge.svg)](https://codecov.io/gh/oxfordmmm/gumpy) 
+[![Docs](https://github.com/oxfordmmm/gumpy/actions/workflows/docs.yaml/badge.svg)](https://oxfordmmm.github.io/gumpy/)
 [![PyPI version](https://badge.fury.io/py/gumpy.svg)](https://badge.fury.io/py/gumpy)
 
 # gumpy
