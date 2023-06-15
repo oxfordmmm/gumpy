@@ -221,7 +221,7 @@ class Gene(object):
         for gene_pos in gene_pos_map.keys():
             populations = gene_pos_map[gene_pos]
             #As these don't have alt codons for Z calls, track the number of nucleotide changes separately
-            self.minor_nc_changes[gene_pos] = len(populations)
+            self.minor_nc_changes[gene_pos] = len([i for i in populations if i[1] == 'snp'])
             if len(populations) == 1:
                 #We have exactly one so return it
                 pos, type_, bases, cov, frs = populations[0]

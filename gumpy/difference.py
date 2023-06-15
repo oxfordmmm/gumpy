@@ -169,12 +169,32 @@ class GenomeDifference(Difference):
         
         self.stacked_gene_pos = stacked_gene_pos
 
+    def _get_vcf_idx(self, vcf_row: dict) -> int:
+        '''Given a vcf row, figure out which alt it refers to. Should be available in the GT field
+
+        Args:
+            vcf_row (dict): Internal representation of the VCF row for this variant
+
+        Returns:
+            int: 0-based index of the alts this refers to
+        '''
+        #Use `GT` field to figure out which one this call is
+        #(This will be **much** messier for minor populations)
+        gt = vcf_row["GT"]
+        if gt[0] == gt[1]:
+            #Actual call so return the 0-based idx (calls are 1 indexed)
+            return gt[0] - 1
+        else:
+            #Het call so return None as it involves >1
+            return None
+        return -1
     
     def __assign_vcf_evidence(self) -> None:
         '''Once we have pulled out all of the variants, find the VCF evidence (if existing) for each
         '''
         evidences = []
-        for idx in self.nucleotide_index:
+        indices = []
+        for i, idx in enumerate(self.nucleotide_index):
             evidence1 = self.genome1.vcf_evidence.get(idx)
             evidence2 = self.genome2.vcf_evidence.get(idx)
 
@@ -188,12 +208,20 @@ class GenomeDifference(Difference):
             if evidence1 is not None and evidence2 is not None:
                 #We have a collision. For now, just concat FIXME
                 evidences.append([evidence1, evidence2])
+                indices.append(
+                            [self._get_vcf_idx(evidence1), 
+                            self._get_vcf_idx(evidence2)
+                            ]
+                )
             elif evidence1 is not None:
                 evidences.append(evidence1)
+                indices.append(self._get_vcf_idx(evidence1))
             elif evidence2 is not None:
                 evidences.append(evidence2)
+                indices.append(self._get_vcf_idx(evidence2))
 
         self.vcf_evidences = evidences
+        self.vcf_idx = indices
     
     def minor_populations(self, interpretation: str='reads') -> [str]:
         '''Get the minor population mutations in GARC

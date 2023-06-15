@@ -85,6 +85,7 @@ class VCFRecord(object):
             elif isinstance(item,float):
                 item = round(item, 3)
             self.values[key] = item
+        self.values['POS'] = self.pos
 
     def __repr__(self) -> str:
         '''Pretty print the record
