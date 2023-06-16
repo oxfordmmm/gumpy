@@ -313,7 +313,7 @@ class GenomeDifference(Difference):
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
                     else:
                         codon_idx.append(None)
                     
@@ -344,7 +344,7 @@ class GenomeDifference(Difference):
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
                     else:
                         codon_idx.append(None)
                 else:
@@ -397,7 +397,7 @@ class GenomeDifference(Difference):
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
                     else:
                         codon_idx.append(None)
                     
@@ -429,7 +429,7 @@ class GenomeDifference(Difference):
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
                     else:
                         codon_idx.append(None)
                 else:
@@ -469,7 +469,7 @@ class GenomeDifference(Difference):
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
                     else:
                         codon_idx.append(None)
                     
@@ -500,7 +500,7 @@ class GenomeDifference(Difference):
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
                     else:
                         codon_idx.append(None)
                 else:
