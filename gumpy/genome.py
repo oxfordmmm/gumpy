@@ -850,6 +850,7 @@ class Genome(object):
                 pass
 
         genome.minor_populations = vcf.minor_populations
+        genome.vcf_file = vcf
 
         #Let's assign some deleted regions (if exist)
         self.__assign_deleted(genome)

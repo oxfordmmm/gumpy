@@ -182,8 +182,8 @@ class GenomeDifference(Difference):
         #(This will be **much** messier for minor populations)
         gt = vcf_row["GT"]
         if gt[0] == gt[1]:
-            #Actual call so return the 0-based idx (calls are 1 indexed)
-            return gt[0] - 1
+            #Actual call so return the 1-based idx
+            return gt[0]
         else:
             #Het call so return None as it involves >1
             return None
