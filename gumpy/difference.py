@@ -173,7 +173,7 @@ class GenomeDifference(Difference):
         #If coding, pull out the codon number instead
         if self.genome1.genes[gene]['codes_protein'] and nc_num > 0:
             #Use floor division (//)
-            codon_number = nc_num + 2 // 3
+            codon_number = (nc_num + 2) // 3
             return codon_number
         else:
             return nc_num
