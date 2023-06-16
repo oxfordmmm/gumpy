@@ -224,11 +224,12 @@ def test_apply_vcf():
     ))
 
     diff=g1-g2
-    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g','22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a','33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
-    assert numpy.all(diff.nucleotide_index==numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 33, 37, 39, 64, 73]))
-    assert numpy.all(diff.is_indel==numpy.array([False, False, False, False, False, False, False, False, False,False, False, False, False, False, False,  True,  True,  True,True,  True]))
-    assert numpy.all(diff.is_snp==numpy.array([False, False, False, False,  True,  True,  True,  True, False,False, False, False, False, False,  True, False, False, False,False, False]))
-    assert numpy.all(diff.indel_length==numpy.array([ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2, -1, 1,  2,  1]))
+    expected_vars = numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g','22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '28g>z', '29g>z', '29g>z', '39t>a','33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a'])
+    assert numpy.all(diff.variants == expected_vars)
+    assert numpy.all(diff.nucleotide_index==numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 28, 29, 29, 39, 33, 37, 39, 64, 73]))
+    assert numpy.all(diff.is_indel==numpy.array([False, False, False, False, False, False, False, False, False,False, False, False, False, False, False, False, False,  True,  True,  True,True,  True]))
+    assert numpy.all(diff.is_snp==numpy.array([False, False, False, False,  True,  True,  True,  True, False, False, False, False, False, False, False, False,  True, False, False, False,False, False]))
+    assert numpy.all(diff.indel_length==numpy.array([ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0, 0, 0,  0,  2, -1, 1,  2,  1]))
     assert diff.snp_distance==5
 
 

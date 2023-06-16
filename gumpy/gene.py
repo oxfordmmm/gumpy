@@ -228,7 +228,7 @@ class Gene(object):
                 if type_ == "snp":
                     if self.codes_protein and gene_pos > 0:
                         #Get the ref codon to build the ref/alt AAs
-                        ref_codon = list(reference.codons[self.amino_acid_number == gene_pos])
+                        ref_codon = list(reference.codons[self.amino_acid_number == gene_pos][0])
                         codon_idx = pos % 3
                         alt_codon = copy.deepcopy(ref_codon)
                         alt_codon[codon_idx] = bases[1]

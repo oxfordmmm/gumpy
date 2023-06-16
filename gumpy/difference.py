@@ -134,7 +134,7 @@ class GenomeDifference(Difference):
         Where applicable, the `full` difference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
         '''
 
-        self.__get_stacked_gene_pos()
+        # self.__get_stacked_gene_pos()
 
         self.__get_variants()
 
@@ -151,23 +151,34 @@ class GenomeDifference(Difference):
         self.__assign_vcf_evidence()
 
         self.update_view(self._view_method)
+    
+    def get_gene_pos(self, gene: str, idx: int) -> int:
+        '''Find the gene position of a given nucleotide index.
+        This is considerably faster than building a whole stacked_gene_pos array (takes ~4.5mins for tb)
 
-    def __get_stacked_gene_pos(self) -> None:
-        '''Get stacked gene position like stacked nucleotide number, but with codon numbers
+        Args:
+            gene (str): Name of the gene to search
+            idx (int): Nucleotide index we want the gene position of
+
+        Returns:
+            int: Gene position of this nucleotide index
         '''
-        stacked_gene_pos = copy.deepcopy(self.genome1.stacked_nucleotide_number)
-        for name, gene in self.genome1.genes.items():
-            if gene['codes_protein']:
-                #Codes protein so convert nucleotide numbers to codon numbers
-                nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == name]
-                codon_number = numpy.floor_divide(nc_num[nc_num > 0] + 2, 3)
-                if gene['reverse_complement']:
-                    gene_position = numpy.concatenate((codon_number, nc_num[nc_num < 0]))
-                else:
-                    gene_position = numpy.concatenate((nc_num[nc_num < 0], codon_number))
-                stacked_gene_pos[self.genome1.stacked_gene_name == name] = gene_position
+        stacked_gene_mask = self.genome1.stacked_gene_name == gene
+        nc_idx = self.genome1.stacked_nucleotide_index[stacked_gene_mask]
+        nc_nums = self.genome1.stacked_nucleotide_number[stacked_gene_mask]
+
+        #Get the gene's nucleotide number
+        nc_num = nc_nums[nc_idx == idx][0]
+
+        #If coding, pull out the codon number instead
+        if self.genome1.genes[gene]['codes_protein'] and nc_num > 0:
+            #Use floor division (//)
+            codon_number = nc_num + 2 // 3
+            return codon_number
+        else:
+            return nc_num
+
         
-        self.stacked_gene_pos = stacked_gene_pos
 
     def _get_vcf_idx(self, vcf_row: dict) -> int:
         '''Given a vcf row, figure out which alt it refers to. Should be available in the GT field
@@ -297,12 +308,14 @@ class GenomeDifference(Difference):
                         #If we have genes, we don't care about this one
                         continue
                     gene_name.append(gene)
-                    gene_pos.append(self.stacked_gene_pos[self.genome1.stacked_nucleotide_index == idx][0])
+                    gene_pos.append(self.get_gene_pos(gene, idx))
                     if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
                         codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                    else:
+                        codon_idx.append(None)
                     
                     #If this isn't the first one, we need to duplicate the row
                     if first:
@@ -310,7 +323,7 @@ class GenomeDifference(Difference):
                     else:
                         variants.append(variants[-1])
                         refs.append(refs[-1])
-                        alts.append(alt[-1])
+                        alts.append(alts[-1])
                         indices.append(indices[-1])
                         is_indel.append(is_indel[-1])
                         indel_length.append(indel_length[-1])
@@ -325,7 +338,7 @@ class GenomeDifference(Difference):
                 gene_name.append(gene)
                 if gene is not None:
                     #Single gene, so pull out data
-                    gene_pos.append(self.stacked_gene_pos[self.genome1.stacked_nucleotide_index == idx][0])
+                    gene_pos.append(self.get_gene_pos(gene, idx))
 
                     if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
@@ -379,12 +392,14 @@ class GenomeDifference(Difference):
                         continue
                         
                     gene_name.append(gene)
-                    gene_pos.append(self.stacked_gene_pos[self.genome1.stacked_nucleotide_index == idx][0])
+                    gene_pos.append(self.get_gene_pos(gene, idx))
                     if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
                         codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                    else:
+                        codon_idx.append(None)
                     
                     #If this isn't the first one, we need to duplicate the row
                     if first:
@@ -408,7 +423,7 @@ class GenomeDifference(Difference):
                 if gene is not None:
                     #Single gene, so pull out data
                     gene_name.append(gene)
-                    gene_pos.append(self.stacked_gene_pos[self.genome1.stacked_nucleotide_index == idx][0])
+                    gene_pos.append(self.get_gene_pos(gene, idx))
 
                     if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
@@ -449,12 +464,14 @@ class GenomeDifference(Difference):
                         #If we have genes, we don't care about this one
                         continue
                     gene_name.append(gene)
-                    gene_pos.append(self.stacked_gene_pos[self.genome1.stacked_nucleotide_index == idx][0])
+                    gene_pos.append(self.get_gene_pos(gene, idx))
                     if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
                         codon_idx.append(nc_num[nc_idx == idx][0] % 3)
+                    else:
+                        codon_idx.append(None)
                     
                     #If this isn't the first one, we need to duplicate the row
                     if first:
@@ -477,7 +494,7 @@ class GenomeDifference(Difference):
                 gene_name.append(gene)
                 if gene is not None:
                     #Single gene, so pull out data
-                    gene_pos.append(self.stacked_gene_pos[self.genome1.stacked_nucleotide_index == idx][0])
+                    gene_pos.append(self.get_gene_pos(gene, idx))
                     gene_name.append(gene)
                     if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
