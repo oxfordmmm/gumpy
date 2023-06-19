@@ -184,7 +184,7 @@ class GenomeDifference(Difference):
             if self.genome2.genes[gene]['reverse_complement']:
                 nc_num -= 1
         elif 'del' in variant:
-            if len(variant.split) == 2:
+            if len(variant.split("_")) == 2:
                 #Large dels don't have an associted pos
                 return None
             #Deletions need even more nudging in revcomp because the entire deletion is reversed so starts at the end
