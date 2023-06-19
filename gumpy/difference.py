@@ -188,8 +188,9 @@ class GenomeDifference(Difference):
                 #Large dels don't have an associted pos
                 return None
             #Deletions need even more nudging in revcomp because the entire deletion is reversed so starts at the end
-            pos, t, bases = variant.split("_")
-            nc_num = nc_num - len(bases) + 1
+            if self.genome2.genes[gene]['reverse_complement']:
+                pos, t, bases = variant.split("_")
+                nc_num = nc_num - len(bases) + 1
         
         return nc_num
 
