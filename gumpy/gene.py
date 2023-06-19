@@ -256,7 +256,7 @@ class Gene(object):
                     ref = self.codon_to_amino_acid[reference.codons[self.amino_acid_number == gene_pos][0]]
                     mutations.append(ref + str(gene_pos) + "Z:" + str(cov))
                 else:
-                    ref = reference.nucleotide_sequence[self.gene_position == gene_pos]
+                    ref = reference.nucleotide_sequence[self.gene_position == gene_pos][0]
                     mutations.append(ref + str(gene_pos) + "z:" + str(cov))
                     
         return sorted(mutations)

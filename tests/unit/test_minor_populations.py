@@ -234,13 +234,13 @@ def test_get_minors():
 
     katG = sample.build_gene("katG")
     assert sorted(katG.minority_populations_GARC()) == sorted([
-                                                                'T572T:25', '1710_del_cc:25'
+                                                                'T572Z:15', '1710_del_cc:25'
                                                             ])
 
     #Similarly, edge case of revcomp, non-coding (so hack katG to be non-coding)
     sample.genes['katG']['codes_protein'] = False
     katG = sample.build_gene("katG")
     assert sorted(katG.minority_populations_GARC()) == sorted([
-                                                            'c1715a:25', '1710_del_cc:25'
+                                                            'c1715z:15', '1710_del_cc:25'
                                                         ])
     
