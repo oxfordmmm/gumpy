@@ -236,11 +236,11 @@ class Gene(object):
                         alt = self.codon_to_amino_acid[''.join(alt_codon)]
                         mutations.append(ref + str(gene_pos) + alt + ":" + str(populations[0][coverage]))
                     else:
-                        ref = reference.nucleotide_sequence[self.nucleotide_number == gene_pos][0]
+                        ref = reference.nucleotide_sequence[self.nucleotide_number == pos][0]
                         alt = bases[1]
-                        mutations.append(ref + str(gene_pos) + alt + ":" + str(populations[0][coverage]))
+                        mutations.append(ref + str(pos) + alt + ":" + str(populations[0][coverage]))
                 else:
-                    mutations.append(str(gene_pos) + "_" + type_ + "_" + bases + ":" + str(populations[0][coverage]))
+                    mutations.append(str(pos) + "_" + type_ + "_" + bases + ":" + str(populations[0][coverage]))
             else:
                 #We have a mixture here so report as Zs
                 #Other than if we have conflicting indels at a gene index (in that case, crash)

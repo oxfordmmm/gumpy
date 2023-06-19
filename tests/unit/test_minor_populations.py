@@ -196,24 +196,11 @@ def test_get_minors():
                                                         't271a:2', 't272c:10', 'g273t:10'
 
                                                 ])
-    # exp = sorted([
-    #                 '281_del_ac:10', '268_ins_gt:10',
-    #                 'g270t:10', 'g280t:10',
-    #                 't271a:2', 'g273t:10'
-    #         ]) 
-    # actual = gyrA.minority_populations_GARC(reference=gyrA_ref)
-    # print(len(actual), len(exp))
-    # for i in range(len(actual)):
-    #     if i < len(exp):
-    #         print(actual[i], exp[i])
-    #     else:
-    #         print(actual[i], "---")
-    # for i in gyrA.minority_populations_GARC(reference=gyrA_ref):
-    #     print(i)
     assert sorted(gyrA.minority_populations_GARC(reference=gyrA_ref)) == sorted([
                                                         '281_del_ac:10', '268_ins_gt:10',
                                                         'g270t:10', 'g280t:10',
-                                                        't271a:2', 'g273t:10'
+                                                        't271a:2', 'g273t:10',
+                                                        'c272c:10', 'g284g:15'
                                                 ])    
     #Convert back to avoid problems
     sample.genes['gyrA']['codes_protein'] = True
@@ -247,7 +234,7 @@ def test_get_minors():
 
     katG = sample.build_gene("katG")
     assert sorted(katG.minority_populations_GARC()) == sorted([
-                                                                'T572Z:25', '1710_del_cc:25'
+                                                                'T572T:25', '1710_del_cc:25'
                                                             ])
 
     #Similarly, edge case of revcomp, non-coding (so hack katG to be non-coding)
