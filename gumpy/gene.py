@@ -236,7 +236,7 @@ class Gene(object):
                         alt = self.codon_to_amino_acid[''.join(alt_codon)]
                         mutations.append(ref + str(gene_pos) + alt + ":" + str(populations[0][coverage]))
                     else:
-                        ref = reference.nucleotide_sequence[self.nucleotide_number == gene_pos]
+                        ref = reference.nucleotide_sequence[self.nucleotide_number == gene_pos][0]
                         alt = bases[1]
                         mutations.append(ref + str(gene_pos) + alt + ":" + str(populations[0][coverage]))
                 else:

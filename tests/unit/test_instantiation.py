@@ -609,47 +609,47 @@ def test_instanciate_vcf():
 
     #Due to the dict structure here, several asserts are required
     calls = {
-        (2, 'null'): {'call': 'x', 'ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 2,'COV': (1,1),'GT_CONF': 2.05,'REF': 'a','ALTS': ('g',)}},
+        (2, 'null'): {'call': 'x', 'ref': 'a','pos': 0,'original_vcf_row': {'POS': 2, 'GT': (None, None),'DP': 2,'COV': (1,1),'GT_CONF': 2.05,'REF': 'a','ALTS': ('g',)}},
 
-        (4, 'null'): {'call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 2, 2),'GT_CONF': 3.77,'REF': 'a','ALTS': ('g', 't')}},
+        (4, 'null'): {'call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'POS': 4, 'GT': (None, None),'DP': 4,'COV': (1, 2, 2),'GT_CONF': 3.77,'REF': 'a','ALTS': ('g', 't')}},
 
-        (6, 'null'): {'call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
+        (6, 'null'): {'call': 'x','ref': 'a','pos': 0,'original_vcf_row': {'POS': 6, 'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
 
-        (7, 'null'): {'call': 'x','ref': 'a','pos': 1,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
+        (7, 'null'): {'call': 'x','ref': 'a','pos': 1,'original_vcf_row': {'POS': 6, 'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
 
-        (8, 'null'): {'call': 'x','ref': 'a','pos': 2,'original_vcf_row': {'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
+        (8, 'null'): {'call': 'x','ref': 'a','pos': 2,'original_vcf_row': {'POS': 6, 'GT': (None, None),'DP': 4,'COV': (1, 1, 1,1),'GT_CONF': 2.76,'REF': 'aaa','ALTS': ('ggt', 'gta', 'ata')}},
 
-        (12, 'snp'): {'call': 't','ref': 'c','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 50,'COV': (0,50),'GT_CONF':200.58,'REF': 'c','ALTS': ('t',)}},
+        (12, 'snp'): {'call': 't','ref': 'c','pos': 0,'original_vcf_row': {'POS': 12, 'GT': (1, 1),'DP': 50,'COV': (0,50),'GT_CONF':200.58,'REF': 'c','ALTS': ('t',)}},
 
-        (14, 'snp'): {'call': 'g','ref': 'c','pos': 0,'original_vcf_row': {'GT': (2, 2),'DP': 45,'COV': (0, 2,43),'GT_CONF':155.58,'REF': 'c','ALTS': ('t', 'g')}},
+        (14, 'snp'): {'call': 'g','ref': 'c','pos': 0,'original_vcf_row': {'POS': 14, 'GT': (2, 2),'DP': 45,'COV': (0, 2,43),'GT_CONF':155.58,'REF': 'c','ALTS': ('t', 'g')}},
 
-        (16, 'snp'): {'call': 't','ref': 'c','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 70,'COV': (0, 68,8),'GT_CONF':300.25,'REF': 'ccc','ALTS': ('tgc', 'gtg')}},
+        (16, 'snp'): {'call': 't','ref': 'c','pos': 0,'original_vcf_row': {'POS': 16, 'GT': (1, 1),'DP': 70,'COV': (0, 68,8),'GT_CONF':300.25,'REF': 'ccc','ALTS': ('tgc', 'gtg')}},
 
-        (17, 'snp'): {'call': 'g','ref': 'c','pos': 1,'original_vcf_row': {'GT': (1, 1),'DP': 70,'COV': (0, 68,8),'GT_CONF':300.25,'REF': 'ccc','ALTS': ('tgc', 'gtg')}},
+        (17, 'snp'): {'call': 'g','ref': 'c','pos': 1,'original_vcf_row': {'POS': 16, 'GT': (1, 1),'DP': 70,'COV': (0, 68,8),'GT_CONF':300.25,'REF': 'ccc','ALTS': ('tgc', 'gtg')}},
 
-        (22, 'het'): {'call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'GT': (1, 2),'DP': 202,'COV': (1, 99, 100,2),'GT_CONF': 613.77,'REF': 'g','ALTS': ('t', 'c', 'a')}},
+        (22, 'het'): {'call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'POS': 22, 'GT': (1, 2),'DP': 202,'COV': (1, 99, 100,2),'GT_CONF': 613.77,'REF': 'g','ALTS': ('t', 'c', 'a')}},
 
-        (24, 'het'): {'call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'GT': (0, 2),'DP': 202,'COV': (99, 1, 100,2),'GT_CONF': 613.77,'REF': 'g','ALTS': ('t', 'c', 'a')}},
+        (24, 'het'): {'call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'POS': 24, 'GT': (0, 2),'DP': 202,'COV': (99, 1, 100,2),'GT_CONF': 613.77,'REF': 'g','ALTS': ('t', 'c', 'a')}},
 
-        (26, 'het'): {'call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'GT': (1, 2),'DP': 100,'COV': (0, 48, 50,2),'GT_CONF': 475.54,'REF': 'gg','ALTS': ('aa', 'ct', 'at')}},
+        (26, 'het'): {'call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'POS': 26, 'GT': (1, 2),'DP': 100,'COV': (0, 48, 50,2),'GT_CONF': 475.54,'REF': 'gg','ALTS': ('aa', 'ct', 'at')}},
 
-        (27, 'het'): {'call': 'z','ref': 'g','pos': 1,'original_vcf_row': {'GT': (1, 2),'DP': 100,'COV': (0, 48, 50,2),'GT_CONF': 475.54,'REF': 'gg','ALTS': ('aa', 'ct', 'at')}},
+        (27, 'het'): {'call': 'z','ref': 'g','pos': 1,'original_vcf_row': {'POS': 26, 'GT': (1, 2),'DP': 100,'COV': (0, 48, 50,2),'GT_CONF': 475.54,'REF': 'gg','ALTS': ('aa', 'ct', 'at')}},
 
-        (28, 'het'): {'call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'GT': (1, 3),'DP': 100,'COV': (0, 48, 2,50),'GT_CONF': 315.11,'REF': 'gg','ALTS': ('aa', 't', 'a')}},
+        (28, 'het'): {'call': 'z','ref': 'g','pos': 0,'original_vcf_row': {'POS': 28, 'GT': (1, 3),'DP': 100,'COV': (0, 48, 2,50),'GT_CONF': 315.11,'REF': 'gg','ALTS': ('aa', 't', 'a')}},
 
-        (29, 'het'): {'call': 'z','ref': 'g','pos': 1,'original_vcf_row': {'GT': (1, 3),'DP': 100,'COV': (0, 48, 2,50),'GT_CONF': 315.11,'REF': 'gg','ALTS': ('aa', 't', 'a')}},
+        (29, 'het'): {'call': 'z','ref': 'g','pos': 1,'original_vcf_row': {'POS': 28, 'GT': (1, 3),'DP': 100,'COV': (0, 48, 2,50),'GT_CONF': 315.11,'REF': 'gg','ALTS': ('aa', 't', 'a')}},
 
-        (33, 'indel'): {'call': ('ins', 'tt'),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF': 145.21,'REF': 't','ALTS': ('ttt',)}},
+        (33, 'indel'): {'call': ('ins', 'tt'),'ref': 't','pos': 0,'original_vcf_row': {'POS': 33, 'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF': 145.21,'REF': 't','ALTS': ('ttt',)}},
 
-        (37, 'indel'): {'call': ('del', 't'),'ref': 't','pos': 1,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF': 145.21,'REF': 'tt','ALTS': ('t',)}},
+        (37, 'indel'): {'call': ('del', 't'),'ref': 't','pos': 1,'original_vcf_row': {'POS': 36, 'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF': 145.21,'REF': 'tt','ALTS': ('t',)}},
 
-        (39, 'indel'): {'call': ('ins', 'g'),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF': 145.21,'REF': 'tt','ALTS': ('agt',)}},
+        (39, 'indel'): {'call': ('ins', 'g'),'ref': 't','pos': 0,'original_vcf_row': {'POS': 39, 'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF': 145.21,'REF': 'tt','ALTS': ('agt',)}},
 
-        (39, 'snp'): {'call': 'a','ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF':145.21,'REF': 'tt','ALTS': ('agt',)}},
+        (39, 'snp'): {'call': 'a','ref': 't','pos': 0,'original_vcf_row': {'POS': 39, 'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF':145.21,'REF': 'tt','ALTS': ('agt',)}},
 
-        (64, 'indel'): {'call': ('ins', 'ca'),'ref': 'g','pos': -1,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF': 145.21,'REF': 'gg','ALTS': ('cagg',)}},
+        (64, 'indel'): {'call': ('ins', 'ca'),'ref': 'g','pos': -1,'original_vcf_row': {'POS': 65, 'GT': (1, 1),'DP': 200,'COV': (1,199),'GT_CONF': 145.21,'REF': 'gg','ALTS': ('cagg',)}},
 
-        (73, 'indel'): {'call': ('ins', 'a'),'ref': 't','pos': 0,'original_vcf_row': {'GT': (1, 1),'DP': 200,'COV': (1, 198,1), 'GT_CONF': 145.21,'REF': 't','ALTS': ('ta', 'at')}}
+        (73, 'indel'): {'call': ('ins', 'a'),'ref': 't','pos': 0,'original_vcf_row': {'POS': 73, 'GT': (1, 1),'DP': 200,'COV': (1, 198,1), 'GT_CONF': 145.21,'REF': 't','ALTS': ('ta', 'at')}}
     }
 
     # could use assertDictEqual from unittest framework, but not using at present

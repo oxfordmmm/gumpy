@@ -106,9 +106,14 @@ class VCFRecord(object):
         else:
             s+=self.filter+'\t'
         for val in self.values.keys():
+            if val == "POS":
+                continue
             s += str(val)+":"
         s = s[:-1] + "\t"
-        for val in self.values.values():
+        for key in self.values.keys():
+            val = self.values[key]
+            if key == "POS":
+                continue
             s += str(val)+":"
         s = s[:-1]
         s += "\n"

@@ -124,6 +124,17 @@ class GenomeDifference(Difference):
         assert isinstance(genome1, gumpy.Genome)
         assert isinstance(genome2, gumpy.Genome)
 
+        #Checking for the same genes, give an error if the genes are different
+        if genome1.genes.keys() != genome2.genes.keys():
+            genes_in_1_not_2 = set(genome1.genes.keys()).difference(genome2.genes.keys())
+            genes_in_2_not_1 = set(genome2.genes.keys()).difference(genome1.genes.keys())
+            message = "The two genomes have different genes."
+            if len(genes_in_1_not_2) > 0:
+                message += f" Genome 1 has {len(genes_in_1_not_2)} more genes: {genes_in_1_not_2}."
+            if len(genes_in_2_not_1) > 0:
+                message += f" Genome2 has {len(genes_in_2_not_1)} more genes: {genes_in_2_not_1}."
+            raise FailedComparison(message)
+
         self.genome1 = genome1
         self.genome2 = genome2
         self._view_method = "diff"
@@ -134,31 +145,24 @@ class GenomeDifference(Difference):
         Where applicable, the `full` difference arrays are stored as these can be easily converted into `diff` arrays but not the other way around.
         '''
 
-        # self.__get_stacked_gene_pos()
 
         self.__get_variants()
 
         #Calculate differences
         self._nucleotides_full = self.__nucleotides()
 
-        #These are only valid when a VCF has been applied to at least 1 of the genomes
-        # self._indels_full = self.__indels()
-
-        #Checking for the same genes, give a warning is the genes are different
-        if self.genome1.genes.keys() != self.genome2.genes.keys():
-            self.__raise_mutations_warning(self.genome1, self.genome2)
-        
         self.__assign_vcf_evidence()
 
         self.update_view(self._view_method)
     
-    def get_gene_pos(self, gene: str, idx: int) -> int:
+    def get_gene_pos(self, gene: str, idx: int, variant: str) -> int:
         '''Find the gene position of a given nucleotide index.
         This is considerably faster than building a whole stacked_gene_pos array (takes ~4.5mins for tb)
 
         Args:
             gene (str): Name of the gene to search
             idx (int): Nucleotide index we want the gene position of
+            variant (str): Variant we're looking for in GARC
 
         Returns:
             int: Gene position of this nucleotide index
@@ -170,13 +174,24 @@ class GenomeDifference(Difference):
         #Get the gene's nucleotide number
         nc_num = nc_nums[nc_idx == idx][0]
 
-        #If coding, pull out the codon number instead
-        if self.genome1.genes[gene]['codes_protein'] and nc_num > 0:
+        #If coding SNP, pull out the codon number instead
+        if self.genome2.genes[gene]['codes_protein'] and nc_num > 0 and 'ins' not in variant and 'del' not in variant:
             #Use floor division (//)
             codon_number = (nc_num + 2) // 3
             return codon_number
-        else:
-            return nc_num
+        elif 'ins' in variant:
+            #Insertions need a little nudge in revcomp because of `ins at, del after`
+            if self.genome2.genes[gene]['reverse_complement']:
+                nc_num -= 1
+        elif 'del' in variant:
+            if len(variant.split) == 2:
+                #Large dels don't have an associted pos
+                return None
+            #Deletions need even more nudging in revcomp because the entire deletion is reversed so starts at the end
+            pos, t, bases = variant.split("_")
+            nc_num = nc_num - len(bases) + 1
+        
+        return nc_num
 
         
 
@@ -198,7 +213,6 @@ class GenomeDifference(Difference):
         else:
             #Het call so return None as it involves >1
             return None
-        return -1
     
     def __assign_vcf_evidence(self) -> None:
         '''Once we have pulled out all of the variants, find the VCF evidence (if existing) for each
@@ -308,8 +322,8 @@ class GenomeDifference(Difference):
                         #If we have genes, we don't care about this one
                         continue
                     gene_name.append(gene)
-                    gene_pos.append(self.get_gene_pos(gene, idx))
-                    if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
+                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
@@ -338,9 +352,9 @@ class GenomeDifference(Difference):
                 gene_name.append(gene)
                 if gene is not None:
                     #Single gene, so pull out data
-                    gene_pos.append(self.get_gene_pos(gene, idx))
+                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
 
-                    if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
@@ -392,8 +406,8 @@ class GenomeDifference(Difference):
                         continue
                         
                     gene_name.append(gene)
-                    gene_pos.append(self.get_gene_pos(gene, idx))
-                    if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
+                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
@@ -423,9 +437,9 @@ class GenomeDifference(Difference):
                 if gene is not None:
                     #Single gene, so pull out data
                     gene_name.append(gene)
-                    gene_pos.append(self.get_gene_pos(gene, idx))
+                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
 
-                    if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
@@ -464,8 +478,8 @@ class GenomeDifference(Difference):
                         #If we have genes, we don't care about this one
                         continue
                     gene_name.append(gene)
-                    gene_pos.append(self.get_gene_pos(gene, idx))
-                    if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
+                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
@@ -494,9 +508,9 @@ class GenomeDifference(Difference):
                 gene_name.append(gene)
                 if gene is not None:
                     #Single gene, so pull out data
-                    gene_pos.append(self.get_gene_pos(gene, idx))
+                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
                     gene_name.append(gene)
-                    if self.genome1.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
                         #Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
                         nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
@@ -527,32 +541,6 @@ class GenomeDifference(Difference):
         '''
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
         return numpy.array(list(zip(self.genome1.nucleotide_sequence[mask], self.genome2.nucleotide_sequence[mask])))
-
-    def __raise_mutations_warning(self, reference, mutant):
-        '''Give a warning to the user that the genes within the two genomes are different.
-        Warning displays names of the genes which differ.
-
-        Args:
-            reference (gumpy.Genome): Genome object for a reference genome
-            mutant (gumpy.Genome): Genome object for a mutated genome
-        '''
-        message = "The genomes do not have the same genes. "
-        if len(set(reference.genes.keys()).difference(set(mutant.genes.keys()))) > 0:
-            #There are genes in the reference which are not in the mutant
-            message += "The reference has genes ("
-            for gene in set(reference.genes.keys()).difference(set(mutant.genes.keys())):
-                message += gene+", "
-            message = message[:-2]#Remove trailing comma
-            message += ") which are not present in the mutant. "
-        if len(set(mutant.genes.keys()).difference(set(reference.genes.keys()))) > 0:
-            #There are genes in the mutant which are not in the reference
-            message += "The mutant has genes ("
-            for gene in set(mutant.genes.keys()).difference(set(reference.genes.keys())):
-                message += gene+", "
-            message = message[:-2]#Remove trailing comma
-            message += ") which are not present in the reference. "
-        message += "Continuing only with genes which exist in both genomes."
-        warnings.warn(message, UserWarning)
 
 class GeneDifference(Difference):
     '''Object to store the differences within genes. The view system is inherited from the Difference class.

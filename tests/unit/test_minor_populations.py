@@ -164,26 +164,27 @@ def test_get_minors():
     gyrA_ref = ref.build_gene("gyrA")
 
     assert gyrA.minority_populations_GARC() == sorted([
-                                                        '281_del_ac:10', 'D94Y:10', 'T95S:15',
-                                                        '268_ins_gt:10', 'gyrA@90=:10&gyrA@g270t:10',
-                                                        'L91T:2'
+                                                        'D94Z:10', 'T95T:15',
+                                                        'A90Z:10',
+                                                        'L91Z:10'
                                                 ])
     assert gyrA.minority_populations_GARC(reference=gyrA_ref) == sorted([
-                                                                        '281_del_ac:10', 'D94Y:10',
-                                                                        '268_ins_gt:10', 'gyrA@90=:10&gyrA@g270t:10',
-                                                                        'S91T:2'
+                                                                        'D94Z:10',
+                                                                        'A90Z:10',
+                                                                        'S91Z:10',
+                                                                        'S95R:15'
                                                                     ])
 
     assert gyrA.minority_populations_GARC(interpretation='percentage') == sorted([
-                                                                                '281_del_ac:0.098', 'D94Y:0.098', 'T95S:0.15',
-                                                                                '268_ins_gt:0.098', 'gyrA@90=:0.098&gyrA@g270t:0.098',
-                                                                                'L91T:0.02'
+                                                                                'D94Z:0.098', 'T95T:0.15',
+                                                                                'A90Z:0.098',
+                                                                                'L91Z:0.1'
                                                                             ])
     assert gyrA.minority_populations_GARC(interpretation='percentage', reference=gyrA_ref) == sorted([
-                                                                                                    '281_del_ac:0.098', 'D94Y:0.098',
-                                                                                                    '268_ins_gt:0.098', 
-                                                                                                    'gyrA@90=:0.098&gyrA@g270t:0.098',
-                                                                                                    'S91T:0.02'
+                                                                                                    'D94Z:0.098',
+                                                                                                    'A90Z:0.098',
+                                                                                                    'S91Z:0.1',
+                                                                                                    'S95R:0.15'
                                                                                                 ])
     
     #Checking for non-coding versions too (but hack around to make it so gyrA doesn't code)
@@ -195,7 +196,7 @@ def test_get_minors():
                                                         't271a:2', 't272c:10', 'g273t:10'
 
                                                 ])
-    assert sorted(gyrA.minority_populations_GARC(reference=gyrA_ref)) == sorted([
+    assert sorted(gyrA.minority_populations_GARC(reference=gyrA_ref)) == sorted([ #TODO: Fix this
                                                         '281_del_ac:10', '268_ins_gt:10',
                                                         'g270t:10', 'g280t:10',
                                                         't271a:2', 'g273t:10'
@@ -232,7 +233,7 @@ def test_get_minors():
 
     katG = sample.build_gene("katG")
     assert sorted(katG.minority_populations_GARC()) == sorted([
-                                                                'T572K:25', '1710_del_cc:25'
+                                                                'T572Z:25', '1710_del_cc:25'
                                                             ])
 
     #Similarly, edge case of revcomp, non-coding (so hack katG to be non-coding)

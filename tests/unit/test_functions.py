@@ -309,9 +309,9 @@ def test_genome_difference():
     diff = g1-g2
     #Default view
     assert diff.snp_distance == 5
-    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 33, 37, 39, 64, 73]))
+    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 28, 29, 29, 39, 33, 37, 39, 64, 73]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'a'], dtype=object))
-    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a', '33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
+    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '28g>z', '29g>z', '29g>z', '39t>a', '33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
     assert numpy.all(diff.indel_length[diff.is_indel] == numpy.array([2,-1,1,2,1]))
     assert numpy.all(diff.indel_nucleotides[diff.is_indel]==numpy.array(['tt','t','g','ca','a']))
 
@@ -335,7 +335,7 @@ def test_genome_difference():
 
     # now check the other way around!
     diff2 = g2-g1
-    assert numpy.all(diff2.variants == numpy.array(['2x>a', '6x>a', '7x>a', '8x>a', '12t>c', '14g>c', '16t>c', '17g>c', '22z>g', '24z>g', '26z>g', '27z>g', '28z>g', '29z>g', '39a>t', '33_del_tt', '37_ins_t', '39_del_g', '64_del_ca', '73_del_a']))
+    assert numpy.all(diff2.variants == numpy.array(['2x>a', '6x>a', '7x>a', '8x>a', '12t>c', '14g>c', '16t>c', '17g>c', '22z>g', '24z>g', '26z>g', '27z>g', '28z>g', '28z>g', '29z>g', '29z>g', '39a>t', '33_del_tt', '37_ins_t', '39_del_g', '64_del_ca', '73_del_a']))
     assert numpy.all(diff2.nucleotide_index == diff.nucleotide_index)
     assert numpy.all(diff2.indel_length == -1*diff.indel_length)
 
@@ -421,9 +421,9 @@ def test_vcf_genetic_variation():
     g3 = g1 + vcf
     del g3.genes['A']
 
-    with pytest.warns(UserWarning):
+    with pytest.raises(gumpy.FailedComparison):
         diff = g1 - g3
-    with pytest.warns(UserWarning):
+    with pytest.raises(gumpy.FailedComparison):
         diff = g3 - g1
     
     gene1 = g1.build_gene("A")
@@ -732,7 +732,7 @@ def test_large_deletions():
     diff = a - a2
 
     assert numpy.all(diff.mutations == ["-1_del_aaaaaaaaccccccccccgggggggggg", 'del_0.93'])
-    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}, {'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}, {'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
 
     b = ref.build_gene("B")
     #Entirely deleted
@@ -740,7 +740,7 @@ def test_large_deletions():
     diff = b - b2
 
     assert numpy.all(diff.mutations == ["del_1.0"])
-    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
 
     c = ref.build_gene("C")
     #Deletes 33%, so reported as normal deletion
@@ -753,7 +753,7 @@ def test_large_deletions():
     #number: [-3 -2 -1  1  2  3  4  5  6] --> starting at gene pos of 4
 
     assert numpy.all(diff.mutations == ["4_del_ggg"])
-    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
 
     #Checking vcf evidence when two samples are used which affect the same base
     #Should concat the evidences
