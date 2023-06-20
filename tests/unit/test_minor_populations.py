@@ -164,7 +164,7 @@ def test_get_minors():
     gyrA_ref = ref.build_gene("gyrA")
 
     assert gyrA.minority_populations_GARC() == sorted([
-                                                        'D94Z:10', 'T95T:15',
+                                                        'D94Z:10', 'T95S:15',
                                                         'A90Z:10',
                                                         'L91Z:10'
                                                 ])
@@ -172,11 +172,11 @@ def test_get_minors():
                                                                         'D94Z:10',
                                                                         'A90Z:10',
                                                                         'S91Z:10',
-                                                                        'S95R:15'
+                                                                        'S95S:15'
                                                                     ])
 
     assert gyrA.minority_populations_GARC(interpretation='percentage') == sorted([
-                                                                                'D94Z:0.098', 'T95T:0.15',
+                                                                                'D94Z:0.098', 'T95S:0.15',
                                                                                 'A90Z:0.098',
                                                                                 'L91Z:0.1'
                                                                             ])
@@ -184,7 +184,7 @@ def test_get_minors():
                                                                                                     'D94Z:0.098',
                                                                                                     'A90Z:0.098',
                                                                                                     'S91Z:0.1',
-                                                                                                    'S95R:0.15'
+                                                                                                    'S95S:0.15'
                                                                                                 ])
     
     #Checking for non-coding versions too (but hack around to make it so gyrA doesn't code)
