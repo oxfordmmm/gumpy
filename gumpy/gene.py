@@ -221,27 +221,31 @@ class Gene(object):
         for gene_pos in gene_pos_map.keys():
             populations = gene_pos_map[gene_pos]
             #As these don't have alt codons for Z calls, track the number of nucleotide changes separately
-            self.minor_nc_changes[gene_pos] = len([i for i in populations if i[1] == 'snp'])
+            nc_changes = len([i for i in populations if i[1] == 'snp'])
             if len(populations) == 1:
                 #We have exactly one so return it
                 pos, type_, bases, cov, frs = populations[0]
                 if type_ == "snp":
                     if self.codes_protein and gene_pos > 0:
+                        self.minor_nc_changes[gene_pos] = nc_changes
                         #Get the ref codon to build the ref/alt AAs
                         ref_codon = list(reference.codons[self.amino_acid_number == gene_pos][0])
-                        codon_idx = pos % 3
+                        codon_idx = (pos-1) % 3
                         alt_codon = copy.deepcopy(ref_codon)
                         alt_codon[codon_idx] = bases[1]
                         ref = self.codon_to_amino_acid[''.join(ref_codon)]
                         alt = self.codon_to_amino_acid[''.join(alt_codon)]
                         mutations.append(ref + str(gene_pos) + alt + ":" + str(populations[0][coverage]))
                     else:
+                        self.minor_nc_changes[pos] = nc_changes
                         ref = reference.nucleotide_sequence[self.nucleotide_number == pos][0]
                         alt = bases[1]
                         mutations.append(ref + str(pos) + alt + ":" + str(populations[0][coverage]))
                 else:
+                    self.minor_nc_changes[pos] = nc_changes
                     mutations.append(str(pos) + "_" + type_ + "_" + bases + ":" + str(populations[0][coverage]))
             else:
+                self.minor_nc_changes[gene_pos] = nc_changes
                 #We have a mixture here so report as Zs
                 #Other than if we have conflicting indels at a gene index (in that case, crash)
                 c = Counter([(nc_idx, type_) for nc_idx, type_, bases, cov, frs in gene_pos_map[gene_pos]])
