@@ -1,0 +1,20 @@
+##fileformat=VCFv4.2
+##source=minos, version 0.12.4
+##fileDate=2022-10-06
+##FORMAT=<ID=ALLELE_DP,Number=R,Type=Float,Description="Mean read depth of ref and each allele">
+##FORMAT=<ID=COV,Number=R,Type=Integer,Description="Number of reads on ref and alt alleles">
+##FORMAT=<ID=COV_TOTAL,Number=1,Type=Integer,Description="Total reads mapped at this site, from gramtools">
+##FORMAT=<ID=DP,Number=1,Type=Float,Description="Mean read depth of called allele (ie the ALLELE_DP of the called allele)">
+##FORMAT=<ID=FRS,Number=1,Type=Float,Description="Fraction of reads that support the genotype call">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GT_CONF,Number=1,Type=Float,Description="Genotype confidence. Difference in log likelihood of most likely and next most likely genotype">
+##minosMeanReadDepth=86.833
+##minosReadDepthVariance=1647.969
+##contig=<ID=NC_000962.3,length=4411532>
+##FORMAT=<ID=GT_CONF_PERCENTILE,Number=1,Type=Float,Description="Percentile of GT_CONF">
+##FILTER=<ID=MIN_FRS,Description="Minimum FRS of 0.9">
+##FILTER=<ID=MIN_DP,Description="Minimum DP of 2">
+##FILTER=<ID=MIN_GCP,Description="Minimum GT_CONF_PERCENTILE of 0.5">
+##FILTER=<ID=MAX_DP,Description="Maximum DP of 208.61855333043408 (= 3.0 standard deviations from the mean read depth 86.833)">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	site.10.iso.802.subject.BH02818474.lab_id.BH02818474.seq_reps.1
+NC_000962.3	7585	.	G	C	.	MIN_FRS	.	GT:DP:ALLELE_DP:FRS:COV_TOTAL:COV:GT_CONF:GT_CONF_PERCENTILE	0/0:100:85,15:0.85:100:85,15,89:669.86:71.2

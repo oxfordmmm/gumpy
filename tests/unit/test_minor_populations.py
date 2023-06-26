@@ -118,8 +118,22 @@ def test_minor_failures():
         )
     
     
+@pytest.mark.slow
+def test_single_minor_aa_snp():
+    '''This should have a single mutation within a codon, so should report as a specific AA change
+    '''
+    vcf = gumpy.VCFFile("tests/test-cases/minor-populations-single-aa-snp.vcf", ignore_filter=True, minor_population_indices={7585})
+    ref = gumpy.Genome("config/NC_000962.3.gbk")
 
+    sample = ref + vcf
 
+    diff = ref - sample
+    assert diff.minor_populations() == ['7585g>c:15']
+
+    gyrA1 = ref.build_gene("gyrA")
+    gyrA2 = sample.build_gene("gyrA")
+    diff = gyrA1 - gyrA2
+    assert diff.minor_populations() == ['S95T:15']
 
 @pytest.mark.slow
 def test_get_minors():
