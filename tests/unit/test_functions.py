@@ -755,6 +755,19 @@ def test_large_deletions():
     assert numpy.all(diff.mutations == ["4_del_ggg"])
     assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
 
+    #Double check we also get the correct result if C is not revcomp
+    #Note that if C is not revcomp, it has a large promoter
+    r = gumpy.Genome("config/TEST-DNA-no-revcomp.gbk")
+    _vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-4-no-revcomp.vcf")
+    sample_ = r + _vcf
+
+    _c1 = r.build_gene("C")
+    _c2 = sample_.build_gene("C")
+    diff = _c1 - _c2
+
+    assert numpy.all(diff.mutations == ['-30_del_ggggggggggttttttt'])
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttt', 'ALTS': ('a',)}]
+
     #Checking vcf evidence when two samples are used which affect the same base
     #Should concat the evidences
     vcf2 = gumpy.VCFFile("tests/test-cases/TEST-DNA-2.vcf")

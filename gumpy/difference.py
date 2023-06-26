@@ -434,7 +434,6 @@ class GenomeDifference(Difference):
             else:
                 #We have 1 gene or none, so set to None if no gene is present
                 gene = genes[0] if genes[0] != '' else None
-                gene_name.append(gene)
                 if gene is not None:
                     #Single gene, so pull out data
                     gene_name.append(gene)
@@ -506,7 +505,6 @@ class GenomeDifference(Difference):
             else:
                 #We have 1 gene or none, so set to None if no gene is present
                 gene = genes[0] if genes[0] != '' else None
-                gene_name.append(gene)
                 if gene is not None:
                     #Single gene, so pull out data
                     gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
