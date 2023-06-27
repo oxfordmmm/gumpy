@@ -224,11 +224,12 @@ def test_apply_vcf():
     ))
 
     diff=g1-g2
-    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g','22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a','33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
-    assert numpy.all(diff.nucleotide_index==numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 33, 37, 39, 64, 73]))
-    assert numpy.all(diff.is_indel==numpy.array([False, False, False, False, False, False, False, False, False,False, False, False, False, False, False,  True,  True,  True,True,  True]))
-    assert numpy.all(diff.is_snp==numpy.array([False, False, False, False,  True,  True,  True,  True, False,False, False, False, False, False,  True, False, False, False,False, False]))
-    assert numpy.all(diff.indel_length==numpy.array([ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  2, -1, 1,  2,  1]))
+    expected_vars = numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g','22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '28g>z', '29g>z', '29g>z', '39t>a','33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a'])
+    assert numpy.all(diff.variants == expected_vars)
+    assert numpy.all(diff.nucleotide_index==numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 28, 29, 29, 39, 33, 37, 39, 64, 73]))
+    assert numpy.all(diff.is_indel==numpy.array([False, False, False, False, False, False, False, False, False,False, False, False, False, False, False, False, False,  True,  True,  True,True,  True]))
+    assert numpy.all(diff.is_snp==numpy.array([False, False, False, False,  True,  True,  True,  True, False, False, False, False, False, False, False, False,  True, False, False, False,False, False]))
+    assert numpy.all(diff.indel_length==numpy.array([ 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0, 0, 0,  0,  2, -1, 1,  2,  1]))
     assert diff.snp_distance==5
 
 
@@ -308,9 +309,9 @@ def test_genome_difference():
     diff = g1-g2
     #Default view
     assert diff.snp_distance == 5
-    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 39, 33, 37, 39, 64, 73]))
+    assert numpy.all(diff.nucleotide_index == numpy.array([ 2,  6,  7,  8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 28, 29, 29, 39, 33, 37, 39, 64, 73]))
     assert numpy.all(diff.nucleotides == numpy.array(['x', 'x', 'x', 'x', 't', 'g', 't', 'g', 'z', 'z', 'z', 'z', 'z', 'z', 'a'], dtype=object))
-    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a', '33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
+    assert numpy.all(diff.variants == numpy.array(['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', '24g>z', '26g>z', '27g>z', '28g>z', '28g>z', '29g>z', '29g>z', '39t>a', '33_ins_tt', '37_del_t', '39_ins_g', '64_ins_ca', '73_ins_a']))
     assert numpy.all(diff.indel_length[diff.is_indel] == numpy.array([2,-1,1,2,1]))
     assert numpy.all(diff.indel_nucleotides[diff.is_indel]==numpy.array(['tt','t','g','ca','a']))
 
@@ -334,7 +335,7 @@ def test_genome_difference():
 
     # now check the other way around!
     diff2 = g2-g1
-    assert numpy.all(diff2.variants == numpy.array(['2x>a', '6x>a', '7x>a', '8x>a', '12t>c', '14g>c', '16t>c', '17g>c', '22z>g', '24z>g', '26z>g', '27z>g', '28z>g', '29z>g', '39a>t', '33_del_tt', '37_ins_t', '39_del_g', '64_del_ca', '73_del_a']))
+    assert numpy.all(diff2.variants == numpy.array(['2x>a', '6x>a', '7x>a', '8x>a', '12t>c', '14g>c', '16t>c', '17g>c', '22z>g', '24z>g', '26z>g', '27z>g', '28z>g', '28z>g', '29z>g', '29z>g', '39a>t', '33_del_tt', '37_ins_t', '39_del_g', '64_del_ca', '73_del_a']))
     assert numpy.all(diff2.nucleotide_index == diff.nucleotide_index)
     assert numpy.all(diff2.indel_length == -1*diff.indel_length)
 
@@ -420,9 +421,9 @@ def test_vcf_genetic_variation():
     g3 = g1 + vcf
     del g3.genes['A']
 
-    with pytest.warns(UserWarning):
+    with pytest.raises(gumpy.FailedComparison):
         diff = g1 - g3
-    with pytest.warns(UserWarning):
+    with pytest.raises(gumpy.FailedComparison):
         diff = g3 - g1
     
     gene1 = g1.build_gene("A")
@@ -731,7 +732,7 @@ def test_large_deletions():
     diff = a - a2
 
     assert numpy.all(diff.mutations == ["-1_del_aaaaaaaaccccccccccgggggggggg", 'del_0.93'])
-    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}, {'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}, {'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
 
     b = ref.build_gene("B")
     #Entirely deleted
@@ -739,7 +740,7 @@ def test_large_deletions():
     diff = b - b2
 
     assert numpy.all(diff.mutations == ["del_1.0"])
-    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
 
     c = ref.build_gene("C")
     #Deletes 33%, so reported as normal deletion
@@ -752,7 +753,20 @@ def test_large_deletions():
     #number: [-3 -2 -1  1  2  3  4  5  6] --> starting at gene pos of 4
 
     assert numpy.all(diff.mutations == ["4_del_ggg"])
-    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+
+    #Double check we also get the correct result if C is not revcomp
+    #Note that if C is not revcomp, it has a large promoter
+    r = gumpy.Genome("config/TEST-DNA-no-revcomp.gbk")
+    _vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-4-no-revcomp.vcf")
+    sample_ = r + _vcf
+
+    _c1 = r.build_gene("C")
+    _c2 = sample_.build_gene("C")
+    diff = _c1 - _c2
+
+    assert numpy.all(diff.mutations == ['-30_del_ggggggggggttttttt'])
+    assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttt', 'ALTS': ('a',)}]
 
     #Checking vcf evidence when two samples are used which affect the same base
     #Should concat the evidences
@@ -848,3 +862,109 @@ def test_misc():
     diff = a - a2
     assert diff.mutations == ['a-3z']
 
+    #Edge case of deletions which start in another gene, but in both genes in a diff
+    ref = gumpy.Genome("config/TEST-DNA.gbk")
+    a1 = ref.build_gene("A")
+    a2 = ref.build_gene("A")
+
+    a1.indel_length[0] = -10
+    a1.is_deleted[:10] = True
+    
+    a2.indel_length[0] = -12
+    a2.is_deleted[:12] = True
+
+    diff = a1 - a2
+    assert diff.mutations.tolist() == []
+
+def test_no_overlap():
+    '''Testing edge cases where there is no overlap between any genes within the genome
+    '''
+    ref = gumpy.Genome("config/TEST-DNA-no-overlap.gbk")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
+
+    sample = ref + vcf
+    diff = ref - sample
+    assert diff.variants.tolist() == ['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', 
+                                    '24g>z', '26g>z', '27g>z', '28g>z', '29g>z', '39t>a', '33_ins_tt', '37_del_t', 
+                                    '39_ins_g', '64_ins_ca', '73_ins_a']
+    assert diff.gene_name == ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', None, None]
+    assert diff.gene_pos == [-2, 1, 2, 2, 3, 4, 5, 5, 7, 7, 8, 8, 9, 9, 3, 1, 5, 7, None, None]
+    assert diff.codon_idx == [None, 2, 0, 1, 2, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 0, 1, 0, None, None]
+
+    #Aand the other way around too to ensure we test both ways
+    diff = sample - ref
+    assert diff.variants.tolist() == ['2x>a', '6x>a', '7x>a', '8x>a', '12t>c', '14g>c', '16t>c', '17g>c', '22z>g', 
+                                    '24z>g', '26z>g', '27z>g', '28z>g', '29z>g', '39a>t', '33_del_tt', '37_ins_t', 
+                                    '39_del_g', '64_del_ca', '73_del_a']
+    assert diff.gene_name == ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', None, None]
+    assert diff.gene_pos == [-2, 1, 2, 2, 3, 4, 5, 5, 7, 7, 8, 8, 9, 9, 3, 1, 5, 7, None, None]
+    assert diff.codon_idx == [None, 2, 0, 1, 2, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 0, 1, 0, None, None]
+
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-2.vcf")
+    sample = ref + vcf
+    diff = ref - sample
+
+    assert diff.variants.tolist() == ['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', '24g>z', 
+                                        '26g>z', '27g>z', '28g>z', '29g>z', '33_ins_ata', '37_del_tt']
+    assert diff.gene_name == ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'B', 'B']
+    assert diff.gene_pos == [-2, 1, 2, 2, 3, 4, 5, 5, 7, 7, 8, 8, 9, 9, 1, 5]
+    assert diff.codon_idx == [None, 2, 0, 1, 2, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1]
+
+    diff = sample - ref
+
+    assert diff.variants.tolist() == ['2x>a', '6x>a', '7x>a', '8x>a', '12t>c', '14g>c', '16t>c', '17g>c', '22z>g', '24z>g', 
+                                        '26z>g', '27z>g', '28z>g', '29z>g', '33_del_ata', '37_ins_tt']
+    assert diff.gene_name == ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'B', 'B']
+    assert diff.gene_pos == [-2, 1, 2, 2, 3, 4, 5, 5, 7, 7, 8, 8, 9, 9, 1, 5]
+    assert diff.codon_idx == [None, 2, 0, 1, 2, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1]
+
+    #Try again with non-coding changes to ensure that works too
+    ref.genes['A']['codes_protein'] = False
+    ref.genes['B']['codes_protein'] = False
+    ref.genes['C']['codes_protein'] = False
+    sample = ref + vcf
+    diff = ref - sample
+    assert diff.variants.tolist() == ['2a>x', '6a>x', '7a>x', '8a>x', '12c>t', '14c>g', '16c>t', '17c>g', '22g>z', '24g>z', 
+                                        '26g>z', '27g>z', '28g>z', '29g>z', '33_ins_ata', '37_del_tt']
+    assert diff.gene_name == ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'B', 'B']
+    assert diff.gene_pos == [-2, 3, 4, 5, 9, 11, 13, 14, 19, 21, 23, 24, 25, 26, 1, 5]
+    assert diff.codon_idx == [None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+
+    diff = sample - ref
+    assert diff.variants.tolist() == ['2x>a', '6x>a', '7x>a', '8x>a', '12t>c', '14g>c', '16t>c', '17g>c', '22z>g', '24z>g', 
+                                        '26z>g', '27z>g', '28z>g', '29z>g', '33_del_ata', '37_ins_tt']
+    assert diff.gene_name == ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'B', 'B']
+    assert diff.gene_pos == [-2, 3, 4, 5, 9, 11, 13, 14, 19, 21, 23, 24, 25, 26, 1, 5]
+    assert diff.codon_idx == [None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None]
+    
+    ref = gumpy.Genome("config/TEST-DNA-no-overlap.gbk")
+    #Very edge case of an intragene SNP in a genome with no overlaps
+    #Also has a del within a revcomp gene for another edge case
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-no-overlap-snp.vcf")
+    sample = ref + vcf
+    diff = ref - sample
+
+    assert diff.variants.tolist() == ['78t>g', '93_del_cc']
+    assert diff.gene_name == [None, 'C']
+    assert diff.gene_pos == [None, 3]
+    assert diff.codon_idx == [None, 0]
+
+
+def test_gene_overlap():
+    '''Testing that gene name/pos/codon_idx is retried correctly in cases of overlapping genes
+    '''    
+    ref = gumpy.Genome("config/TEST-DNA.gbk")
+    vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA-gene-overlap.vcf")
+
+    sample = ref + vcf
+    diff = ref - sample
+    assert diff.variants.tolist() == ['28g>a', '28g>a', '28_ins_a', '28_ins_a', '30_del_g', '30_del_g']
+    assert diff.gene_name == ['A', 'B', 'A', 'B', 'A', 'B']
+    assert diff.gene_pos == [9, 1, 25, 1, 27, 3]
+    assert diff.codon_idx == [0, 0, 0, 0, 2, 2]
+
+    diff = sample - ref
+    assert diff.variants.tolist() == ['28a>g', '28a>g', '28_del_a', '28_del_a', '30_ins_g', '30_ins_g']
+    assert diff.gene_name == ['A', 'B', 'A', 'B', 'A', 'B']
+    assert diff.gene_pos == [9, 1, 25, 1, 27, 3]
+    assert diff.codon_idx == [0, 0, 0, 0, 2, 2]

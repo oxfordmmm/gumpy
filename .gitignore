@@ -116,3 +116,6 @@ tests/saves/*
 *.pkl
 *.pkl.gz
 *.pickle
+
+*.csv
+*.txt

@@ -85,6 +85,7 @@ class VCFRecord(object):
             elif isinstance(item,float):
                 item = round(item, 3)
             self.values[key] = item
+        self.values['POS'] = self.pos
 
     def __repr__(self) -> str:
         '''Pretty print the record
@@ -105,9 +106,14 @@ class VCFRecord(object):
         else:
             s+=self.filter+'\t'
         for val in self.values.keys():
+            if val == "POS":
+                continue
             s += str(val)+":"
         s = s[:-1] + "\t"
-        for val in self.values.values():
+        for key in self.values.keys():
+            val = self.values[key]
+            if key == "POS":
+                continue
             s += str(val)+":"
         s = s[:-1]
         s += "\n"
@@ -330,6 +336,9 @@ class VCFFile(object):
                         if pos not in self.minor_population_indices:
                             #We don't actually care though
                             #This has to be done here as simplifying calls can move the position
+                            continue
+                        if call[1] == 'snp' and call[2][0] == call[2][1]:
+                            #Ref calls aren't interesting
                             continue
                         #Only tracking absolute number of reads
                         self.minor_populations.append((pos, call[1], call[2], int(depth), round(depth/total_depth, 3)))
