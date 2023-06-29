@@ -155,7 +155,7 @@ class GenomeDifference(Difference):
 
         self.update_view(self._view_method)
     
-    def get_gene_pos(self, gene: str, idx: int, variant: str) -> int:
+    def get_gene_pos(self, gene: str, idx: int, variant: str, start :int=None) -> int:
         '''Find the gene position of a given nucleotide index.
         This is considerably faster than building a whole stacked_gene_pos array (takes ~4.5mins for tb)
 
@@ -163,6 +163,7 @@ class GenomeDifference(Difference):
             gene (str): Name of the gene to search
             idx (int): Nucleotide index we want the gene position of
             variant (str): Variant we're looking for in GARC
+            start (int): Start position. Defaults to None
 
         Returns:
             int: Gene position of this nucleotide index
@@ -184,10 +185,15 @@ class GenomeDifference(Difference):
             if self.genome2.genes[gene]['reverse_complement']:
                 nc_num -= 1
         elif 'del' in variant:
+            pos, t, bases = variant.split("_")
+            if start is not None and idx != start:
+                #This is not the start of the deletion, so truncate the bases as appropriate
+                dels = len(bases) - (idx - start)
+            else:
+                dels = len(bases)
             #Deletions need even more nudging in revcomp because the entire deletion is reversed so starts at the end
             if self.genome2.genes[gene]['reverse_complement']:
-                pos, t, bases = variant.split("_")
-                nc_num = nc_num - len(bases) + 1
+                nc_num = nc_num - dels + 1
         
         return nc_num
 
@@ -386,6 +392,8 @@ class GenomeDifference(Difference):
             is_het.append(False)
             is_snp.append(False)
             is_null.append(False)
+            refs.append(None)
+            alts.append(None)
             indel_length.append(length)
             indel_nucleotides.append(alt)
             if length>0:
@@ -394,59 +402,105 @@ class GenomeDifference(Difference):
                 variants.append(str(idx)+'_del_'+str(alt))
 
             #Find the genes at this pos
-            genes = sorted(list(set(self.genome1.stacked_gene_name[self.genome1.stacked_nucleotide_index == idx])))
-            if len(genes) > 1:
-                #If we have genes, we need to duplicate some info
-                first = True
-                for gene in genes:
-                    if gene == '':
-                        #If we have genes, we don't care about this one
-                        continue
-                        
-                    gene_name.append(gene)
-                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
-                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
-                        #Get codon idx
-                        nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
-                        nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
-                    else:
-                        codon_idx.append(None)
-                    
-                    #If this isn't the first one, we need to duplicate the row
-                    if first:
-                        first = False
-                    else:
-                        variants.append(variants[-1])
-                        refs.append(refs[-1])
-                        alts.append(alt[-1])
-                        indices.append(indices[-1])
-                        is_indel.append(is_indel[-1])
-                        indel_length.append(indel_length[-1])
-                        indel_nucleotides.append(indel_nucleotides[-1])
-                        is_het.append(is_het[-1])
-                        is_snp.append(is_snp[-1])
-                        is_null.append(is_null[-1])
-
+            positions = []
+            seen_genes = set()
+            if 'ins' in variants[-1]:
+                #Insertion, so only need to check a single index
+                positions.append(idx)
+                start = None
             else:
-                #We have 1 gene or none, so set to None if no gene is present
-                gene = genes[0] if genes[0] != '' else None
-                if gene is not None:
-                    #Single gene, so pull out data
-                    gene_name.append(gene)
-                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
-
-                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
-                        #Get codon idx
-                        nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
-                        nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
-                    else:
-                        codon_idx.append(None)
+                #Deletion, so we need to check every deleted position for genes
+                pos, _, bases = variants[-1].split("_")
+                start = idx
+                for i in range(len(bases)):
+                    positions.append(idx + i)
+            first = True
+            for pos in positions:
+                genes = sorted(list(set(self.genome1.stacked_gene_name[self.genome1.stacked_nucleotide_index == pos])))
+                adding = False
+                mutli = False
+                if len(genes) > 1:
+                    multi = True
+                    #If we have genes, we need to duplicate some info
+                    for gene in genes:
+                        if gene == '':
+                            #If we have genes, we don't care about this one
+                            continue
+                            
+                        if gene in seen_genes:
+                            #If we've already seen it, skip
+                            continue
+                        else:
+                            #Mark as seen now we have seen it
+                            seen_genes.add(gene)
+                            adding = True                            
+                        gene_name.append(gene)
+                        gene_pos.append(self.get_gene_pos(gene, pos, variants[-1], start=start))
+                        if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                            #Get codon pos
+                            nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
+                            nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
+                            codon_idx.append((nc_num[nc_idx == pos][0] -1)% 3)
+                        else:
+                            codon_idx.append(None)
+                        
+                        #If this isn't the first one, we need to duplicate the row
+                        if first:
+                            first = False
+                        else:
+                            variants.append(variants[-1])
+                            refs.append(refs[-1])
+                            alts.append(alt[-1])
+                            indices.append(indices[-1])
+                            is_indel.append(is_indel[-1])
+                            indel_length.append(indel_length[-1])
+                            indel_nucleotides.append(indel_nucleotides[-1])
+                            is_het.append(is_het[-1])
+                            is_snp.append(is_snp[-1])
+                            is_null.append(is_null[-1]) 
                 else:
-                    gene_name.append(None)
-                    gene_pos.append(None)
-                    codon_idx.append(None)
+                    #We have 1 gene or none, so set to None if no gene is present
+                    gene = genes[0] if genes[0] != '' else None
+                    if gene in seen_genes:
+                        #If we've already seen it, or it's intragene so skip
+                        continue
+                    else:
+                        #Mark as seen now we have seen it
+                        seen_genes.add(gene)
+                        adding = True
+                    if gene is not None:
+                        #Single gene, so pull out data
+                        gene_name.append(gene)
+                        gene_pos.append(self.get_gene_pos(gene, pos, variants[-1], start=start))
+
+                        if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                            #Get codon pos
+                            nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
+                            nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
+                            codon_idx.append((nc_num[nc_idx == pos][0] -1)% 3)
+                        else:
+                            codon_idx.append(None)
+                    else:
+                        #We don't care about intragene values if its not the first item
+                        if pos != idx:
+                            continue
+                        gene_name.append(None)
+                        gene_pos.append(None)
+                        codon_idx.append(None)
+                #If this isn't the first one, we need to duplicate the row
+                if first:
+                    first = False
+                elif adding and not multi:
+                    variants.append(variants[-1])
+                    refs.append(refs[-1])
+                    alts.append(alt[-1])
+                    indices.append(indices[-1])
+                    is_indel.append(is_indel[-1])
+                    indel_length.append(indel_length[-1])
+                    indel_nucleotides.append(indel_nucleotides[-1])
+                    is_het.append(is_het[-1])
+                    is_snp.append(is_snp[-1])
+                    is_null.append(is_null[-1])                        
 
         # if the indel is on the LHS, then it is unchanged, then it needs 'reversing' since we are returning how to get to the RHS from the LHS hence we delete an insertion etc
         mask = self.genome1.is_indel & (self.genome1.indel_nucleotides!=self.genome2.indel_nucleotides)
@@ -457,6 +511,8 @@ class GenomeDifference(Difference):
             is_het.append(False)
             is_snp.append(False)
             is_null.append(False)
+            refs.append(None)
+            alts.append(None)
             length*=-1
             indel_length.append(length)
             indel_nucleotides.append(alt)
@@ -466,57 +522,107 @@ class GenomeDifference(Difference):
                 variants.append(str(idx)+'_del_'+str(alt))
 
             #Find the genes at this pos
-            genes = sorted(list(set(self.genome1.stacked_gene_name[self.genome1.stacked_nucleotide_index == idx])))
-            if len(genes) > 1:
-                #If we have genes, we need to duplicate some info
-                first = True
-                for gene in genes:
-                    if gene == '':
-                        #If we have genes, we don't care about this one
-                        continue
-                    gene_name.append(gene)
-                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
-                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
-                        #Get codon idx
-                        nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
-                        nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
-                    else:
-                        codon_idx.append(None)
-                    
-                    #If this isn't the first one, we need to duplicate the row
-                    if first:
-                        first = False
-                    else:
-                        variants.append(variants[-1])
-                        refs.append(refs[-1])
-                        alts.append(alt[-1])
-                        indices.append(indices[-1])
-                        is_indel.append(is_indel[-1])
-                        indel_length.append(indel_length[-1])
-                        indel_nucleotides.append(indel_nucleotides[-1])
-                        is_het.append(is_het[-1])
-                        is_snp.append(is_snp[-1])
-                        is_null.append(is_null[-1])
-
+            positions = []
+            seen_genes = set()
+            if 'ins' in variants[-1]:
+                #Insertion, so only need to check a single index
+                positions.append(idx)
+                start = None
             else:
-                #We have 1 gene or none, so set to None if no gene is present
-                gene = genes[0] if genes[0] != '' else None
-                if gene is not None:
-                    #Single gene, so pull out data
-                    gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
-                    gene_name.append(gene)
-                    if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
-                        #Get codon idx
-                        nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
-                        nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
-                        codon_idx.append((nc_num[nc_idx == idx][0] -1)% 3)
-                    else:
-                        codon_idx.append(None)
+                #Deletion, so we need to check every deleted position for genes
+                pos, _, bases = variants[-1].split("_")
+                start = idx
+                for i in range(len(bases)):
+                    positions.append(idx + i)
+            first = True
+            for pos in positions:
+                genes = sorted(list(set(self.genome1.stacked_gene_name[self.genome1.stacked_nucleotide_index == pos])))
+                adding = False
+                multi = False
+                if len(genes) > 1:
+                    multi = True
+                    #If we have genes, we need to duplicate some info
+                    for gene in genes:
+                        if gene == '':
+                            #If we have genes, we don't care about this one
+                            continue
+                            
+                        if gene in seen_genes:
+                            #If we've already seen it, skip
+                            continue
+                        else:
+                            #Mark as seen now we have seen it
+                            seen_genes.add(gene)
+                            adding = True
+                            
+                        gene_name.append(gene)
+                        gene_pos.append(self.get_gene_pos(gene, pos, variants[-1], start=start))
+                        if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                            #Get codon pos
+                            nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
+                            nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
+                            codon_idx.append((nc_num[nc_idx == pos][0] -1)% 3)
+                        else:
+                            codon_idx.append(None)
+                        #If this isn't the first one, we need to duplicate the row
+                        if first:
+                            first = False
+                        else:
+                            variants.append(variants[-1])
+                            refs.append(refs[-1])
+                            alts.append(alt[-1])
+                            indices.append(indices[-1])
+                            is_indel.append(is_indel[-1])
+                            indel_length.append(indel_length[-1])
+                            indel_nucleotides.append(indel_nucleotides[-1])
+                            is_het.append(is_het[-1])
+                            is_snp.append(is_snp[-1])
+                            is_null.append(is_null[-1])   
+
                 else:
-                    gene_name.append(None)
-                    gene_pos.append(None)
-                    codon_idx.append(None)
+                    #We have 1 gene or none, so set to None if no gene is present
+                    gene = genes[0] if genes[0] != '' else None
+                    if gene in seen_genes:
+                        #If we've already seen it, or it's intragene so skip
+                        continue
+                    else:
+                        #Mark as seen now we have seen it
+                        seen_genes.add(gene)
+                        adding = True
+                    if gene is not None:
+                        #Single gene, so pull out data
+                        gene_name.append(gene)
+                        gene_pos.append(self.get_gene_pos(gene, pos, variants[-1], start=start))
+
+                        if self.genome2.genes[gene]['codes_protein'] and gene_pos[-1] > 0:
+                            #Get codon pos
+                            nc_idx = self.genome1.stacked_nucleotide_index[self.genome1.stacked_gene_name == gene]
+                            nc_num = self.genome1.stacked_nucleotide_number[self.genome1.stacked_gene_name == gene]
+                            codon_idx.append((nc_num[nc_idx == pos][0] -1)% 3)
+                        else:
+                            codon_idx.append(None)
+                    else:
+                        #We don't care about intragene values if its not the first item
+                        if pos != idx:
+                            continue
+                        gene_name.append(None)
+                        gene_pos.append(None)
+                        codon_idx.append(None)
+
+                #If this isn't the first one, we need to duplicate the row
+                if first:
+                    first = False
+                elif adding and not multi:
+                    variants.append(variants[-1])
+                    refs.append(refs[-1])
+                    alts.append(alt[-1])
+                    indices.append(indices[-1])
+                    is_indel.append(is_indel[-1])
+                    indel_length.append(indel_length[-1])
+                    indel_nucleotides.append(indel_nucleotides[-1])
+                    is_het.append(is_het[-1])
+                    is_snp.append(is_snp[-1])
+                    is_null.append(is_null[-1])
 
         self.variants=numpy.array(variants)
         self.nucleotide_index=numpy.array(indices)
@@ -637,7 +743,11 @@ class GeneDifference(Difference):
                 self.nucleotide_index = numpy.append(self.nucleotide_index, [self.gene2.nucleotide_index[mask][0]])
 
                 self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
-                self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
+
+                #Get the nucleotide number of the first base of the gene
+                #Not predictable as promoters are variable length
+                self.nucleotide_number = numpy.append(self.nucleotide_number, [self.gene2.nucleotide_number[self.gene1.is_deleted | self.gene2.is_deleted][0]])
+
                 self.gene_position = numpy.append(self.gene_position, [None])
                 self.is_cds = numpy.append(self.is_cds, [True])
                 self.is_promoter = numpy.append(self.is_promoter, [False])
@@ -695,7 +805,11 @@ class GeneDifference(Difference):
                 #Pull out the start of the deletion for vcf evidence
                 self.nucleotide_index = numpy.append(self.nucleotide_index, [idx])
                 self.amino_acid_number = numpy.append(self.amino_acid_number, [None])
-                self.nucleotide_number = numpy.append(self.nucleotide_number, [None])
+
+                #Get the nucleotide number of the first base of the gene
+                #Not predictable as promoters are variable length
+                self.nucleotide_number = numpy.append(self.nucleotide_number, [self.gene2.nucleotide_number[self.gene1.is_deleted | self.gene2.is_deleted][0]])
+
                 self.gene_position = numpy.append(self.gene_position, [pos])
                 self.is_cds = numpy.append(self.is_cds, [True])
                 self.is_promoter = numpy.append(self.is_promoter, [False])
