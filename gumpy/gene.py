@@ -334,7 +334,7 @@ class Gene(object):
             index (int): Gene index to duplicate in all arrays
         '''
         #Convert to gene array index
-        index = int(numpy.where(self.nucleotide_number == index)[0])+1
+        index = int(numpy.where(self.nucleotide_number == index)[0][0])+1
 
         #Update the nucelotide_numbers so they include the duplicate
         #Check for promoters before the codons
