@@ -733,6 +733,7 @@ def test_large_deletions():
 
     assert numpy.all(diff.mutations == ["-1_del_aaaaaaaaccccccccccgggggggggg", 'del_0.93'])
     assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}, {'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.nucleotide_number.tolist() == [-1, -1]
 
     b = ref.build_gene("B")
     #Entirely deleted
@@ -741,6 +742,7 @@ def test_large_deletions():
 
     assert numpy.all(diff.mutations == ["del_1.0"])
     assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.nucleotide_number.tolist() == [1]
 
     c = ref.build_gene("C")
     #Deletes 33%, so reported as normal deletion
@@ -754,6 +756,7 @@ def test_large_deletions():
 
     assert numpy.all(diff.mutations == ["4_del_ggg"])
     assert diff.vcf_evidences == [{'GT': (1, 1), 'DP': 2, 'COV': (1, 1), 'GT_CONF': 2.05, 'POS': 2, 'REF': 'aaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccc', 'ALTS': ('a',)}]
+    assert diff.nucleotide_number.tolist() == [4]
 
     #Double check we also get the correct result if C is not revcomp
     #Note that if C is not revcomp, it has a large promoter
