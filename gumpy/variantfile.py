@@ -318,7 +318,8 @@ class VCFFile(object):
             #Map each call to the corresponding read depth
             dps = list(self.calls[(idx, type_)]['original_vcf_row']["COV"])
 
-            total_depth = self.calls[(idx, type_)]['original_vcf_row']['DP']
+            # total_depth = self.calls[(idx, type_)]['original_vcf_row']['DP']
+            total_depth = sum(dps)
             
             #idx here refers to the position of this call, NOT this vcf row, so adjust to avoid shifting when building minor calls
             idx = idx - self.calls[(idx, type_)]['pos']

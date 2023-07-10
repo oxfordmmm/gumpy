@@ -157,7 +157,7 @@ def test_get_minors():
 
                                     #Change all bases of a codon
                                     (7572, 'snp', ('t', 'a'), 2, 0.02), #SNP
-                                    (7574, 'snp', ('g', 't'), 10, 0.1), #SNP
+                                    (7574, 'snp', ('g', 't'), 10, 0.098), #SNP
         ]
     assert make_reproducable(vcf.minor_populations) == make_reproducable(expected_minor_populations)
 
@@ -178,13 +178,13 @@ def test_get_minors():
                                                                                     '7569_ins_gt:0.098', '7571g>t:0.098',
                                                                                     '7581g>t:0.098', '7582_del_ac:0.098', 
                                                                                     '7572t>a:0.02',
-                                                                                    '7574g>t:0.1'
+                                                                                    '7574g>t:0.098'
                                                                             ])
     assert sample.minority_populations_GARC(interpretation='percentage', reference=ref) == sorted([
                                                                                                     '7569_ins_gt:0.098', '7571g>t:0.098',
                                                                                                     '7581g>t:0.098', '7582_del_ac:0.098', 
                                                                                                     '7572t>a:0.02', 
-                                                                                                    '7574g>t:0.1'
+                                                                                                    '7574g>t:0.098'
                                                                                             ])
 
     #Check for gene level minority populations
@@ -205,12 +205,12 @@ def test_get_minors():
     assert gyrA.minority_populations_GARC(interpretation='percentage') == sorted([
                                                                                 'D94Z:0.098',
                                                                                 'A90Z:0.098',
-                                                                                'L91Z:0.1'
+                                                                                'L91Z:0.098'
                                                                             ])
     assert gyrA.minority_populations_GARC(interpretation='percentage', reference=gyrA_ref) == sorted([
                                                                                                     'D94Z:0.098',
                                                                                                     'A90Z:0.098',
-                                                                                                    'S91Z:0.1',
+                                                                                                    'S91Z:0.098',
                                                                                                 ])
     
     #Checking for non-coding versions too (but hack around to make it so gyrA doesn't code)
