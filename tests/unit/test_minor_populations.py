@@ -159,7 +159,10 @@ def test_get_minors():
                                     (7572, 'snp', ('t', 'a'), 2, 0.02), #SNP
                                     (7574, 'snp', ('g', 't'), 10, 0.098), #SNP
         ]
-    assert make_reproducable(vcf.minor_populations) == make_reproducable(expected_minor_populations)
+    #Filter out the VCF evidence from this as we don't really care here
+    actual = make_reproducable([minor[:5] for minor in vcf.minor_populations])
+    expected = make_reproducable(expected_minor_populations) 
+    assert actual == expected
 
     ref = gumpy.Genome("config/NC_000962.3.gbk.gz", is_reference=True, verbose=True)
     sample = ref + vcf

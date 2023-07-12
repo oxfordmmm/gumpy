@@ -848,8 +848,20 @@ class Genome(object):
                 #These only exist due to reference calls
                 #They only made it this far as they are required to pull out minors at these positions
                 pass
+        
+        genome.minor_populations = []
 
-        genome.minor_populations = vcf.minor_populations
+        for minor in vcf.minor_populations:
+            #Ensure that the VCF evidence for these is also recorded correctly
+            pos = minor[0]
+            evidence =  minor[5]
+            
+            #Store the VCF evidence of this
+            genome.vcf_evidence[genome.nucleotide_index[pos - 1]] = evidence
+
+            #Don't keep the VCF evidence with this, as it is already stored in the main vcf_evidence dict
+            genome.minor_populations.append(minor[:5])
+            
         genome.vcf_file = vcf
 
         #Let's assign some deleted regions (if exist)
