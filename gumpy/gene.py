@@ -634,7 +634,7 @@ class Gene(object):
         indel = re.compile(r"""
                     ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                     (-?[0-9]+) #Position
-                    _(ins|del|indel)_? #Type
+                    _(ins|del|indel|mixed)_? #Type
                     ([0-9]+|[acgtzx]+)? #Bases deleted/inserted
                     """, re.VERBOSE)
         if indel.fullmatch(variant):
@@ -649,8 +649,8 @@ class Gene(object):
                 valid = valid and name[:-1] == self.name
             #Check pos in correct range
             valid = valid and int(pos) in self.nucleotide_number
-            if type_ == "indel":
-                #If a mutation is given as `indel`, no length/bases should be given
+            if type_ == "indel" or type_ == "mixed":
+                #If a mutation is given as `indel` or `mixed`, no length/bases should be given
                 valid = valid and (bases is None or bases == "")
             if type_ == "del" and bases is not None and bases != "":
                 #Mutation was del, so check if the bases given match the ref
