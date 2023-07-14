@@ -271,6 +271,7 @@ class Gene(object):
                                 in gene_pos_map[gene_pos] 
                                 if nc_idx == i
                             ][0]
+                            self.minor_nc_changes[minor[0]] = 0
                             mutations.append(str(minor[0]) + "_" + minor[1] + "_" + minor[2] +":" + str(minor[coverage]))
                         else:
                             #>1 indel here, so `<pos>_indel` as as accurate as we can be
@@ -280,6 +281,7 @@ class Gene(object):
                                 in gene_pos_map[gene_pos] 
                                 if nc_idx == i
                             ]
+                            self.minor_nc_changes[minors[0][0]] = 0
                             cov = max([pop[coverage] for pop in minors])
                             mutations.append(str(minors[0][0])+"_indel:"+str(cov))
                 else:
