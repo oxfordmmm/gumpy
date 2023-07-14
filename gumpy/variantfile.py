@@ -51,7 +51,10 @@ class VCFRecord(object):
         self.contig = record.contig
         self.pos = record.pos
         self.ref = record.ref.lower()
-        self.alts = tuple([i.lower() for i in record.alts])
+        if record.alts is not None:
+            self.alts = tuple([i.lower() for i in record.alts])
+        else:
+            self.alts = None
         self.qual = record.qual
 
         #Get the filter attribute value
@@ -322,6 +325,7 @@ class VCFFile(object):
             total_depth = sum(dps)
             
             #idx here refers to the position of this call, NOT this vcf row, so adjust to avoid shifting when building minor calls
+            original_idx = idx
             idx = idx - self.calls[(idx, type_)]['pos']
             for (calls, depth) in zip(simple, dps):
                 #As we can have >1 call per simple, iter
@@ -342,7 +346,16 @@ class VCFFile(object):
                             #Ref calls aren't interesting
                             continue
                         #Only tracking absolute number of reads
-                        self.minor_populations.append((pos, call[1], call[2], int(depth), round(depth/total_depth, 3)))
+                        self.minor_populations.append(
+                            (
+                                pos, 
+                                call[1], 
+                                call[2], 
+                                int(depth), 
+                                round(depth/total_depth, 3), 
+                                self.calls[(original_idx, type_)]['original_vcf_row']
+                            )
+                        )
         
     def __find_calls(self):
         '''

@@ -246,23 +246,52 @@ class Gene(object):
                     mutations.append(str(pos) + "_" + type_ + "_" + bases + ":" + str(populations[0][coverage]))
             else:
                 self.minor_nc_changes[gene_pos] = nc_changes
-                #We have a mixture here so report as Zs
-                #Other than if we have conflicting indels at a gene index (in that case, crash)
-                c = Counter([(nc_idx, type_) for nc_idx, type_, bases, cov, frs in gene_pos_map[gene_pos]])
-                for (i, t), count in c.items():
-                    if t in ["ins", "del"] and count > 1:
-                        #We have a single index with > 1 indel so complain
-                        assert False, f"A minor population exists in gene {self.name} which has > 1 indel at gene index {i}!"
+                #We have a mixture here so report as Zs for SNPs, indel for indels, and mixed for mixed indels and SNPs
+                c = Counter([(nc_idx, 'indel') if type_ in ['ins', 'del'] else (nc_idx, type_) for nc_idx, type_, bases, cov, frs in gene_pos_map[gene_pos]])
                 
-                cov = max([pop[coverage] for pop in populations])
-                if self.codes_protein and gene_pos > 0:
-                    #These need a little extra effort to pull out the ref AA
-                    ref = self.codon_to_amino_acid[reference.codons[self.amino_acid_number == gene_pos][0]]
-                    mutations.append(ref + str(gene_pos) + "Z:" + str(cov))
+                #Get the number of indels within this codon/base
+                indels = sum([count for (i, t), count in c.items() if t == "indel"])
+                snps = sum([count for (i, t), count in c.items() if t == "snp"])
+
+                if indels > 0 and snps > 0:
+                    #Mixed within the codon/base so return <pos>_mixed
+                    cov = max([pop[coverage] for pop in populations])
+                    mutations.append(str(gene_pos)+"_mixed:"+str(cov))
+                elif indels > 0:
+                    #Just indels, so return of form <pos>_indel
+                    #Little bit more difficult here as we have to check each nucleotide_number
+                    #   this way, if there is only 1 indel per nucleotide, we can be specific
+                    for (i, t), count in c.items():
+                        if count == 1:
+                            #Exactly 1 indel at this position so be specific
+                            #Use the nc_idx instead of gene_pos as they may not be equal
+                            minor = [
+                                (nc_idx, type_, bases, cov, frs) 
+                                for nc_idx, type_, bases, cov, frs 
+                                in gene_pos_map[gene_pos] 
+                                if nc_idx == i
+                            ][0]
+                            mutations.append(str(minor[0]) + "_" + minor[1] + "_" + minor[2] +":" + str(minor[coverage]))
+                        else:
+                            #>1 indel here, so `<pos>_indel` as as accurate as we can be
+                            minors = [
+                                (nc_idx, type_, bases, cov, frs) 
+                                for nc_idx, type_, bases, cov, frs 
+                                in gene_pos_map[gene_pos] 
+                                if nc_idx == i
+                            ]
+                            cov = max([pop[coverage] for pop in minors])
+                            mutations.append(str(minors[0][0])+"_indel:"+str(cov))
                 else:
-                    ref = reference.nucleotide_sequence[self.gene_position == gene_pos][0]
-                    mutations.append(ref + str(gene_pos) + "z:" + str(cov))
-                    
+                    #Just SNPs, so return of form <ref><pos>(z|Z) as appropriate
+                    cov = max([pop[coverage] for pop in populations])
+                    if self.codes_protein and gene_pos > 0:
+                        #These need a little extra effort to pull out the ref AA
+                        ref = self.codon_to_amino_acid[reference.codons[self.amino_acid_number == gene_pos][0]]
+                        mutations.append(ref + str(gene_pos) + "Z:" + str(cov))
+                    else:
+                        ref = reference.nucleotide_sequence[self.gene_position == gene_pos][0]
+                        mutations.append(ref + str(gene_pos) + "z:" + str(cov))
         return sorted(mutations)
 
 
@@ -605,7 +634,7 @@ class Gene(object):
         indel = re.compile(r"""
                     ([a-zA-Z_0-9.()]+@)? #Possibly leading gene name
                     (-?[0-9]+) #Position
-                    _(ins|del|indel)_? #Type
+                    _(ins|del|indel|mixed)_? #Type
                     ([0-9]+|[acgtzx]+)? #Bases deleted/inserted
                     """, re.VERBOSE)
         if indel.fullmatch(variant):
@@ -620,8 +649,8 @@ class Gene(object):
                 valid = valid and name[:-1] == self.name
             #Check pos in correct range
             valid = valid and int(pos) in self.nucleotide_number
-            if type_ == "indel":
-                #If a mutation is given as `indel`, no length/bases should be given
+            if type_ == "indel" or type_ == "mixed":
+                #If a mutation is given as `indel` or `mixed`, no length/bases should be given
                 valid = valid and (bases is None or bases == "")
             if type_ == "del" and bases is not None and bases != "":
                 #Mutation was del, so check if the bases given match the ref

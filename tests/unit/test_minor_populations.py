@@ -34,11 +34,9 @@ def test_double_del():
     ref_a = ref.build_gene("A")
     sample_a = sample.build_gene("A")
 
-    with pytest.raises(AssertionError):
-        diff = ref_a - sample_a
-        diff.minor_populations()
-    with pytest.raises(AssertionError):
-        sample_a.minority_populations_GARC()
+    diff = ref_a - sample_a
+    assert sorted(diff.minor_populations()) == sorted(['1_del_aa:3', '2_indel:3', '3_del_a:3'])
+    assert sorted(sample_a.minority_populations_GARC()) == sorted(diff.minor_populations())
 
 @pytest.mark.slow
 def test_minor_failures():
@@ -159,7 +157,10 @@ def test_get_minors():
                                     (7572, 'snp', ('t', 'a'), 2, 0.02), #SNP
                                     (7574, 'snp', ('g', 't'), 10, 0.098), #SNP
         ]
-    assert make_reproducable(vcf.minor_populations) == make_reproducable(expected_minor_populations)
+    #Filter out the VCF evidence from this as we don't really care here
+    actual = make_reproducable([minor[:5] for minor in vcf.minor_populations])
+    expected = make_reproducable(expected_minor_populations) 
+    assert actual == expected
 
     ref = gumpy.Genome("config/NC_000962.3.gbk.gz", is_reference=True, verbose=True)
     sample = ref + vcf
@@ -192,24 +193,24 @@ def test_get_minors():
     gyrA_ref = ref.build_gene("gyrA")
 
     assert gyrA.minority_populations_GARC() == sorted([
-                                                        'D94Z:10',
-                                                        'A90Z:10',
+                                                        '94_mixed:10',
+                                                        '90_mixed:10',
                                                         'L91Z:10'
                                                 ])
     assert gyrA.minority_populations_GARC(reference=gyrA_ref) == sorted([
-                                                                        'D94Z:10',
-                                                                        'A90Z:10',
+                                                                        '94_mixed:10',
+                                                                        '90_mixed:10',
                                                                         'S91Z:10',
                                                                     ])
 
     assert gyrA.minority_populations_GARC(interpretation='percentage') == sorted([
-                                                                                'D94Z:0.098',
-                                                                                'A90Z:0.098',
+                                                                                '94_mixed:0.098',
+                                                                                '90_mixed:0.098',
                                                                                 'L91Z:0.098'
                                                                             ])
     assert gyrA.minority_populations_GARC(interpretation='percentage', reference=gyrA_ref) == sorted([
-                                                                                                    'D94Z:0.098',
-                                                                                                    'A90Z:0.098',
+                                                                                                    '94_mixed:0.098',
+                                                                                                    '90_mixed:0.098',
                                                                                                     'S91Z:0.098',
                                                                                                 ])
     
