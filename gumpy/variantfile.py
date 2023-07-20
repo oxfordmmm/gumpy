@@ -388,7 +388,16 @@ class VCFFile(object):
             if not proceed:
                 continue
 
-            if record.is_heterozygous:
+            if (len(self.minor_population_indices) > 0 and
+                #We're looking for minor populations
+                not self.ignore_filter and 
+                #We don't want to ignore the filter though
+                #so to avoid picking up erroneous actual calls,
+                # set this to be a ref call if it is filter fail
+                not record.is_filter_pass):
+                    variant = record.ref
+                    variant_type = 'ref'
+            elif record.is_heterozygous:
                 variant='z'*len(record.ref)
                 variant_type='het'
             elif record.is_alt:
