@@ -66,7 +66,7 @@ def test_minor_failures():
                         minor_population_indices={761155}
     )
     assert vcf.minor_populations == []
-    expected = ['VCF variant file, version 4.2', 'tests/test-cases/03.vcf', '1 records', 'FORMAT columns: COV, DP, GT, GT_CONF', "NC_000962.3 761155 c ('t',) 5.0 . GT:DP:COV:GT_CONF (1, 1):68:(0, 68):613.77"]
+    expected = ['VCF variant file, version 4.2', 'tests/test-cases/03.vcf', '1 records', 'FORMAT columns: COV, DP, GT, GT_CONF', "NC_000962.3 761155 c ('t',) 5.0 PASS GT:DP:COV:GT_CONF (1, 1):68:(0, 68):613.77"]
     assert [x.replace("\t", " ") for x in vcf.__repr__().split("\n") if x.replace("\t","")] == expected
 
     #Shouldn't pass the filter
