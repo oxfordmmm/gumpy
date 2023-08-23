@@ -395,8 +395,15 @@ class VCFFile(object):
                 #so to avoid picking up erroneous actual calls,
                 # set this to be a ref call if it is filter fail
                 not record.is_filter_pass):
-                    variant = record.ref
-                    variant_type = 'ref'
+
+                    #We only want to allow these through if the filter fail is MIN_FRS
+                    if record.filter == "MIN_FRS":
+                        #Allow MIN_FRS
+                        variant = record.ref
+                        variant_type = 'ref'
+                    else:
+                        #Discard any other filter fails
+                        continue
             elif record.is_heterozygous:
                 variant='z'*len(record.ref)
                 variant_type='het'
