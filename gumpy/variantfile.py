@@ -290,6 +290,9 @@ class VCFFile(object):
                 pos = self.calls[(idx, type_)]['pos']
             else:
                 #Snps
+                if self.calls[(idx, type_)]['call'] == "x":
+                    #Null calls shouldn't have minor populations
+                    continue
                 t = 'snp'
                 bases = (self.calls[(idx, type_)]['ref'], self.calls[(idx, type_)]['call'])
                 pos = self.calls[(idx, type_)]['pos']
