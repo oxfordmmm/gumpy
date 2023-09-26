@@ -248,7 +248,10 @@ class GenomeDifference(Difference):
             elif evidence2 is not None:
                 evidences.append(evidence2)
                 indices.append(self._get_vcf_idx(evidence2))
-
+            else:
+                evidences.append(None)
+                indices.append(None)
+                
         self.vcf_evidences = evidences
         self.vcf_idx = indices
     
