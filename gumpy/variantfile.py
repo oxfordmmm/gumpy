@@ -18,11 +18,14 @@ class VCFRecord(object):
         * `chrom` (str): Name of the sample.
         * `pos` (int): Genome index for the change.
         * `ref` (str): Reference value for the nucleotide.
-        * `alts` (tuple(str)): Alternative calls. Tuple can contain single values and indels.
-        * `qual` (None): Values for quality (values other than None have yet to be found in testing files...).
+        * `alts` (tuple(str)): Alternative calls. Tuple can contain single values
+            and indels.
+        * `qual` (None): Values for quality (values other than None have yet to be
+            found in testing files...).
         * `filter` (str): Whether this record has pass the filter.
         * `info` (dict): Dictionary of key->value for the info fields.
-        * `values` (dict): Dictionary of key->value for the values. Usually this is the FORMAT field names with their corresponding values.
+        * `values` (dict): Dictionary of key->value for the values. Usually this is the
+            FORMAT field names with their corresponding values.
         * `is_filter_pass` (bool): does the filter column contain PASS?
         * `call1` (int): the index of the first call
         * `call2` (int): the index of the second call
@@ -99,7 +102,8 @@ class VCFRecord(object):
                     else False
                 )
 
-            # Due to how pysam reads floats, there are some erroneously long dps, so round
+            # Due to how pysam reads floats, there are some erroneously long dps,
+            #   so round
             elif isinstance(item, float):
                 item = round(item, 3)
             self.values[key] = item
@@ -119,7 +123,7 @@ class VCFRecord(object):
             s += ".\t"
         else:
             s += str(self.qual) + "\t"
-        if self.filter == None:
+        if self.filter is None:
             s += ".\t"
         else:
             s += self.filter + "\t"
@@ -144,22 +148,34 @@ class VCFFile(object):
     * Used to apply a VCF file to a genome
     * Instance variables:
         * `filename` (str): path to the VCF file
-        * `vcf_version` (tuple(int)): Tuple of ints to show the VCF version of the file. e.g 3.2 would be (3, 2).
-        * `contig_lengths` (dict): Dictionary mapping contig_name->length for all defined contigs.
-        * `format_fields_description` (dict): Dictionary mapping format_name->dict(description, id, type).
-        * `records` (list(VCFRecord)): List of VCFRecord objects for each record within the file.
-        * `calls` (dict): Dict of definite calls made in the VCF file, after any additional filtering has been applied
+        * `vcf_version` (tuple(int)): Tuple of ints to show the VCF version of the
+            file. e.g 3.2 would be (3, 2).
+        * `contig_lengths` (dict): Dictionary mapping contig_name->length for all
+            defined contigs.
+        * `format_fields_description` (dict): Dictionary mapping
+            format_name->dict(description, id, type).
+        * `records` (list(VCFRecord)): List of VCFRecord objects for each record within
+            the file.
+        * `calls` (dict): Dict of definite calls made in the VCF file, after any
+            additional filtering has been applied
         * `ignore_filter` (bool): whether to ignore the FILTER in the VCF file
-        * `format_fields_min_thresholds` (dict): dictionary specifying minimum thresholds to be applied to fields in the FORMAT field e.g. {'GTCONF':5}
+        * `format_fields_min_thresholds` (dict): dictionary specifying minimum
+            thresholds to be applied to fields in the FORMAT field e.g. {'GTCONF':5}
         * `variants` (numpy.array): Numpy array of the detected variants in the VCF file
-        * `nucleotide_index` (numpy.array): Array of genome indices which are affected by the VCF
+        * `nucleotide_index` (numpy.array): Array of genome indices which are affected
+            by the VCF
         * `ref_nucleotides` (numpy.array): Array of REF bases
         * `alt_nucleotides` (numpy.array): Array of ALT bases
-        * `indel_length` (numpy.array): Array of lengths of insertions (+ve) or deletions (-ve) at each site
-        * `is_snp` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are SNPs
-        * `is_het` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are heterozygous calls
-        * `is_null` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are null calls
-        * `is_indel` (numpy.array): Array to act as a mask for `nucleotide_index` to show which are indel calls
+        * `indel_length` (numpy.array): Array of lengths of insertions (+ve) or
+            deletions (-ve) at each site
+        * `is_snp` (numpy.array): Array to act as a mask for `nucleotide_index` to
+            show which are SNPs
+        * `is_het` (numpy.array): Array to act as a mask for `nucleotide_index` to
+            show which are heterozygous calls
+        * `is_null` (numpy.array): Array to act as a mask for `nucleotide_index` to
+            show which are null calls
+        * `is_indel` (numpy.array): Array to act as a mask for `nucleotide_index` to
+            show which are indel calls
         * `snp_distance` (int): SNP distance caused by the VCF
     """
 
@@ -178,11 +194,17 @@ class VCFFile(object):
 
         Args:
             filename (str) : The name of the VCF file
-            ignore_filter (bool, optional): If True, ignore the FILTER column in the VCF file. Default is False.
-            bypass_reference_calls (bool, optional): If True, skip any row in the VCF (and therefore do not record)  which calls reference (i.e. 0/0). Default is False.
-            format_fields_min_thresholds (dict, optional): Dict of field name in the FORMAT column and a minimum threshold to apply e.g. {'DP':5}
-            retain_format_fields (list, optional): list of FORMAT fields specified in the VCF to retain
-            minor_population_indices (set, optional): set of genome indices names within which to look for minor populations
+            ignore_filter (bool, optional): If True, ignore the FILTER column in the
+                VCF file. Default is False.
+            bypass_reference_calls (bool, optional): If True, skip any row in the VCF
+                (and therefore do not record)  which calls reference (i.e. 0/0).
+                Default is False.
+            format_fields_min_thresholds (dict, optional): Dict of field name in the
+                FORMAT column and a minimum threshold to apply e.g. {'DP':5}
+            retain_format_fields (list, optional): list of FORMAT fields specified in
+                the VCF to retain
+            minor_population_indices (set, optional): set of genome indices names
+                within which to look for minor populations
         """
 
         self.ignore_filter = ignore_filter
@@ -201,13 +223,14 @@ class VCFFile(object):
             self.minor_population_indices = set()
         else:
             # Value given, so check if it's of the right format
-            # Functionally, we don't care if it's actually a set. We just care its an interable of ints
+            # Functionally, we don't care if it's actually a set. We just care its an
+            #   interable of ints
             try:
                 for i in self.minor_population_indices:
                     assert isinstance(
                         i, int
                     ), "Item in minor_population_indices is not an int: " + str(i)
-            except:
+            except TypeError:
                 # Not iterable
                 assert False, "minor_population_indices given is not iterable! " + str(
                     self.minor_population_indices
@@ -266,7 +289,8 @@ class VCFFile(object):
 
         if len(self.minor_population_indices) > 0:
             # We are asking to find some minor variants
-            # So we need to check if the COV field exists as this shows minor populations
+            # So we need to check if the COV field exists as this shows
+            #   minor populations
             assert (
                 "COV" in self.format_fields_metadata.keys()
             ), "'COV' not in VCF format fields. No minor populations can be found!"
@@ -306,15 +330,19 @@ class VCFFile(object):
         return output
 
     def _find_minor_populations(self):
-        """Find the minor populations for this VCF based on the minor population positions given.
-        Deconstructs these into actual mutations of SNP/INDEL too as this logic already exists here
+        """Find the minor populations for this VCF based on the minor population
+            positions given.
+        Deconstructs these into actual mutations of SNP/INDEL too as this logic already
+            exists here
 
         * Minor populations are intentionally kept very separate from other variants.
-        * They are very infrequent compared to other variants so storing in similar structures would be resource heavy.
+        * They are very infrequent compared to other variants so storing in similar
+            structures would be resource heavy.
         * They are instead stored consistently in the form of calls:
             * [position, type, bases, depth, frs]
                 * position: Genome position (or Gene position if within genes)
-                * type: String denoting type of variant. One of ['ref', 'snp', 'ins', 'del']
+                * type: String denoting type of variant. One of ['ref', 'snp',
+                    'ins', 'del']
                 * bases: Descripton of the bases.
                     * If type in ['ref', 'snp'], of the format (ref base, alt base)
                     * If type in ['ins', 'del'], string of the bases inserted or deleted
@@ -356,7 +384,10 @@ class VCFFile(object):
                 if 0 not in self.calls[(idx, type_)]["original_vcf_row"]["GT"]:
                     # Het call without a wildtype call, so warn about weird behaviour
                     warnings.warn(
-                        f"Minor population detected at position {idx}, which doesn't include a wildtype call. Call: {self.calls[(idx, type_)]['original_vcf_row']['GT']}. Note that there may be multiple mutations given at this index",
+                        f"Minor population detected at position {idx}, which doesn't "
+                        f"include a wildtype call. Call: "
+                        f"{self.calls[(idx, type_)]['original_vcf_row']['GT']}. "
+                        "Note that there may be multiple mutations given at this index",
                         UserWarning,
                     )
 
@@ -377,7 +408,8 @@ class VCFFile(object):
             # total_depth = self.calls[(idx, type_)]['original_vcf_row']['DP']
             total_depth = sum(dps)
 
-            # idx here refers to the position of this call, NOT this vcf row, so adjust to avoid shifting when building minor calls
+            # idx here refers to the position of this call, NOT this vcf row, so adjust
+            #   to avoid shifting when building minor calls
             original_idx = idx
             idx = idx - self.calls[(idx, type_)]["pos"]
             for calls, depth in zip(simple, dps):
@@ -393,7 +425,8 @@ class VCFFile(object):
                         pos = idx + int(call[0])
                         if pos not in self.minor_population_indices:
                             # We don't actually care though
-                            # This has to be done here as simplifying calls can move the position
+                            # This has to be done here as simplifying calls can move
+                            #   the position
                             continue
                         if call[1] == "snp" and call[2][0] == call[2][1]:
                             # Ref calls aren't interesting
@@ -438,7 +471,8 @@ class VCFFile(object):
             # only proceed if a dictionary has been passed (otherwise defaults to None)
             proceed = True
             if isinstance(self.format_fields_min_thresholds, dict):
-                # ok to just do since we've already check in the constructor that these fields exist in the VCF
+                # ok to just do since we've already check in the constructor that these
+                #   fields exist in the VCF
                 for i in self.format_fields_min_thresholds:
                     proceed = (
                         proceed
@@ -479,7 +513,8 @@ class VCFFile(object):
                 variant = record.ref
                 variant_type = "ref"
 
-            # if the REF, ALT pair are the same length, check if we can decompose into SNPs
+            # if the REF, ALT pair are the same length, check if we can decompose
+            #   into SNPs
             if len(record.ref) == len(variant):
                 for counter, (before, after) in enumerate(zip(record.ref, variant)):
                     metadata = {}
@@ -501,9 +536,6 @@ class VCFFile(object):
                 for p, type_, bases in mutations:
                     # p = max(p - 1, 0)
                     if type_ in ["ins", "del"]:
-                        indel_length = len(bases)
-                        # if type_ == "del":
-                        #     indel_length *= -1
                         metadata = {}
                         metadata["call"] = (type_, bases)
                         metadata["ref"] = record.ref[0]
@@ -539,7 +571,8 @@ class VCFFile(object):
             alt (str): Alt bases.
 
         Returns:
-            [(int, str, str)]: Returns a list of tuples of (pos, one of ['ins','del','snp'], indel_bases or (ref, alt) for SNPs)
+            [(int, str, str)]: Returns a list of tuples of (pos, one of ['ins','del',
+                'snp'], indel_bases or (ref, alt) for SNPs)
         """
 
         def snp_number(ref: str, alt: str) -> int:
@@ -559,10 +592,13 @@ class VCFFile(object):
             return snps
 
         """The process for finding the positions for indels are almost identical
-        as the process for finding a del can be interpreted as finding an ins with ref and alt reversed.
-        The approach here is to use a sliding window to find the position of the indel where the number of SNPs is lowest.
-        Assumes that there is only a single indel between the ref and the alt - there may be cases where this does not work
-            these will just produce large amounts of SNPs... Could be adapted to check for multi-indel but this will scale
+        as the process for finding a del can be interpreted as finding an ins with ref 
+            and alt reversed.
+        The approach here is to use a sliding window to find the position of the indel 
+            where the number of SNPs is lowest.
+        Assumes that there is only a single indel between the ref and the alt - there 
+            may be cases where this does not work these will just produce large amounts 
+            of SNPs... Could be adapted to check for multi-indel but this will scale
             exponentially the number of versions checked.
         """
         if len(ref) > len(alt):
@@ -617,11 +653,13 @@ class VCFFile(object):
     def to_df(self) -> pandas.DataFrame:
         """Convert the VCFFile to a pandas DataFrame.
 
-        Metadata is stored in the `attrs` attribute of the DataFrame which may break with some operations
+        Metadata is stored in the `attrs` attribute of the DataFrame which may break
+            with some operations
         (but pandas does not currently have a robust method for metadata storage...)
 
         Returns:
-            pandas.DataFrame: DataFrame containing all of the information from the VCF file
+            pandas.DataFrame: DataFrame containing all of the information from the
+                VCF file
         """
         meta_data = {
             "vcf_version": self.vcf_version,
@@ -669,9 +707,12 @@ class VCFFile(object):
         """
         Private method to pull the variants out of the VCFFile object.
 
-        Builds arrays of the variant calls, and their respective genome indices, as well as
-        masks to show whether there is a snp, het, null or indel call at the corresponding genome index:
-        i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine if a genome has a SNP call at this position
+        Builds arrays of the variant calls, and their respective genome indices, as
+            well as
+        masks to show whether there is a snp, het, null or indel call at the
+            corresponding genome index:
+        i.e is_snp[genome.nucleotide_number == indices[i]] gives a bool to determine
+            if a genome has a SNP call at this position
         """
 
         alts = []

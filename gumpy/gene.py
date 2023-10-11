@@ -38,21 +38,39 @@ class Gene(object):
 
         Args:
             name (str, optional): Name of the gene. Defaults to None
-            nucleotide_sequence (numpy.array, optional): Numpy array of the nucleotide sequence. Defaults to None
-            nucleotide_index (numpy.array, optional): Numpy array of the gene indices. Defaults to None
-            nucleotide_number (numpy.array, optional): Numpy array of the gene numbering. Defaults to None
-            is_cds (numpy.array, optional): Numpy array to act as a mask for whether given elements are codons. Defaults to None
-            is_promoter (numpy.array, optional): Numpy array to act as a mask for whether given elements are promoters. Defaults to None
-            is_indel (numpy.array, optional): Numpy array to act as a mask for whether given elements are indels. Defaults to None
-            indel_length (numpy.array, optional): Numpy array denoting the lengths of the indels whenever is_indel==True. Defaults to None
-            indel_nucleotides (numpy.array, optional): Numpy array describing the nucleotides inserted or deleted whenever is_indel==True. Defaults to None
-            reverse_complement (boolean, optional): Boolean showing whether this gene is reverse complement. Defaults to False
-            codes_protein (boolean, optional): Boolean showing whether this gene codes a protein. Defaults to True
-            feature_type (str, optional): The name of the type of feature that this gene represents. Defaults to None
-            ribosomal_shifts (list(int), optional): Indices of repeated bases due to ribosomal frame shifting. Defaults to []
-            minority_populations ([int, str, str|(str,str), int, float], optional): List of minor populations. Each minor population is defined as [position, type, bases - either str or tuple of (ref, alt), depth supporting this, fractional read support]
-            is_deleted (numpy.array, optional): Numpy array of booleans showing if a given nucleotide index is deleted. Defaults to None
-            vcf_evidence (dict, optional): Dictionary tracking genome indices which have VCF evidence to support these calls. Defaults to None
+            nucleotide_sequence (numpy.array, optional): Numpy array of the nucleotide
+                sequence. Defaults to None
+            nucleotide_index (numpy.array, optional): Numpy array of the gene indices.
+                Defaults to None
+            nucleotide_number (numpy.array, optional): Numpy array of the gene
+                numbering. Defaults to None
+            is_cds (numpy.array, optional): Numpy array to act as a mask for whether
+                given elements are codons. Defaults to None
+            is_promoter (numpy.array, optional): Numpy array to act as a mask for
+                whether given elements are promoters. Defaults to None
+            is_indel (numpy.array, optional): Numpy array to act as a mask for whether
+                given elements are indels. Defaults to None
+            indel_length (numpy.array, optional): Numpy array denoting the lengths of
+                the indels whenever is_indel==True. Defaults to None
+            indel_nucleotides (numpy.array, optional): Numpy array describing the
+                nucleotides inserted or deleted whenever is_indel==True.
+                    Defaults to None
+            reverse_complement (boolean, optional): Boolean showing whether this gene
+                is reverse complement. Defaults to False
+            codes_protein (boolean, optional): Boolean showing whether this gene codes
+                a protein. Defaults to True
+            feature_type (str, optional): The name of the type of feature that this
+                gene represents. Defaults to None
+            ribosomal_shifts (list(int), optional): Indices of repeated bases due to
+                ribosomal frame shifting. Defaults to []
+            minority_populations ([int, str, str|(str,str), int, float], optional):
+                List of minor populations. Each minor population is defined as
+                [position, type, bases - either str or tuple of (ref, alt),
+                depth supporting this, fractional read support]
+            is_deleted (numpy.array, optional): Numpy array of booleans showing if a
+                given nucleotide index is deleted. Defaults to None
+            vcf_evidence (dict, optional): Dictionary tracking genome indices which
+                have VCF evidence to support these calls. Defaults to None
         """
         # Using [] as a default value is dangerous, so convert from None
         if ribosomal_shifts is None:
@@ -88,7 +106,8 @@ class Gene(object):
             name + ": gene numbering must be a Numpy array of integers!"
         )
 
-        # check it is a list, and if it is that it is made up of integers and only integers
+        # check it is a list, and if it is that it is made up of integers and
+        #   only integers
         assert isinstance(ribosomal_shifts, list)
         if len(ribosomal_shifts) > 0:
             assert all([isinstance(i, int) for i in ribosomal_shifts])
@@ -218,8 +237,10 @@ class Gene(object):
         self.minority_populations = sorted(fixed, key=lambda x: x[0])
 
     def __adjust_dels(self) -> None:
-        """Adjust some of the deletions, such as deletions starting/ending in another gene.
-        Also adjust the vcf evidences so they aren't present unless it is the start of the del
+        """Adjust some of the deletions, such as deletions starting/ending in another
+            gene.
+        Also adjust the vcf evidences so they aren't present unless it is the start
+            of the del
         """
         # Starting in another gene
         if self.is_deleted[0] and self.indel_length[0] == 0:
@@ -239,7 +260,8 @@ class Gene(object):
                 self.indel_length[idx] = -1 * len(self.indel_length[idx:])
                 self.indel_nucleotides[idx] = "".join(self.nucleotide_sequence[idx:])
 
-        # Clean up vcf_evidences so only the start of a del has the evidence (to avoid erroneous evidences)
+        # Clean up vcf_evidences so only the start of a del has the evidence (to avoid
+        #   erroneous evidences)
         for i, (deleted, length) in enumerate(zip(self.is_deleted, self.indel_length)):
             if deleted and length >= 0:
                 # Deleted but this isn't the start
@@ -254,8 +276,11 @@ class Gene(object):
         """Fetch the mutations caused by minority populations in GARC
 
         Args:
-            interpretation (str, optional): Which way to interpret the coverage calls. 'reads' gives absolute read coverage. 'percentage' gives fractional read support. Defaults to 'reads'.
-            reference (gumpy.Gene, optional): The reference to denote mutations from. Defaults to self.
+            interpretation (str, optional): Which way to interpret the coverage calls.
+                'reads' gives absolute read coverage. 'percentage' gives fractional
+                read support. Defaults to 'reads'.
+            reference (gumpy.Gene, optional): The reference to denote mutations from.
+                Defaults to self.
 
         Returns:
             [str]: List of mutations in GARC
@@ -271,9 +296,10 @@ class Gene(object):
         if reference is None:
             reference = self
         else:
-            assert (
-                len(reference.minority_populations) == 0
-            ), "Minority populations can only be compared when 1 Gene does not have them!"
+            assert len(reference.minority_populations) == 0, (
+                "Minority populations can only be compared when 1 Gene "
+                "does not have them!"
+            )
 
         # Map gene_position-->[minor populations at this position]
         # This also groups codons together
@@ -285,7 +311,8 @@ class Gene(object):
         mutations = []
         for gene_pos in gene_pos_map.keys():
             populations = gene_pos_map[gene_pos]
-            # As these don't have alt codons for Z calls, track the number of nucleotide changes separately
+            # As these don't have alt codons for Z calls, track the number of
+            #   nucleotide changes separately
             nc_changes = len([i for i in populations if i[1] == "snp"])
             if len(populations) == 1:
                 # We have exactly one so return it
@@ -331,7 +358,8 @@ class Gene(object):
                     )
             else:
                 self.minor_nc_changes[gene_pos] = nc_changes
-                # We have a mixture here so report as Zs for SNPs, indel for indels, and mixed for mixed indels and SNPs
+                # We have a mixture here so report as Zs for SNPs, indel for indels,
+                #   and mixed for mixed indels and SNPs
                 c = Counter(
                     [
                         (nc_idx, "indel")
@@ -351,12 +379,14 @@ class Gene(object):
                     mutations.append(str(gene_pos) + "_mixed:" + str(cov))
                 elif indels > 0:
                     # Just indels, so return of form <pos>_indel
-                    # Little bit more difficult here as we have to check each nucleotide_number
-                    #   this way, if there is only 1 indel per nucleotide, we can be specific
+                    # Little bit more difficult here as we have to check each
+                    #   nucleotide_number this way, if there is only 1 indel per
+                    #   nucleotide, we can be specific
                     for (i, t), count in c.items():
                         if count == 1:
                             # Exactly 1 indel at this position so be specific
-                            # Use the nc_idx instead of gene_pos as they may not be equal
+                            # Use the nc_idx instead of gene_pos as they may not be
+                            #   equal
                             minor = [
                                 (nc_idx, type_, bases, cov, frs)
                                 for nc_idx, type_, bases, cov, frs in gene_pos_map[
@@ -375,7 +405,8 @@ class Gene(object):
                                 + str(minor[coverage])
                             )
                         else:
-                            # >1 indel here, so `<pos>_indel` as as accurate as we can be
+                            # >1 indel here, so `<pos>_indel` as as accurate as we
+                            #   can be
                             minors = [
                                 (nc_idx, type_, bases, cov, frs)
                                 for nc_idx, type_, bases, cov, frs in gene_pos_map[
@@ -404,12 +435,14 @@ class Gene(object):
 
     def __revcomp_indel(self) -> None:
         """Make some adjustments for deletions within revcomp genes.
-        The largest of which is that the gene position of the deletion needs adjusting for revcomp.
+        The largest of which is that the gene position of the deletion needs adjusting
+            for revcomp.
         In a normal gene, the position x says delete to the left y bases.
-        In a revcomp gene we want to say the position x says delete to the right y bases.
-        So the pos needs changing, and indel_nucleotides need revcomping.
+        In a revcomp gene we want to say the position x says delete to the right
+            y bases. So the pos needs changing, and indel_nucleotides need revcomping.
 
-        Because its going the opposite direction, the same indel will refer to a different nucleotide position.
+        Because its going the opposite direction, the same indel will refer to a
+            different nucleotide position.
         """
         # Reverse the indel arrays
         is_indel = self.is_indel[::-1]
@@ -434,7 +467,8 @@ class Gene(object):
         for pos in positions[0]:
             if indel_length[pos] > 0:
                 # An insertion at this pos so only revcomp the inserted bases
-                # Because this is backwards now, pos needs adjusting to point to the right base for inserting after
+                # Because this is backwards now, pos needs adjusting to point to the
+                #   right base for inserting after
                 old_pos = pos
                 pos = pos - 1
                 fixed_indel_nucleotides[pos] = "".join(
@@ -518,8 +552,8 @@ class Gene(object):
         return numpy.array(first_half + [array[index]] + second_half)
 
     def __eq__(self, other) -> bool:
-        """Overloading the equality operator to provide a method for determining if two genes
-            are the same
+        """Overloading the equality operator to provide a method for determining if
+            two genes are the same
 
         Args:
             other (gumpy.Gene) : The other gene object to compare against
@@ -558,7 +592,8 @@ class Gene(object):
         * Note that takes account of HET and NULL calls via z and x, respectively
 
         Args:
-            nucleotides_array (Iterable(str)): Some iterable of nucleotide bases. Usually a numpy.array or list
+            nucleotides_array (Iterable(str)): Some iterable of nucleotide bases.
+                Usually a numpy.array or list
 
         Returns:
             numpy.array: Array of complemented bases
@@ -608,14 +643,17 @@ class Gene(object):
     def _setup_conversion_dicts(self):
         """Create the conversion dictionary for converting codon -> amino acid"""
         bases = ["t", "c", "a", "g", "x", "z", "o"]
-        # aminoacids = 'FFLLXZSSSSXZYY!!XZCC!WXZXXXXXXZZZZXZLLLLXZPPPPXZHHQQXZRRRRXZXXXXXXZZZZXZIIIMXZTTTTXZNNKKXZSSRRXZXXXXXXZZZZXZVVVVXZAAAAXZDDEEXZGGGGXZXXXXXXZZZZXZXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZZZZZXZZZZZXZZZZZXZXXXXXXZZZZXZ'
-        # aminoacids = 'FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXOZZZZXZOOOOOOOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXOZZZZXZOOOOOOOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXOZZZZXZOOOOOOOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXOZZZZXZOOOOOOOOXXXXXXOXXXXXXOXXXXXXOXXXXXXOXXXXXXOXXXXXXOOOOOOOOZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXOZZZZXZOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO'
-        aminoacids = "FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXXZZZZXZOOOOOXOOLLLLXZOPPPPXZOHHQQXZORRRRXZOXXXXXXXZZZZXZOOOOOXOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXXZZZZXZOOOOOXOOVVVVXZOAAAAXZODDEEXZOGGGGXZOXXXXXXXZZZZXZOOOOOXOOXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXXZZZZXZOOOOOXOOOOOOXOOOOOOXOOOOOOXOOOOOOXOOXXXXXXXOOOOXOOOOOOXOO"
+        aminoacids = (
+            "FFLLXZOSSSSXZOYY!!XZOCC!WXZOXXXXXXXZZZZXZOOOOOXOOLLLLXZOPPPPXZOHHQQXZORRRRX"
+            "ZOXXXXXXXZZZZXZOOOOOXOOIIIMXZOTTTTXZONNKKXZOSSRRXZOXXXXXXXZZZZXZOOOOOXOOVVV"
+            "VXZOAAAAXZODDEEXZOGGGGXZOXXXXXXXZZZZXZOOOOOXOOXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            "XXXXXXXXXXXXXXXXXXXXZZZZXZOZZZZXZOZZZZXZOZZZZXZOXXXXXXXZZZZXZOOOOOXOOOOOOXO"
+            "OOOOOXOOOOOOXOOOOOOXOOXXXXXXXOOOOXOOOOOOXOO"
+        )
         all_codons = numpy.array(
             [a + b + c for a in bases for b in bases for c in bases]
         )
         self.codon_to_amino_acid = dict(zip(all_codons, aminoacids))
-        # self.amino_acids_of_codons=numpy.array([self.codon_to_amino_acid[i] for i in all_codons])
 
     def __repr__(self) -> str:
         """Overload the print function to write a summary of the Gene.
@@ -633,8 +671,9 @@ class Gene(object):
             output += "\n"
         if self.nucleotide_sequence[self.is_promoter].size != 0:
             # updated to use numpy.printoptions to control the formatting
-            # does return as `['a' 'c' 't' 'g']`` rather than `actg` but fixes formatting issues from old code
-            #   such as repeating elements if len(promoter) <= string_length
+            # does return as `['a' 'c' 't' 'g']`` rather than `actg` but fixes
+            #   formatting issues from old code such as repeating elements if
+            #   len(promoter) <= string_length
             with numpy.printoptions(threshold=string_length * 2):
                 output += str(self.nucleotide_sequence[self.is_promoter]) + "\n"
                 output += str(self.nucleotide_number[self.is_promoter]) + "\n"
@@ -652,7 +691,8 @@ class Gene(object):
         return output
 
     def __len__(self) -> int:
-        """Return the number of nucleotides in the coding region (i.e. ignoring any assumed promoter)
+        """Return the number of nucleotides in the coding region (i.e. ignoring any
+            assumed promoter)
 
         Returns:
             int
@@ -661,13 +701,15 @@ class Gene(object):
         return len(self.nucleotide_sequence[self.is_cds])
 
     def __sub__(self, other) -> GeneDifference:
-        """Generate a GeneDifference object for an in-depth examination of the difference between two genes.
+        """Generate a GeneDifference object for an in-depth examination of the
+            difference between two genes.
 
         Args:
             other (gumpy.Gene): Other Gene object
 
         Returns:
-            gumpy.GeneDifference: The GeneDifference object to detail changes at all levels such as indel and amino acid.
+            gumpy.GeneDifference: The GeneDifference object to detail changes at all
+                levels such as indel and amino acid.
         """
 
         assert isinstance(other, Gene)
@@ -684,7 +726,7 @@ class Gene(object):
             bool: True when variant is valid, False otherwise
         """
         assert variant is not None, "No Variant given!"
-        assert type(variant) == str
+        assert isinstance(variant, str)
         assert len(variant) >= 2, "Variant must be at least 2 characters e.g. A="
 
         # Match mutation formats using regex
@@ -808,12 +850,14 @@ class Gene(object):
             # Check pos in correct range
             valid = valid and int(pos) in self.nucleotide_number
             if type_ == "indel" or type_ == "mixed":
-                # If a mutation is given as `indel` or `mixed`, no length/bases should be given
+                # If a mutation is given as `indel` or `mixed`, no length/bases should
+                #   be given
                 valid = valid and (bases is None or bases == "")
             if type_ == "del" and bases is not None and bases != "":
                 # Mutation was del, so check if the bases given match the ref
                 if bases.isnumeric():
-                    # A length was given rather than bases so just check that all bases are in the correct range
+                    # A length was given rather than bases so just check that all bases
+                    #   are in the correct range
                     if pos < 0:
                         # Is a promoter so be careful about pos+bases not being 0
                         pos -= 1
@@ -826,7 +870,8 @@ class Gene(object):
                             continue
                         valid = valid and pos + i + offset in self.nucleotide_number
                 else:
-                    # Bases were given rather than a length, so check for equality against base seq
+                    # Bases were given rather than a length, so check for equality
+                    #   against base seq
                     offset = 0
                     for index, base in enumerate(bases):
                         if pos + index == 0:

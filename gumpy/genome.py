@@ -32,12 +32,17 @@ class Genome(object):
 
         Args:
             genbank_file (str) : The path to the genbank file.
-            show_progress_bar (bool, optional) : Boolean as whether to show a progress bar when building Gene objects. Defaults to False.
-            gene_subset (list, optional) : List of gene names used to extract just a subset of genes. Defaults to None
-            max_promoter_length (int, optional) : Size of the default maximum number of upstream bases to consider the promoter of a gene. Defaults to 100
-            max_gene_name_length (int, optional) : Length of the longest gene name. Defaults to 20
+            show_progress_bar (bool, optional) : Boolean as whether to show a progress
+                bar when building Gene objects. Defaults to False.
+            gene_subset (list, optional) : List of gene names used to extract just a
+                subset of genes. Defaults to None
+            max_promoter_length (int, optional) : Size of the default maximum number of
+                upstream bases to consider the promoter of a gene. Defaults to 100
+            max_gene_name_length (int, optional) : Length of the longest gene name.
+                Defaults to 20
             verbose (bool, optional) : Give verbose statements? Defaults to False
-            is_reference (bool, optional) : Is this a reference genome? i.e. mutations can be derived with respect to it? Defaults to False
+            is_reference (bool, optional) : Is this a reference genome? i.e. mutations
+                can be derived with respect to it? Defaults to False
         """
         self.show_progress_bar = show_progress_bar
         self.gene_subset = gene_subset
@@ -147,13 +152,15 @@ class Genome(object):
         return output
 
     def __sub__(self, other) -> GenomeDifference:
-        """Generate a GenomeDifference object for a in-depth difference of the two Genomes
+        """Generate a GenomeDifference object for a in-depth difference of the
+            two Genomes
 
         Args:
             other (gumpy.Genome) : The other genome used in the subtraction
 
         Returns:
-            GenomeDifference: object containing numpy arrays of the differences (variants)
+            GenomeDifference: object containing numpy arrays of the
+                differences (variants)
         """
 
         assert isinstance(other, Genome), "RHS must be a gumpy.Genome object"
@@ -161,10 +168,13 @@ class Genome(object):
         return GenomeDifference(self, other)
 
     def __eq__(self, other) -> bool:
-        """Overloading the equality operator so two Genome objects can be compared directly.
-        Checks for the equality based on fields, but does not check for filename equality
+        """Overloading the equality operator so two Genome objects can be compared
+        directly. Checks for the equality based on fields, but does not check
+        for filename equality
+
         Args:
             other (gumpy.Genome) : The other Genome object to compare to
+
         Returns:
             bool : Boolean showing equality of the objects
         """
@@ -204,8 +214,8 @@ class Genome(object):
         Returns:
             bool : Boolean showing if the genome contains a gene with that name
         """
-        assert (
-            type(gene_name) == str
+        assert isinstance(
+            gene_name, str
         ), "Gene name must be string. Gene name provided was of type: " + str(
             type(gene_name)
         )
@@ -215,7 +225,8 @@ class Genome(object):
 
     def at_index(self, index: int) -> [str]:
         """
-        Returns the name of any genome features (genes, loci) at a specified genome index (1-based).
+        Returns the name of any genome features (genes, loci) at a specified genome
+            index (1-based).
 
         Args:
             index (int): Genome index to check for genes at.
@@ -243,7 +254,8 @@ class Genome(object):
         """
         Save the genome as a compressed NPZ file (compressed internally using gzip).
 
-        This is purely done because loading an NPZ file back into memory is FAST (~200µs) so this could allow future analyses
+        This is purely done because loading an NPZ file back into memory is FAST
+            (~200µs) so this could allow future analyses
 
         Args:
             filename (str): path of the output file without the file extension
@@ -251,7 +263,9 @@ class Genome(object):
         numpy.savez_compressed(filename, sequence=self.nucleotide_sequence)
 
     def __build_genome_variable_length_string(self, indices: [int]) -> str:
-        """Build a string of the genome sequence, including indels - resulting in a variable length genome
+        """Build a string of the genome sequence, including indels - resulting in a
+            variable length genome
+
         Args:
             indices ([int]): List of the indices of indels
 
@@ -259,7 +273,8 @@ class Genome(object):
             str: Genome sequence as a string
         """
         genome_string = ""
-        # work backwards as easier to deal with insertions/deletions when you've already gone past them
+        # work backwards as easier to deal with insertions/deletions when you've
+        #   already gone past them
         for i in indices[::-1]:
             mask = self.nucleotide_index == i
             base = self.nucleotide_sequence[mask][0]
@@ -279,8 +294,10 @@ class Genome(object):
         Generate a string of the nucleotides in the genome (positive strand if DNA).
 
         Args:
-            fixed_length (bool): if True, then do not add insertions and deletions. Default False.
-            nucleotide_index_range (tuple, ints): the 1-based positions of the sequence to return with start<=index<end.
+            fixed_length (bool): if True, then do not add insertions and deletions.
+                Default False.
+            nucleotide_index_range (tuple, ints): the 1-based positions of the sequence
+                to return with start<=index<end.
 
         Returns:
             (str): the genome as a string.
@@ -323,14 +340,24 @@ class Genome(object):
 
         Args:
             filename (str): path of the output file
-            fixed_length (bool): If True, ignore indels and only output a genome the same length as the reference but with SNPs. This is useful for phylogeny analyses and relatedness. If false, a genome including indels is produced. Default is false.
-            nucleotide_index_range (tuple, optional): A tuple of (start,end) genome indices
+            fixed_length (bool): If True, ignore indels and only output a genome the
+                same length as the reference but with SNPs. This is useful for
+                phylogeny analyses and relatedness. If false, a genome including indels
+                is produced. Default is false.
+            nucleotide_index_range (tuple, optional): A tuple of (start,end)
+                genome indices
             compression (bool): If True, save compressed using gzip. (bzip2 is too slow)
-            compresslevel (0-9): the higher the number, the harder the algorithm tries to compress but it takes longer. Default is 2.
-            chars_per_line (int): the number of characters per line. Default=70. Must be either a positive integer or None (i.e. no CRs)
-            nucleotide_uppercase (bool): If True, provide the nucleotides in UPPER CASE. Default is True.
-            description (str, optional): what to write on the header line of the FASTA file. If not provided, then a description will be automatically generated from the GenBank file metadata.
-            overwrite_existing (bool): If False, then the code will refuse to overwrite a FASTA file already on disc. Default is True.
+            compresslevel (0-9): the higher the number, the harder the algorithm tries
+                to compress but it takes longer. Default is 2.
+            chars_per_line (int): the number of characters per line. Default=70. Must
+                be either a positive integer or None (i.e. no CRs)
+            nucleotide_uppercase (bool): If True, provide the nucleotides in
+                UPPER CASE. Default is True.
+            description (str, optional): what to write on the header line of the FASTA
+                file. If not provided, then a description will be automatically
+                generated from the GenBank file metadata.
+            overwrite_existing (bool): If False, then the code will refuse to overwrite
+                a FASTA file already on disc. Default is True.
         """
 
         # check the arguments are well formed
@@ -409,7 +436,8 @@ class Genome(object):
         Args:
             array (numpy.array) : Array to add an empty row to
         Returns:
-            (numpy.array): The same array with an empty row of the same length and dtype appended
+            (numpy.array): The same array with an empty row of the same length and
+                dtype appended
         """
 
         empty_row = numpy.zeros((1, array.shape[1]), dtype=array.dtype)
@@ -430,7 +458,8 @@ class Genome(object):
 
         reference_genome = SeqIO.read(file_handle, "genbank")
 
-        # convert to a numpy array at the first opportunity since slicing BioPython is between 10 and 50,000 times slower!
+        # convert to a numpy array at the first opportunity since slicing BioPython
+        #   is between 10 and 50,000 times slower!
         self.nucleotide_sequence = numpy.array(
             [i.lower() for i in str(reference_genome.seq)]
         )
@@ -503,7 +532,8 @@ class Genome(object):
                 type_ = "RNA"
                 codes_protein = False
 
-            # determine if this is a reverse complement gene (only relevant to dsDNA genomes)
+            # determine if this is a reverse complement gene (only relevant to
+            #   dsDNA genomes)
             rev_comp = True if record.strand == -1 else False
 
             # sigh, you can't assume that a gene_name is unique in a GenBank file
@@ -520,7 +550,8 @@ class Genome(object):
                 + " chars; need to specify max_gene_name_length"
             )
 
-            # note that BioPython "helpfully" turns these from 1-based into 0-based coordinates, hence the +1
+            # note that BioPython "helpfully" turns these from 1-based into 0-based
+            #   coordinates, hence the +1
             # gene_end has also been incremented by 1 so that slicing naturally works
             gene_start = int(record.location.start) + 1
             gene_end = int(record.location.end) + 1
@@ -545,7 +576,8 @@ class Genome(object):
                 "ribosomal_shifts": shifts,
             }
 
-        # now we can check that all the genes in the gene_subset exist in the GenBank file!
+        # now we can check that all the genes in the gene_subset exist in the
+        #   GenBank file!
         if self.gene_subset is not None:
             for i in self.gene_subset:
                 assert self.contains_gene(i), (
@@ -572,8 +604,10 @@ class Genome(object):
                 self.stacked_nucleotide_number
             )
         # Update the required items for rev_comp
-        # Use of array slicing here introduces speedups as not all of the array should be considered
-        # (Previous method applied a mask which requires full array consideration rather than direct access)
+        # Use of array slicing here introduces speedups as not all of the array should
+        #   be considered
+        # (Previous method applied a mask which requires full array consideration
+        #   rather than direct access)
         if rev_comp:
             self.stacked_nucleotide_number[i][start - 1 : end - 1] = numpy.mod(
                 -1 * (self.nucleotide_index[start - 1 : end - 1] - end), self.length
@@ -595,33 +629,44 @@ class Genome(object):
         rev_comp: bool,
     ) -> (numpy.array, numpy.array):
         """
-        Private function to fit a gene into the genes based on the dot product of the masks
-            numpy.dot([bool], [bool])-> bool showing if there are collisions of True values within args.
-            This takes 10^-5 seconds which is a significant improvement on use of numpy.all() iteration of 10^-2 seconds for TB length genome
+        Private function to fit a gene into the genes based on the dot product of
+            the masks numpy.dot([bool], [bool])-> bool showing if there are collisions
+            of True values within args. This takes 10^-5 seconds which is a significant
+            improvement on use of numpy.all() iteration of 10^-2 seconds for TB
+            length genome
+
         Args:
             mask (numpy.array) : Boolean array showing positions where the gene lies
-            genes (numpy.array) : 2D numpy array of the format used for all stacked values
-            genes_mask (numpy.array) : The corresponding boolean mask arrays for the `genes` arg
+            genes (numpy.array) : 2D numpy array of the format used for all stacked
+                values
+            genes_mask (numpy.array) : The corresponding boolean mask arrays for the
+                `genes` arg
             start (int) : Start index of the gene
             end (int) : End index of the gene
             gene_name (str) : Name of the gene
-            rev_comp (bool) : Boolean to show whether the gene required a reverse complement
+            rev_comp (bool) : Boolean to show whether the gene required a
+                reverse complement
+
         Returns:
             (numpy_array) : Updated genes_mask array
             (numpy_array) : Updated genes array
         """
 
         for i, row in enumerate(genes_mask):
-            # use of the dot product of masks allows determining if a gene will fit in an array
-            if numpy.dot(row, mask) == False:
+            # use of the dot product of masks allows determining if a gene will fit
+            #   in an array
+            # Disable ruff here as `is False` doesn't work here
+            if numpy.dot(row, mask) == False:  # noqa: E712
                 # there is no collision with this row so add the row
-                # start/end have to be adjusted to account for 0 indexing of arrays and 1 indexing of genetics
+                # start/end have to be adjusted to account for 0 indexing of arrays and
+                #   1 indexing of genetics
                 row[start - 1 : end - 1] = True
                 genes[i][start - 1 : end - 1] = gene_name
                 self.__handle_rev_comp(rev_comp, start, end, i)
                 return genes_mask, genes, i
 
-        # if this point is reached, there has been no rows without collisions, so add one
+        # if this point is reached, there has been no rows without collisions, so
+        #   add one
         genes_mask = numpy.vstack((genes_mask, mask))
         new_row = numpy.array([gene_name if m else "" for m in mask])
         genes = numpy.vstack((genes, new_row))
@@ -631,10 +676,12 @@ class Genome(object):
 
     def __find_overlaps(self):
         """
-        Private function to find the sections of the genome in which there are overlapping genes.
-        This should be more efficient than the older version as it avoids consistent genome iteration.
-        Use of the dot product on boolean arrays returns a single boolean showing collisions in almost constant time (10^-5 secs for TB size).
-            This can be used to determine which row the gene should be in
+        Private function to find the sections of the genome in which there are
+            overlapping genes. This should be more efficient than the older version
+            as it avoids consistent genome iteration. Use of the dot product on boolean
+            arrays returns a single boolean showing collisions in almost constant time
+            (10^-5 secs for TB size). This can be used to determine which row the gene
+            should be in
         """
 
         # Boolean mask to show gene presence at indicies (default to all False values)
@@ -659,12 +706,6 @@ class Genome(object):
             rev_comp = self.genes[gene_name]["reverse_complement"]
 
             # determine the boolean mask for this gene
-            # if end<start:
-            # FIXME: This is never hit with rev comp genes (and I think it would select the whole genome anyway)
-            # Commenting out for future removal
-            # mask = numpy.logical_or((self.nucleotide_index>=start), (self.nucleotide_index<end))
-            # end += self.length
-            # else:
             mask = (self.nucleotide_index >= start) & (self.nucleotide_index < end)
 
             # fit the gene into the stacked arrays
@@ -681,8 +722,8 @@ class Genome(object):
 
     def __setup_arrays(self):
         """
-        Private function to initalise all of the required arrays, fitting the gene names into the
-            correct places within stacked arrays
+        Private function to initalise all of the required arrays, fitting the gene
+            names into the correct places within stacked arrays
         """
         self.__find_overlaps()
 
@@ -722,11 +763,15 @@ class Genome(object):
 
         # labelling promoters is a difficult problem since
         #  (i)  it is arbitrary and
-        #  (ii) we need to ensure that only unassigned bases can be labelled as promoters and each should only 'belong' to a single feature
-        # the latter is especially difficult when you have two genes next to one another, one reverse complement, since their promoters can
-        # 'fight' for space. It is this problem that means we have to grow each promoter out one base at a time
+        #  (ii) we need to ensure that only unassigned bases can be labelled as
+        #   promoters and each should only 'belong' to a single feature
+        # the latter is especially difficult when you have two genes next to one
+        #   another, one reverse complement, since their promoters can 'fight' for
+        #   space. It is this problem that means we have to grow each promoter out
+        #   one base at a time
 
-        # populate a dictionary to store the starts/ends of genes as they grow with promoters
+        # populate a dictionary to store the starts/ends of genes as they grow
+        #   with promoters
         start_end = {
             gene_name: {
                 "start": self.genes[gene_name]["start"],
@@ -740,7 +785,8 @@ class Genome(object):
         for promoter in tqdm(
             range(1, self.max_promoter_length + 1), disable=(not self.show_progress_bar)
         ):
-            # Replacement `start_end` because dictionaries can't be changed during iteration
+            # Replacement `start_end` because dictionaries can't be changed during
+            #   iteration
             new_start_end = dict()
             for gene_name in start_end:
                 # Get the associated start/end
@@ -749,17 +795,20 @@ class Genome(object):
                 rev_comp = self.genes[gene_name]["reverse_complement"]
                 # Check if the region which the gene would grow into is empty
                 if rev_comp:
-                    # Indexing is weird so stacked_array[i][end-2] is the end of the gene
-                    #   making stacked_array[i][end-1] the next item on the right
+                    # Indexing is weird so stacked_array[i][end-2] is the end of
+                    #   the gene making stacked_array[i][end-1] the next item on
+                    #   the right
                     if end == len(self.nucleotide_sequence):
-                        # If the end would be out of range, loop back around to position 0
+                        # If the end would be out of range, loop back around to
+                        #   position 0
                         end = 0
                     pos = end - 1
                 else:
                     # Similar indexing issue except indexing starts on start-1
                     #   so start-2 is the next item on the left
                     pos = start - 2
-                if self.genes_mask[pos] == True:
+                # Disable ruff for this line as `is True` doesn't work here
+                if self.genes_mask[pos] == True:  # noqa: E712
                     # There is a gene here already so skip it
                     continue
                 else:
@@ -786,7 +835,8 @@ class Genome(object):
 
     def __insert_newlines(self, string: str, every=70) -> str:
         """
-        Simple private method for inserting a carriage return every N characters into a long string.
+        Simple private method for inserting a carriage return every N characters into
+            a long string.
 
         Args:
             string (str): the string to insert carriage returns
@@ -889,7 +939,8 @@ class Genome(object):
                 marking -= 1
 
     def __add__(self, vcf: VCFFile):
-        """Function to apply a VCF file to the genome  - producing a replica genome with the specified changes
+        """Function to apply a VCF file to the genome  - producing a replica genome
+             the specified changes
 
         Args:
             vcf (gumpy.VCFFile): The VCFFile object for the VCF
@@ -906,13 +957,15 @@ class Genome(object):
 
         indices = [i[0] for i in vcf.calls.keys()]
         if len(indices) > 0:
-            # It's possible that a VCF only details minority populations, and max() complains for empty
+            # It's possible that a VCF only details minority populations, and max()
+            #   complains for empty
             assert (
                 max(indices) <= self.length
             ), "The VCF file details changes outside of this genome!"
 
         if len(self.minor_populations) > 0 and len(vcf.minor_population_indices) > 0:
-            # Both this genome and the VCF have minor populations so for simplicity atm, complain
+            # Both this genome and the VCF have minor populations so for simplicity
+            #   atm, complain
             raise Exception(
                 "Both the existing Genome and the VCF have minor populations!"
             )
@@ -924,12 +977,15 @@ class Genome(object):
         genome = copy.deepcopy(self)
 
         """
-        Using numpy's fancy array indexing may provide neat code, and provides some speed
-            in some cases, the constant time access of a standard dictionary results in
-            faster code when the mask only contains a few True values.
+        Using numpy's fancy array indexing may provide neat code, and provides some 
+            speed in some cases, the constant time access of a standard dictionary 
+            results in faster code when the mask only contains a few True values.
+            
         For TB length arrays with a ~0.1% True mask, applying a mask takes ~10^-3s
             Applying a dictionary to the same array takes ~10^-4s
-            ~0.1% True mask is a reasonable amount for this task as a VCF file is ~4000 entries
+
+        ~0.1% True mask is a reasonable amount for this task as a VCF file 
+            is ~4000 entries
         """
 
         if self.verbose:
@@ -962,7 +1018,8 @@ class Genome(object):
 
             elif type_ == "ref":
                 # These only exist due to reference calls
-                # They only made it this far as they are required to pull out minors at these positions
+                # They only made it this far as they are required to pull out minors at
+                #   these positions
                 pass
 
         genome.minor_populations = []
@@ -975,7 +1032,8 @@ class Genome(object):
             # Store the VCF evidence of this
             genome.vcf_evidence[genome.nucleotide_index[pos - 1]] = evidence
 
-            # Don't keep the VCF evidence with this, as it is already stored in the main vcf_evidence dict
+            # Don't keep the VCF evidence with this, as it is already stored in the
+            #   main vcf_evidence dict
             genome.minor_populations.append(minor[:5])
 
         genome.vcf_file = vcf
@@ -992,16 +1050,21 @@ class Genome(object):
         self, interpretation: str = "reads", reference=None
     ) -> [str]:
         """Get the variants in GARC of the minority populations for this genome.
-        Whether the variants are given in terms of reads or read percentage is controlled by `interpretation`
+        Whether the variants are given in terms of reads or read percentage is
+            controlled by `interpretation`
 
         Args:
-            interpretation (str, optional): Which interpretation to use. `reads` for number of reads for this population. `percentage` for the decimal percentage of total reads for this population. Defaults to 'reads'.
-            reference (gumpy.Genome, optional): The reference to denote mutations from. Defaults to self
+            interpretation (str, optional): Which interpretation to use. `reads` for
+                number of reads for this population. `percentage` for the decimal
+                percentage of total reads for this population. Defaults to 'reads'.
+            reference (gumpy.Genome, optional): The reference to denote mutations from.
+                Defaults to self
         Returns:
             list: List of the variants in GARC
         """
         # Use the interpretation type to pull out which index of the minor_populations
-        # Each item of minor_populations is (pos, type, bases, abs_coverage, percent_coverage)
+        # Each item of minor_populations is (pos, type, bases, abs_coverage,
+        #   percent_coverage)
         if interpretation == "percentage":
             coverage = 4
         else:
@@ -1011,9 +1074,10 @@ class Genome(object):
             reference = self
         else:
             # Ensure that only one of the two Genomes has minor populations
-            assert (
-                len(reference.minor_populations) == 0
-            ), "Minority populations can only be compared when 1 Genome does not have them!"
+            assert len(reference.minor_populations) == 0, (
+                "Minority populations can only be compared when 1 Genome "
+                "does not have them!"
+            )
 
         variants = []
         for minor in self.minor_populations:
