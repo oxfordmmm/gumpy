@@ -18,7 +18,7 @@ class VCFRecord(object):
         * `chrom` (str): Name of the sample.
         * `pos` (int): Genome index for the change.
         * `ref` (str): Reference value for the nucleotide.
-        * `alts` (tuple(str)): Alternative calls. Tuple can contain single values
+        * `alts` (tuple(str) | None): Alternative calls. Tuple can contain single values
             and indels.
         * `qual` (None): Values for quality (values other than None have yet to be
             found in testing files...).
@@ -58,15 +58,23 @@ class VCFRecord(object):
         self.chrom = record.chrom
         self.contig = record.contig
         self.pos = record.pos
-        self.ref = record.ref.lower()
+
+        if record.ref is not None:
+            self.ref = record.ref.lower()
+        else:
+            self.ref = ""
+        
+        self.alts: tuple | None
         if record.alts is not None:
             self.alts = tuple([i.lower() for i in record.alts])
         else:
             self.alts = None
+        
         self.qual = record.qual
 
         # Get the filter attribute value
         assert len(record.filter.items()) >= 0, "A record has more than 1 filter set!"
+        self.filter: str | None
         if len(record.filter.items()) == 0:
             self.filter = None
             self.is_filter_pass = False

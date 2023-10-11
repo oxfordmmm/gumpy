@@ -8,6 +8,7 @@ import numpy
 
 from collections import defaultdict, Counter
 from gumpy import GeneDifference
+from typing import List
 
 
 # FIXME: problems with rrs, mfpB
@@ -17,22 +18,22 @@ class Gene(object):
 
     def __init__(
         self,
-        name: str = None,
-        nucleotide_sequence: numpy.array = None,
-        nucleotide_index: numpy.array = None,
-        nucleotide_number: numpy.array = None,
-        is_cds: numpy.array = None,
-        is_promoter: numpy.array = None,
-        is_indel: numpy.array = None,
-        indel_length: numpy.array = None,
-        indel_nucleotides: numpy.array = None,
-        reverse_complement: bool = False,
-        codes_protein: bool = True,
-        feature_type: str = None,
-        ribosomal_shifts: [int] = None,
-        minority_populations: list = None,
-        is_deleted: numpy.array = None,
-        vcf_evidence: dict = None,
+        name: str,
+        nucleotide_sequence: numpy.ndarray,
+        nucleotide_index: numpy.ndarray,
+        nucleotide_number: numpy.ndarray,
+        is_cds: numpy.ndarray,
+        is_promoter: numpy.ndarray,
+        is_indel: numpy.ndarray,
+        indel_length: numpy.ndarray,
+        indel_nucleotides: numpy.ndarray,
+        reverse_complement: bool,
+        codes_protein: bool,
+        feature_type: str,
+        ribosomal_shifts: List[int],
+        minority_populations: List,
+        is_deleted: numpy.ndarray,
+        vcf_evidence: dict,
     ):
         """Constructor for the Gene object.
 
@@ -156,12 +157,12 @@ class Gene(object):
             [] if minority_populations is None else minority_populations
         )
         self.is_deleted = is_deleted
-        self.vcf_evidence = {} if vcf_evidence is None else vcf_evidence
+        self.vcf_evidence: dict = {} if vcf_evidence is None else vcf_evidence
 
-        self.minor_nc_changes = {}
+        self.minor_nc_changes: dict = {}
 
         # Track the original nucleotide position of each indel if this gene is revcomp
-        self.revcomp_indel_nc_index = {}
+        self.revcomp_indel_nc_index: dict = {}
 
         # As revcomp changes some of the positions for indels, track separately
         # so we can track the genome position they came from
@@ -272,7 +273,7 @@ class Gene(object):
 
     def minority_populations_GARC(
         self, interpretation: str = "reads", reference=None
-    ) -> [str]:
+    ) -> List[str]:
         """Fetch the mutations caused by minority populations in GARC
 
         Args:
@@ -538,7 +539,7 @@ class Gene(object):
         self.indel_index = self.__duplicate_index(index, self.indel_index)
         self.indel_nucleotides = self.__duplicate_index(index, self.indel_nucleotides)
 
-    def __duplicate_index(self, index: int, array: numpy.array) -> numpy.array:
+    def __duplicate_index(self, index: int, array: numpy.ndarray) -> numpy.ndarray:
         """Duplicates an element at a given index and returns the new array
 
         Args:
@@ -562,7 +563,7 @@ class Gene(object):
             bool : Boolean showing equality
         """
         # Default to true
-        check = True
+        check: numpy.bool_ = numpy.bool_(True)
         # Check all fields
         check = check and self.name == other.name
         check = check and numpy.all(
@@ -583,10 +584,10 @@ class Gene(object):
             )
             check = check and numpy.all(self.codons == other.codons)
 
-        return check
+        return bool(check)
 
     @staticmethod
-    def _complement(nucleotides_array: [str]) -> numpy.array:
+    def _complement(nucleotides_array: numpy.ndarray) -> numpy.ndarray:
         """Simple private method for returning the complement of an array of bases.
 
         * Note that takes account of HET and NULL calls via z and x, respectively
@@ -734,22 +735,22 @@ class Gene(object):
         # Check for minority populations (and remove before continuing)
         if ":" in variant:
             valid = True
-            variant = variant.split(":")
+            variant_ = variant.split(":")
 
-            valid = valid and len(variant) == 2
+            valid = valid and len(variant_) == 2
 
             # Use duck typing to ensure it gives a valid number
             try:
-                float(variant[1])
+                float(variant_[1])
             except ValueError:
                 return False
 
             # 0 is not valid either
-            valid = valid and float(variant[1]) > 0
+            valid = valid and float(variant_[1]) > 0
 
             if valid:
                 # Valid minority population, so continue without it
-                variant = variant[0]
+                variant = variant_[0]
             else:
                 return False
 
@@ -763,10 +764,11 @@ class Gene(object):
                 """,
             re.VERBOSE,
         )
-        if promoter.fullmatch(variant):
+        promoter_match = promoter.fullmatch(variant)
+        if promoter_match is not None:
             # The variant is either promoter or non-coding
             # Check that the mutation is valid
-            name, ref, pos, alt = promoter.fullmatch(variant).groups()
+            name, ref, pos, alt = promoter_match.groups()
             valid = True
             # Strip '@' from gene name and compare
             if name is not None and name != "":
@@ -791,10 +793,11 @@ class Gene(object):
                     """,
             re.VERBOSE,
         )
-        if self.codes_protein and snp.fullmatch(variant):
+        snp_match = snp.fullmatch(variant)
+        if self.codes_protein and snp_match is not None:
             # The variant is an amino acid SNP
             # Check it is valid
-            name, ref, pos, alt = snp.fullmatch(variant).groups()
+            name, ref, pos, alt = snp_match.groups()
             valid = True
             # Strip '@' from gene name and compare
             if name is not None and name != "":
@@ -817,10 +820,11 @@ class Gene(object):
                         """,
             re.VERBOSE,
         )
-        if self.codes_protein and synon.fullmatch(variant):
+        synon_match = synon.fullmatch(variant)
+        if self.codes_protein and synon_match is not None:
             # Variant is a synonymous mutation
             # Check it is valid
-            name, pos = synon.fullmatch(variant).groups()
+            name, pos = synon_match.groups()
             valid = True
             if name is not None and name != "":
                 valid = valid and name[:-1] == self.name
@@ -837,10 +841,11 @@ class Gene(object):
                     """,
             re.VERBOSE,
         )
-        if indel.fullmatch(variant):
+        indel_match = indel.fullmatch(variant)
+        if indel_match is not None:
             # Variant is an indel
             # Check it is valid
-            name, pos, type_, bases = indel.fullmatch(variant).groups()
+            name, pos, type_, bases = indel_match.groups()
             valid = True
             pos = int(pos)
             end = numpy.max(self.nucleotide_number)
@@ -903,8 +908,9 @@ class Gene(object):
                             """,
             re.VERBOSE,
         )
-        if deletion.fullmatch(variant):
-            name, percent = deletion.fullmatch(variant).groups()
+        deletion_match = deletion.fullmatch(variant)
+        if deletion_match is not None:
+            name, percent = deletion_match.groups()
             valid = True
             if name is not None:
                 valid = valid and name[:-1] == self.name

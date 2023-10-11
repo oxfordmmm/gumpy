@@ -895,22 +895,22 @@ class Genome(object):
 
         # instantiate a Gene object
         g = Gene(
-            name=gene,
-            nucleotide_sequence=nucleotide_seq,
-            nucleotide_index=gene_nucleotides,
-            nucleotide_number=self.stacked_nucleotide_number[stacked_mask],
-            is_cds=is_cd,
-            is_promoter=self.stacked_is_promoter[stacked_mask],
-            is_indel=self.is_indel[mask],
-            indel_length=self.indel_length[mask],
-            indel_nucleotides=self.indel_nucleotides[mask],
-            codes_protein=self.genes[gene]["codes_protein"],
-            reverse_complement=self.genes[gene]["reverse_complement"],
-            feature_type=self.genes[gene]["type"],
-            ribosomal_shifts=self.genes[gene]["ribosomal_shifts"],
-            minority_populations=gene_minor_populations,
-            is_deleted=self.is_deleted[mask],
-            vcf_evidence=vcf_evidence,
+            gene,
+            nucleotide_seq,
+            gene_nucleotides,
+            self.stacked_nucleotide_number[stacked_mask],
+            is_cd,
+            self.stacked_is_promoter[stacked_mask],
+            self.is_indel[mask],
+            self.indel_length[mask],
+            self.indel_nucleotides[mask],
+            self.genes[gene]["reverse_complement"],
+            self.genes[gene]["codes_protein"],
+            self.genes[gene]["type"],
+            self.genes[gene]["ribosomal_shifts"],
+            gene_minor_populations,
+            self.is_deleted[mask],
+            vcf_evidence,
         )
 
         return g

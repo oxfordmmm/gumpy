@@ -903,53 +903,62 @@ def test_instanciate_genome_rna():
     assert genome.contains_gene("A")
     gene = genome.build_gene("A")
     assert gene == gumpy.Gene(
-        name="A",
-        nucleotide_sequence=genome.nucleotide_sequence[full_gene_name[0] == "A"],
-        nucleotide_index=genome.nucleotide_index[full_gene_name[0] == "A"],
-        nucleotide_number=genome.stacked_nucleotide_number[full_gene_name == "A"],
-        is_cds=genome.stacked_is_cds[full_gene_name == "A"],
-        is_promoter=genome.stacked_is_promoter[full_gene_name == "A"],
-        is_indel=genome.is_indel[full_gene_name[0] == "A"],
-        indel_length=[0 for i in range(33)],
-        indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "A"],
-        feature_type="GENE",
-        is_deleted=[
-            False for i in genome.nucleotide_sequence[full_gene_name[0] == "A"]
-        ],
+        "A",
+        genome.nucleotide_sequence[full_gene_name[0] == "A"],
+        genome.nucleotide_index[full_gene_name[0] == "A"],
+        genome.stacked_nucleotide_number[full_gene_name == "A"],
+        genome.stacked_is_cds[full_gene_name == "A"],
+        genome.stacked_is_promoter[full_gene_name == "A"],
+        genome.is_indel[full_gene_name[0] == "A"],
+        [0 for i in range(33)],
+        genome.indel_nucleotides[full_gene_name[0] == "A"],
+        False,
+        True,
+        "GENE",
+        [],
+        [],
+        [False for i in genome.nucleotide_sequence[full_gene_name[0] == "A"]],
+        {},
     )
     assert genome.contains_gene("B")
     gene = genome.build_gene("B")
     assert gene == gumpy.Gene(
-        name="B",
-        nucleotide_sequence=genome.nucleotide_sequence[full_gene_name[1] == "B"],
-        nucleotide_index=genome.nucleotide_index[full_gene_name[1] == "B"],
-        nucleotide_number=genome.stacked_nucleotide_number[full_gene_name == "B"],
-        is_cds=genome.stacked_is_cds[full_gene_name == "B"],
-        is_promoter=genome.stacked_is_promoter[full_gene_name == "B"],
-        is_indel=genome.is_indel[full_gene_name[1] == "B"],
-        indel_length=[0 for i in range(33)],
-        indel_nucleotides=genome.indel_nucleotides[full_gene_name[1] == "B"],
-        feature_type="GENE",
-        is_deleted=[
-            False for i in genome.nucleotide_sequence[full_gene_name[1] == "B"]
-        ],
+        "B",
+        genome.nucleotide_sequence[full_gene_name[1] == "B"],
+        genome.nucleotide_index[full_gene_name[1] == "B"],
+        genome.stacked_nucleotide_number[full_gene_name == "B"],
+        genome.stacked_is_cds[full_gene_name == "B"],
+        genome.stacked_is_promoter[full_gene_name == "B"],
+        genome.is_indel[full_gene_name[1] == "B"],
+        [0 for i in range(33)],
+        genome.indel_nucleotides[full_gene_name[1] == "B"],
+        False,
+        True,
+        "GENE",
+        [],
+        [],
+        [False for i in genome.nucleotide_sequence[full_gene_name[1] == "B"]],
+        {},
     )
     assert genome.contains_gene("C")
     gene = genome.build_gene("C")
     assert gene == gumpy.Gene(
-        name="C",
-        nucleotide_sequence=genome.nucleotide_sequence[full_gene_name[0] == "C"],
-        nucleotide_index=genome.nucleotide_index[full_gene_name[0] == "C"],
-        nucleotide_number=genome.stacked_nucleotide_number[full_gene_name == "C"],
-        is_cds=genome.stacked_is_cds[full_gene_name == "C"],
-        is_promoter=genome.stacked_is_promoter[full_gene_name == "C"],
-        is_indel=genome.is_indel[full_gene_name[0] == "C"],
-        indel_length=[0 for i in range(36)],
-        indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
-        feature_type="GENE",
-        is_deleted=[
-            False for i in genome.nucleotide_sequence[full_gene_name[0] == "C"]
-        ],
+        "C",
+        genome.nucleotide_sequence[full_gene_name[0] == "C"],
+        genome.nucleotide_index[full_gene_name[0] == "C"],
+        genome.stacked_nucleotide_number[full_gene_name == "C"],
+        genome.stacked_is_cds[full_gene_name == "C"],
+        genome.stacked_is_promoter[full_gene_name == "C"],
+        genome.is_indel[full_gene_name[0] == "C"],
+        [0 for i in range(36)],
+        genome.indel_nucleotides[full_gene_name[0] == "C"],
+        False,
+        True,
+        "GENE",
+        [],
+        [],
+        [False for i in genome.nucleotide_sequence[full_gene_name[0] == "C"]],
+        {},
     )
 
 
@@ -1750,86 +1759,63 @@ def test_instanciate_genome_dna():
     assert genome.contains_gene("A")
     gene = genome.build_gene("A")
     assert gene == gumpy.Gene(
-        name="A",
-        nucleotide_sequence=genome.nucleotide_sequence[full_gene_name[0] == "A"],
-        nucleotide_index=genome.nucleotide_index[full_gene_name[0] == "A"],
-        nucleotide_number=genome.stacked_nucleotide_number[full_gene_name == "A"],
-        is_cds=genome.stacked_is_cds[full_gene_name == "A"],
-        is_promoter=genome.stacked_is_promoter[full_gene_name == "A"],
-        is_indel=genome.is_indel[full_gene_name[0] == "A"],
-        indel_length=numpy.array([0 for i in range(30)]),
-        indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "A"],
-        feature_type="GENE",
-        is_deleted=[
-            False for i in genome.nucleotide_sequence[full_gene_name[0] == "A"]
-        ],
+        "A",
+        genome.nucleotide_sequence[full_gene_name[0] == "A"],
+        genome.nucleotide_index[full_gene_name[0] == "A"],
+        genome.stacked_nucleotide_number[full_gene_name == "A"],
+        genome.stacked_is_cds[full_gene_name == "A"],
+        genome.stacked_is_promoter[full_gene_name == "A"],
+        genome.is_indel[full_gene_name[0] == "A"],
+        numpy.array([0 for i in range(30)]),
+        genome.indel_nucleotides[full_gene_name[0] == "A"],
+        False,
+        True,
+        "GENE",
+        [],
+        [],
+        [False for i in genome.nucleotide_sequence[full_gene_name[0] == "A"]],
+        {},
     )
     assert genome.contains_gene("B")
     gene = genome.build_gene("B")
     assert gene == gumpy.Gene(
-        name="B",
-        nucleotide_sequence=genome.nucleotide_sequence[full_gene_name[1] == "B"],
-        nucleotide_index=genome.nucleotide_index[full_gene_name[1] == "B"],
-        nucleotide_number=genome.stacked_nucleotide_number[full_gene_name == "B"],
-        is_cds=genome.stacked_is_cds[full_gene_name == "B"],
-        is_promoter=genome.stacked_is_promoter[full_gene_name == "B"],
-        is_indel=genome.is_indel[full_gene_name[1] == "B"],
-        indel_length=numpy.array([0 for i in range(33)]),
-        indel_nucleotides=genome.indel_nucleotides[full_gene_name[1] == "B"],
-        feature_type="GENE",
-        is_deleted=[
-            False for i in genome.nucleotide_sequence[full_gene_name[1] == "B"]
-        ],
+        "B",
+        genome.nucleotide_sequence[full_gene_name[1] == "B"],
+        genome.nucleotide_index[full_gene_name[1] == "B"],
+        genome.stacked_nucleotide_number[full_gene_name == "B"],
+        genome.stacked_is_cds[full_gene_name == "B"],
+        genome.stacked_is_promoter[full_gene_name == "B"],
+        genome.is_indel[full_gene_name[1] == "B"],
+        numpy.array([0 for i in range(33)]),
+        genome.indel_nucleotides[full_gene_name[1] == "B"],
+        False,
+        True,
+        "GENE",
+        [],
+        [],
+        [False for i in genome.nucleotide_sequence[full_gene_name[1] == "B"]],
+        {},
     )
     assert genome.contains_gene("C")
     gene = genome.build_gene("C")
     assert gene == gumpy.Gene(
-        name="C",
-        nucleotide_sequence=genome.nucleotide_sequence[full_gene_name[0] == "C"],
-        nucleotide_index=genome.nucleotide_index[full_gene_name[0] == "C"],
-        nucleotide_number=genome.stacked_nucleotide_number[full_gene_name == "C"],
-        is_cds=genome.stacked_is_cds[full_gene_name == "C"],
-        is_promoter=genome.stacked_is_promoter[full_gene_name == "C"],
-        is_indel=genome.is_indel[full_gene_name[0] == "C"],
-        indel_length=numpy.array([0 for i in range(9)]),
-        indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
-        feature_type="GENE",
-        reverse_complement=True,
-        is_deleted=[
-            False for i in genome.nucleotide_sequence[full_gene_name[0] == "C"]
-        ],
+        "C",
+        genome.nucleotide_sequence[full_gene_name[0] == "C"],
+        genome.nucleotide_index[full_gene_name[0] == "C"],
+        genome.stacked_nucleotide_number[full_gene_name == "C"],
+        genome.stacked_is_cds[full_gene_name == "C"],
+        genome.stacked_is_promoter[full_gene_name == "C"],
+        genome.is_indel[full_gene_name[0] == "C"],
+        numpy.array([0 for i in range(9)]),
+        genome.indel_nucleotides[full_gene_name[0] == "C"],
+        True,
+        True,
+        "GENE",
+        [],
+        [],
+        [False for i in genome.nucleotide_sequence[full_gene_name[0] == "C"]],
+        {},
     )
-
-    with pytest.raises(Exception):
-        assert gene == gumpy.Gene(
-            name="C",
-            nucleotide_sequence=genome.nucleotide_sequence[full_gene_name[0] == "C"],
-            nucleotide_index=genome.nucleotide_index[full_gene_name[0] == "C"],
-            nucleotide_number=genome.stacked_nucleotide_number[full_gene_name == "C"],
-            is_cds=genome.stacked_is_cds[full_gene_name == "C"],
-            is_promoter=genome.stacked_is_promoter[full_gene_name == "C"],
-            is_indel=genome.is_indel[full_gene_name[0] == "C"],
-            indel_length=numpy.array([0 for i in range(9)]),
-            indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
-            feature_type="GENE",
-            reverse_complement="True",
-        )
-
-    with pytest.raises(Exception):
-        assert gene == gumpy.Gene(
-            name="C",
-            nucleotide_sequence=genome.nucleotide_sequence[full_gene_name[0] == "C"],
-            nucleotide_index=genome.nucleotide_index[full_gene_name[0] == "C"],
-            nucleotide_number=genome.stacked_nucleotide_number[full_gene_name == "C"],
-            is_cds=genome.stacked_is_cds[full_gene_name == "C"],
-            is_promoter=genome.stacked_is_promoter[full_gene_name == "C"],
-            is_indel=genome.is_indel[full_gene_name[0] == "C"],
-            indel_length=numpy.array([0 for i in range(9)]),
-            indel_nucleotides=genome.indel_nucleotides[full_gene_name[0] == "C"],
-            feature_type="GENE",
-            reverse_complement="True",
-            ribosomal_shifts=["10", "20"],
-        )
 
 
 def test_instanciate_genes_dna():
@@ -2730,8 +2716,8 @@ def test_instanciate_vcf():
 def test_instanciate_vcf_tb():
     vcf = gumpy.VCFFile("tests/test-cases/05.vcf", bypass_reference_calls=True)
 
-    # have checked that 761110a>t is correct since it is a complex row with lots of 
-    #   ALT pairs all 29 bases long at 761094 but the 40th one is only different by a 
+    # have checked that 761110a>t is correct since it is a complex row with lots of
+    #   ALT pairs all 29 bases long at 761094 but the 40th one is only different by a
     #   single base
     # also checked that 2155168c>g is correct -- this is a 2/2
     assert numpy.all(
