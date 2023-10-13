@@ -28,7 +28,7 @@ jobs:
         pip3 install black ruff mypy
     
     - name: Run format checks
-      run: /
+      run: | 
         black --check .
         ruff check gumpy
         mypy gumpy
