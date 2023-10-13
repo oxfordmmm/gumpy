@@ -25,6 +25,13 @@ jobs:
         python3 -m pip install --upgrade pip
         pip3 install -r requirements.txt
         pip3 install .
+        pip3 install black ruff mypy
+    
+    - name: Run format checks
+      run: /
+        black --check .
+        ruff check gumpy
+        mypy gumpy
 
     - name: Test with pytest
       run: |

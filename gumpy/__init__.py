@@ -25,11 +25,11 @@ Classes:
 """
 import importlib.metadata
 
-# Use of semantic versioning, MAJOR.MINOR.MAINTAINANCE where MAJOR is not backwards 
+# Use of semantic versioning, MAJOR.MINOR.MAINTAINANCE where MAJOR is not backwards
 # compatible, but MINOR and MAINTAINANCE are
 __version__ = importlib.metadata.version("gumpy")
 
 from .difference import GenomeDifference, GeneDifference, FailedComparison  # noqa
-from .gene import Gene # noqa: F401
-from .variantfile import VCFFile # noqa: F401
-from .genome import Genome # noqa: F401
+from .gene import Gene  # noqa: F401
+from .variantfile import VCFFile  # noqa: F401
+from .genome import Genome  # noqa: F401
