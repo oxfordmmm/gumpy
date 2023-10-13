@@ -19,7 +19,7 @@ Functions:
 """
 import warnings
 from abc import ABC  # Python library for abstract classes
-
+from typing import Dict, List, Tuple
 import numpy
 
 import gumpy
@@ -75,18 +75,18 @@ class Difference(ABC):
             self.nucleotides = self.__full_to_diff(self._nucleotides_full)
         self._view_method = method
 
-    def __full_to_diff(self, array: numpy.array) -> numpy.array:
+    def __full_to_diff(self, array: numpy.ndarray) -> numpy.ndarray:
         """Convert an array from a full view to a diff view
 
         Args:
-            array (numpy.array): Array of tuples of values
+            array (numpy.ndarray): Array of tuples of values
         Returns:
-            numpy.array: Array of values from object1
+            numpy.ndarray: Array of values from object1
         """
         if len(array) > 0:
             return numpy.array([item2 for (item1, item2) in array], dtype=object)
         else:
-            return None
+            return numpy.array([])
 
 
 class GenomeDifference(Difference):
@@ -188,7 +188,9 @@ class GenomeDifference(Difference):
 
         self.update_view(self._view_method)
 
-    def get_gene_pos(self, gene: str, idx: int, variant: str, start: int = None) -> int:
+    def get_gene_pos(
+        self, gene: str, idx: int, variant: str, start: int | None = None
+    ) -> int:
         """Find the gene position of a given nucleotide index.
         This is considerably faster than building a whole stacked_gene_pos array
             (takes ~4.5mins for tb)
@@ -238,7 +240,7 @@ class GenomeDifference(Difference):
 
         return nc_num
 
-    def _get_vcf_idx(self, vcf_row: dict) -> int:
+    def _get_vcf_idx(self, vcf_row: Dict) -> int | None:
         """Given a vcf row, figure out which alt it refers to. Should be available in
             the GT field
 
@@ -246,7 +248,7 @@ class GenomeDifference(Difference):
             vcf_row (dict): Internal representation of the VCF row for this variant
 
         Returns:
-            int: 0-based index of the alts this refers to
+            int | None: 0-based index of the alts this refers to
         """
         # Use `GT` field to figure out which one this call is
         # (This will be **much** messier for minor populations)
@@ -262,8 +264,8 @@ class GenomeDifference(Difference):
         """Once we have pulled out all of the variants, find the VCF evidence
         (if existing) for each.
         """
-        evidences = []
-        indices = []
+        evidences: List = []
+        indices: List = []
         for i, idx in enumerate(self.nucleotide_index):
             evidence1 = self.genome1.vcf_evidence.get(idx)
             evidence2 = self.genome2.vcf_evidence.get(idx)
@@ -300,7 +302,7 @@ class GenomeDifference(Difference):
         self.vcf_evidences = evidences
         self.vcf_idx = indices
 
-    def minor_populations(self, interpretation: str = "reads") -> [str]:
+    def minor_populations(self, interpretation: str = "reads") -> List[str]:
         """Get the minor population mutations in GARC
 
         Args:
@@ -309,7 +311,7 @@ class GenomeDifference(Difference):
                 read support. Defaults to 'reads'.
 
         Returns:
-            [str]: List of mutations in GARC
+            List[str]: List of mutations in GARC
         """
         return self.genome2.minority_populations_GARC(
             interpretation=interpretation, reference=self.genome1
@@ -800,10 +802,10 @@ class GenomeDifference(Difference):
         self.gene_pos = gene_pos
         self.codon_idx = codon_idx
 
-    def __nucleotides(self) -> numpy.array:
+    def __nucleotides(self) -> numpy.ndarray:
         """Calculate the difference in nucleotides
         Returns:
-            numpy.array: Numpy array of tuples of (genome1_nucleotide,
+            numpy.ndarray: Numpy array of tuples of (genome1_nucleotide,
                 genome2_nucleotide)
         """
         mask = self.genome1.nucleotide_sequence != self.genome2.nucleotide_sequence
@@ -911,7 +913,7 @@ class GeneDifference(Difference):
         """Once we have pulled out all of the mutations, find the VCF evidence
         (if existing) for each
         """
-        evidences = []
+        evidences: List = []
         for idx in self.nucleotide_index:
             evidence1 = self.gene1.vcf_evidence.get(idx)
             evidence2 = self.gene2.vcf_evidence.get(idx)
@@ -1072,7 +1074,7 @@ class GeneDifference(Difference):
                 self.is_het = numpy.append(self.is_het, [False])
                 self.is_null = numpy.append(self.is_null, [False])
 
-    def minor_populations(self, interpretation: str = "reads") -> [str]:
+    def minor_populations(self, interpretation: str = "reads") -> List[str]:
         """Get the minor population mutations in GARC
 
         Args:
@@ -1087,11 +1089,11 @@ class GeneDifference(Difference):
             interpretation=interpretation, reference=self.gene1
         )
 
-    def __nucleotides(self) -> numpy.array:
+    def __nucleotides(self) -> numpy.ndarray:
         """Find the differences in nucleotides
 
         Returns:
-            numpy.array: Array of tuples (gene1_nucleotide, gene2_nucleotide)
+            numpy.ndarray: Array of tuples (gene1_nucleotide, gene2_nucleotide)
         """
         return numpy.array(
             [
@@ -1429,12 +1431,12 @@ class GeneDifference(Difference):
         self.is_null = numpy.array(is_null)
         self.variants = variants
 
-    def __codons(self) -> numpy.array:
+    def __codons(self) -> numpy.ndarray:
         """Find the codon positions which are different within the genes
             (within codon regions)
 
         Returns:
-            numpy.array: Array of codons which differ of the form
+            numpy.ndarray: Array of codons which differ of the form
                 [(gene1_codon, gene2_codon)]
         """
         codons1 = convert_nucleotides_codons(
@@ -1448,15 +1450,15 @@ class GeneDifference(Difference):
         codons2 = codons2[mask]
         return numpy.array(list(zip(codons1, codons2)))
 
-    def __amino_acids(self) -> numpy.array:
+    def __amino_acids(self) -> numpy.ndarray:
         """Calculate the difference in amino acid sequences (within codon regions)
-        
+
         Returns:
-            numpy.array: Array of tuples showing (amino_acid_1, amino_acid_2)
+            numpy.ndarray: Array of tuples showing (amino_acid_1, amino_acid_2)
         """
         codon_to_amino_acid = setup_codon_aa_dict()
 
-        aa_diff = []
+        aa_diff: List[Tuple[str | None, str | None]] = []
         for codon1, codon2 in self._codons_full:
             aa1 = codon_to_amino_acid[codon1]
             aa2 = codon_to_amino_acid[codon2]
@@ -1481,14 +1483,14 @@ Helper functions not specific to a class
 """
 
 
-def convert_nucleotides_codons(nucleotides: numpy.array) -> numpy.array:
+def convert_nucleotides_codons(nucleotides: numpy.ndarray) -> numpy.ndarray:
     """Helper function to convert an array of nucleotides into an array of codons
 
     Args:
-        nucleotides (numpy.array): Array of nucleotides
+        nucleotides (numpy.ndarray): Array of nucleotides
 
     Returns:
-        numpy.array: Array of codons
+        numpy.ndarray: Array of codons
     """
     codons = []
     c = ""
@@ -1501,7 +1503,7 @@ def convert_nucleotides_codons(nucleotides: numpy.array) -> numpy.array:
     return numpy.array(codons)
 
 
-def setup_codon_aa_dict() -> {str: str}:
+def setup_codon_aa_dict() -> Dict[str, str]:
     """Setup a conversion dictionary to convert codons to amino acids
 
     Returns:

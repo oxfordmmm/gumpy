@@ -6,6 +6,7 @@ import pathlib
 import warnings
 from collections import defaultdict
 
+from typing import Dict, List, Iterable, Tuple, Collection
 import numpy
 import pandas
 import pysam
@@ -35,14 +36,14 @@ class VCFRecord(object):
         * `is_alt` (bool): or, is the call for a single specified alt
     """
 
-    def __init__(self, record: pysam.libcbcf.VariantRecord, sample: str):
+    def __init__(self, record: pysam.libcbcf.VariantRecord, sample: str | int):
         """Constructor for the VCFRecord object.
 
         Parses the supplied pysam object and presents in a more Pythonic format
 
         Args:
             record (pysam.libcbcf.VariantRecord): The record object
-            sample (str) : Name of the sample to consider. Used for possible cases
+            sample (str | int) : Name of the sample to consider. Used for possible cases
                                 where there is more than 1 sample per record
         """
 
@@ -63,13 +64,13 @@ class VCFRecord(object):
             self.ref = record.ref.lower()
         else:
             self.ref = ""
-        
+
         self.alts: tuple | None
         if record.alts is not None:
             self.alts = tuple([i.lower() for i in record.alts])
         else:
             self.alts = None
-        
+
         self.qual = record.qual
 
         # Get the filter attribute value
@@ -79,7 +80,7 @@ class VCFRecord(object):
             self.filter = None
             self.is_filter_pass = False
         else:
-            self.filter = record.filter.items()[0][0]
+            self.filter = str(record.filter.items()[0][0])
             self.is_filter_pass = (
                 True if record.filter.items()[0][0] == "PASS" else False
             )
@@ -192,8 +193,8 @@ class VCFFile(object):
         filename: str,
         ignore_filter: bool = False,
         bypass_reference_calls: bool = False,
-        format_fields_min_thresholds: {str: int} = None,
-        minor_population_indices: {int} = None,
+        format_fields_min_thresholds: Dict[str, int] | None = None,
+        minor_population_indices: Collection[int] = [],
     ):
         """
         Constructor for the VCFFile object.
@@ -265,7 +266,9 @@ class VCFFile(object):
         self.format_fields_metadata = {}
         for format_ in vcf.header.formats.keys():
             description = vcf.header.formats[format_].description
-            id_ = vcf.header.formats[format_].id
+            # mypy doesn't like this as apparently this doesn't have an 'id' attr
+            #   however, it works and evidently does
+            id_ = vcf.header.formats[format_].id  # type: ignore
             f_type = vcf.header.formats[format_].type
             self.format_fields_metadata[format_] = {
                 "description": description,
@@ -305,7 +308,7 @@ class VCFFile(object):
             self._find_minor_populations()
         else:
             # Give a sensible default value otherwise
-            self.minor_populations = []
+            self.minor_populations: List = []
 
     def __repr__(self) -> str:
         """Overload the print function to write a summary of the VCF file
@@ -569,7 +572,7 @@ class VCFFile(object):
 
                         self.calls[(index + p, variant_type)] = metadata
 
-    def _simplify_call(self, ref: str, alt: str) -> [(int, str, str)]:
+    def _simplify_call(self, ref: str, alt: str) -> List[Tuple[int, str, str]]:
         """Private method to simplify a complex call into one indel and multiple SNPs.
 
         Based on finding the indel position at which there is the least SNPs
@@ -583,7 +586,7 @@ class VCFFile(object):
                 'snp'], indel_bases or (ref, alt) for SNPs)
         """
 
-        def snp_number(ref: str, alt: str) -> int:
+        def snp_number(ref: Iterable | None, alt: Iterable | None) -> int | float:
             """Count the number of SNPs between 2 sequences
 
             Args:
@@ -593,6 +596,8 @@ class VCFFile(object):
             Returns:
                 int: Number of SNPs between ref and alt
             """
+            if ref is None or alt is None:
+                return float("inf")
             snps = 0
             for a, b in zip(ref, alt):
                 if a is not None and b is not None and a != b:
@@ -624,14 +629,14 @@ class VCFFile(object):
         else:
             # Just SNPs
             # Should only be used in minor populations
-            mutations = []
+            mutations_: List = []
             for i, (r, a) in enumerate(zip(ref, alt)):
-                mutations.append([i, "snp", (r, a)])
-            return mutations
+                mutations_.append([i, "snp", (r, a)])
+            return mutations_
         start = 0
-        current = None
+        current: List[str | None] = []
         current_snps = float("inf")
-        mutations = []
+        mutations: List = []
         for i in range(len(y) + 1):
             y1 = (
                 [y[a] for a in range(i)]
@@ -669,7 +674,7 @@ class VCFFile(object):
             pandas.DataFrame: DataFrame containing all of the information from the
                 VCF file
         """
-        meta_data = {
+        meta_data: Dict = {
             "vcf_version": self.vcf_version,
             "contig_lengths": self.contig_lengths,
             "formats": self.format_fields_metadata,
@@ -682,7 +687,7 @@ class VCFFile(object):
         qual = []
         infos = []
         filter_ = []
-        values = {}
+        values: Dict = {}
         for record in self.records:
             chroms.append(record.chrom)
             pos.append(record.pos)

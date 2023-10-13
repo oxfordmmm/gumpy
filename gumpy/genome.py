@@ -8,8 +8,9 @@ import time
 from collections import defaultdict
 
 import numpy
-from Bio import SeqIO
+from Bio import SeqIO  # type: ignore
 from tqdm import tqdm
+from typing import List, Dict, Tuple
 
 from gumpy import Gene, GenomeDifference, VCFFile
 
@@ -20,9 +21,9 @@ class Genome(object):
 
     def __init__(
         self,
-        genbank_file: str,
+        genbank_file_: str,
         show_progress_bar: bool = False,
-        gene_subset: list = None,
+        gene_subset: List[str] | None = None,
         max_promoter_length: int = 100,
         max_gene_name_length: int = 20,
         verbose: bool = False,
@@ -31,7 +32,7 @@ class Genome(object):
         """Constructor for the Genome object.
 
         Args:
-            genbank_file (str) : The path to the genbank file.
+            genbank_file_ (str) : The path to the genbank file.
             show_progress_bar (bool, optional) : Boolean as whether to show a progress
                 bar when building Gene objects. Defaults to False.
             gene_subset (list, optional) : List of gene names used to extract just a
@@ -50,8 +51,9 @@ class Genome(object):
         self.max_gene_name_length = max_gene_name_length
         self.verbose = verbose
         self.is_reference = is_reference
+        self.vcf_file: VCFFile | None = None
 
-        genbank_file = pathlib.Path(genbank_file)
+        genbank_file = pathlib.Path(genbank_file_)
 
         assert genbank_file.is_file(), "GenBank file does not exist!"
         assert (
@@ -180,8 +182,8 @@ class Genome(object):
         """
         assert isinstance(other, Genome)
 
-        check = True
-        check = check and self.genes == other.genes
+        check = numpy.bool_(True)
+        check = check and numpy.bool_(self.genes == other.genes)
         check = check and self.name == other.name
         check = check and self.id == other.id
         check = check and self.description == other.description
@@ -189,12 +191,12 @@ class Genome(object):
             self.nucleotide_sequence == other.nucleotide_sequence
         )
         check = check and numpy.all(self.nucleotide_index == other.nucleotide_index)
-        check = check and self.length == other.length
+        check = check and numpy.bool_(self.length == other.length)
         check = check and numpy.all(
             self.stacked_gene_name.tolist() == other.stacked_gene_name.tolist()
         )
 
-        return check
+        return bool(check)
 
     def __len__(self) -> int:
         """Adding len functionality - len(genome) returns the length of the genome
@@ -223,7 +225,7 @@ class Genome(object):
         # bool(None) = False, bool(obj) = True
         return bool(self.genes.get(gene_name))
 
-    def at_index(self, index: int) -> [str]:
+    def at_index(self, index: int) -> List[str] | None:
         """
         Returns the name of any genome features (genes, loci) at a specified genome
             index (1-based).
@@ -232,7 +234,8 @@ class Genome(object):
             index (int): Genome index to check for genes at.
 
         Returns:
-            list : list of gene_names or locus_tags at that index in the genome
+            List[str] | None: list of gene_names or locus_tags at that index
+                in the genome
 
         """
         assert isinstance(index, int), "index must be an integer!"
@@ -262,12 +265,12 @@ class Genome(object):
         """
         numpy.savez_compressed(filename, sequence=self.nucleotide_sequence)
 
-    def __build_genome_variable_length_string(self, indices: [int]) -> str:
+    def __build_genome_variable_length_string(self, indices: numpy.ndarray) -> str:
         """Build a string of the genome sequence, including indels - resulting in a
             variable length genome
 
         Args:
-            indices ([int]): List of the indices of indels
+            indices (List[int]): List of the indices of indels
 
         Returns:
             str: Genome sequence as a string
@@ -288,7 +291,9 @@ class Genome(object):
         return genome_string
 
     def build_genome_string(
-        self, fixed_length: bool = False, nucleotide_index_range: (int, int) = None
+        self,
+        fixed_length: bool = False,
+        nucleotide_index_range: Tuple[int, int] | None = None,
     ) -> str:
         """
         Generate a string of the nucleotides in the genome (positive strand if DNA).
@@ -327,12 +332,12 @@ class Genome(object):
         self,
         filename,
         fixed_length: bool = False,
-        nucleotide_index_range: (int, int) = None,
+        nucleotide_index_range: Tuple[int, int] | None = None,
         compression: bool = False,
         compresslevel: int = 2,
         chars_per_line: int = 70,
         nucleotides_uppercase: bool = True,
-        description: str = None,
+        description: str | None = None,
         overwrite_existing: bool = True,
     ) -> None:
         """
@@ -430,13 +435,13 @@ class Genome(object):
 
         OUTPUT.close()
 
-    def __add_empty_row(self, array: numpy.array) -> numpy.array:
+    def __add_empty_row(self, array: numpy.ndarray) -> numpy.ndarray:
         """
         Private function to add an empty row of the correct type to a numpy array
         Args:
-            array (numpy.array) : Array to add an empty row to
+            array (numpy.ndarray) : Array to add an empty row to
         Returns:
-            (numpy.array): The same array with an empty row of the same length and
+            (numpy.ndarray): The same array with an empty row of the same length and
                 dtype appended
         """
 
@@ -444,7 +449,7 @@ class Genome(object):
 
         return numpy.vstack((array, empty_row))
 
-    def __parse_genbank_file(self, genbank_file: str) -> None:
+    def __parse_genbank_file(self, genbank_file: pathlib.Path) -> None:
         """
         Private function to parse a genbank file
         Args:
@@ -496,7 +501,7 @@ class Genome(object):
         for i in reference_genome.annotations.keys():
             self.annotations[i] = reference_genome.annotations[i]
 
-        self.genes = {}
+        self.genes: Dict = {}
 
         # loop through the features listed in the GenBank File
         if self.verbose:
@@ -620,14 +625,14 @@ class Genome(object):
 
     def __fit_gene(
         self,
-        mask: numpy.array,
-        genes: numpy.array,
-        genes_mask: numpy.array,
+        mask: numpy.ndarray,
+        genes: numpy.ndarray,
+        genes_mask: numpy.ndarray,
         start: int,
         end: int,
         gene_name: str,
         rev_comp: bool,
-    ) -> (numpy.array, numpy.array):
+    ) -> Tuple[numpy.ndarray, numpy.ndarray, int]:
         """
         Private function to fit a gene into the genes based on the dot product of
             the masks numpy.dot([bool], [bool])-> bool showing if there are collisions
@@ -636,10 +641,10 @@ class Genome(object):
             length genome
 
         Args:
-            mask (numpy.array) : Boolean array showing positions where the gene lies
-            genes (numpy.array) : 2D numpy array of the format used for all stacked
+            mask (numpy.ndarray) : Boolean array showing positions where the gene lies
+            genes (numpy.ndarray) : 2D numpy array of the format used for all stacked
                 values
-            genes_mask (numpy.array) : The corresponding boolean mask arrays for the
+            genes_mask (numpy.ndarray) : The corresponding boolean mask arrays for the
                 `genes` arg
             start (int) : Start index of the gene
             end (int) : End index of the gene
@@ -1048,7 +1053,7 @@ class Genome(object):
 
     def minority_populations_GARC(
         self, interpretation: str = "reads", reference=None
-    ) -> [str]:
+    ) -> List[str]:
         """Get the variants in GARC of the minority populations for this genome.
         Whether the variants are given in terms of reads or read percentage is
             controlled by `interpretation`
@@ -1060,7 +1065,7 @@ class Genome(object):
             reference (gumpy.Genome, optional): The reference to denote mutations from.
                 Defaults to self
         Returns:
-            list: List of the variants in GARC
+            List[str]: List of the variants in GARC
         """
         # Use the interpretation type to pull out which index of the minor_populations
         # Each item of minor_populations is (pos, type, bases, abs_coverage,
