@@ -15,16 +15,23 @@ jobs:
       with:
         timezone: UTC
 
-    - name: Set up Python 3.8
+    - name: Set up Python 3.10
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: '3.10'
 
     - name: Install Python dependencies
       run: |
         python3 -m pip install --upgrade pip
         pip3 install -r requirements.txt
         pip3 install .
+        pip3 install black ruff mypy types-tqdm pandas-stubs
+    
+    - name: Run format checks
+      run: | 
+        black --check .
+        ruff check gumpy
+        mypy gumpy
 
     - name: Test with pytest
       run: |
