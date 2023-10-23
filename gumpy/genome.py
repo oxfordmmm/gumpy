@@ -52,6 +52,7 @@ class Genome(object):
         self.verbose = verbose
         self.is_reference = is_reference
         self.vcf_file: VCFFile | None = None
+        self.gumpy_version: str | None = None
 
         genbank_file = pathlib.Path(genbank_file_)
 
