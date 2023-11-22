@@ -5,8 +5,8 @@ import copy
 import pathlib
 import warnings
 from collections import defaultdict
+from typing import Collection, Dict, Iterable, List, Tuple
 
-from typing import Dict, List, Iterable, Tuple, Collection
 import numpy
 import pandas
 import pysam
@@ -382,7 +382,9 @@ class VCFFile(object):
             simple_calls.append((idx, pos, t, bases))
         seen = []
 
-        allelic_depth_tag = "COV" if "COV" in self.format_fields_metadata.keys() else "AD"
+        allelic_depth_tag = (
+            "COV" if "COV" in self.format_fields_metadata.keys() else "AD"
+        )
 
         for idx, type_ in self.calls.keys():
             # Check if we've delt with this vcf already
