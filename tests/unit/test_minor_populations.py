@@ -338,3 +338,38 @@ def test_get_minors():
     assert sorted(katG.minority_populations_GARC()) == sorted(
         ["c1715z:15", "1710_del_cc:25"]
     )
+
+
+def test_get_minors_AD_tag():
+    """Tests of expected success for minor populations if using AD tag instead of COV"""
+    vcf = gumpy.VCFFile(
+        "tests/test-cases/minor-populations_AD.vcf",
+        ignore_filter=True,
+        minor_population_indices={
+            7569,
+            7570,
+            7571,
+            7581,
+            7582,
+            7583,
+            7585,
+            7572,
+            7573,
+            7574,
+        },
+    )
+
+    # Check for expected minority populations
+    expected_minor_populations = [
+        (7582, "del", "ac", 10, 0.098),  # Del
+        (7581, "snp", ("g", "t"), 10, 0.098),  # SNP
+        (7569, "ins", "gt", 10, 0.098),  # Ins
+        (7571, "snp", ("g", "t"), 10, 0.098),  # Synon SNP
+        # Change all bases of a codon
+        (7572, "snp", ("t", "a"), 2, 0.02),  # SNP
+        (7574, "snp", ("g", "t"), 10, 0.098),  # SNP
+    ]
+    # Filter out the VCF evidence from this as we don't really care here
+    actual = make_reproducable([minor[:5] for minor in vcf.minor_populations])
+    expected = make_reproducable(expected_minor_populations)
+    assert actual == expected

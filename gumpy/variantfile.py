@@ -210,8 +210,6 @@ class VCFFile(object):
                 Default is False.
             format_fields_min_thresholds (dict, optional): Dict of field name in the
                 FORMAT column and a minimum threshold to apply e.g. {'DP':5}
-            retain_format_fields (list, optional): list of FORMAT fields specified in
-                the VCF to retain
             minor_population_indices (set, optional): set of genome indices names
                 within which to look for minor populations
         """
@@ -300,11 +298,12 @@ class VCFFile(object):
 
         if len(self.minor_population_indices) > 0:
             # We are asking to find some minor variants
-            # So we need to check if the COV field exists as this shows
+            # So we need to check if the COV/AD field exists as this shows
             #   minor populations
             assert (
                 "COV" in self.format_fields_metadata.keys()
-            ), "'COV' not in VCF format fields. No minor populations can be found!"
+                or "AD" in self.format_fields_metadata.keys()
+            ), "'COV' and 'AD' not in VCF format fields. No minor populations can be found!"
             self._find_minor_populations()
         else:
             # Give a sensible default value otherwise
@@ -383,6 +382,8 @@ class VCFFile(object):
             simple_calls.append((idx, pos, t, bases))
         seen = []
 
+        allelic_depth_tag = "COV" if "COV" in self.format_fields_metadata.keys() else "AD"
+
         for idx, type_ in self.calls.keys():
             # Check if we've delt with this vcf already
             if self.calls[(idx, type_)]["original_vcf_row"] in seen:
@@ -414,7 +415,7 @@ class VCFFile(object):
             simple = [self._simplify_call(ref, alt) for alt in calls]
 
             # Map each call to the corresponding read depth
-            dps = list(self.calls[(idx, type_)]["original_vcf_row"]["COV"])
+            dps = list(self.calls[(idx, type_)]["original_vcf_row"][allelic_depth_tag])
 
             # total_depth = self.calls[(idx, type_)]['original_vcf_row']['DP']
             total_depth = sum(dps)
