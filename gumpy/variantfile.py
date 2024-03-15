@@ -1,6 +1,7 @@
 """
 Classes used to parse and store VCF data
 """
+
 import copy
 import pathlib
 import warnings
@@ -523,7 +524,9 @@ class VCFFile(object):
                 variant_type = "ref"
 
             if index in record_positions:
-                raise ValueError("Multiple calls at position " + str(index) + " in VCF file")
+                raise ValueError(
+                    "Multiple calls at position " + str(index) + " in VCF file"
+                )
             record_positions.add(index)
 
             # if the REF, ALT pair are the same length, check if we can decompose

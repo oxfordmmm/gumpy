@@ -1,6 +1,7 @@
 """
 Genome object
 """
+
 import copy
 import gzip
 import pathlib
@@ -16,7 +17,6 @@ from gumpy import Gene, GenomeDifference, VCFFile
 
 
 class Genome(object):
-
     """Genome object"""
 
     def __init__(

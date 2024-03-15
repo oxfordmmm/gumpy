@@ -17,6 +17,7 @@ Functions:
         nucleotides to an array of codons.
     setup_codon_aa_dict() -> dict: Returns a dictionary mapping codon->amino_acid
 """
+
 import warnings
 from abc import ABC  # Python library for abstract classes
 from typing import Dict, List, Tuple
