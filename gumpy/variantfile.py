@@ -1,6 +1,7 @@
 """
 Classes used to parse and store VCF data
 """
+
 import copy
 import pathlib
 import warnings
@@ -285,11 +286,7 @@ class VCFFile(object):
             for sample in record.samples.keys():
                 self.records.append(VCFRecord(record, sample))
 
-        # Ensure that only a single record exists for each position specified
-        assert len(self.records) == len(
-            set([record.pos for record in self.records])
-        ), "There must be 1 and only 1 record per position! "
-
+        # Find calls will ensure that no calls have same position
         self.__find_calls()
 
         self.__get_variants()
@@ -465,6 +462,7 @@ class VCFFile(object):
         """
 
         self.calls = {}
+        record_positions = set()
 
         for record in self.records:
             # VCF files are 1 indexed but keep for now
@@ -483,17 +481,15 @@ class VCFFile(object):
                 continue
 
             # only proceed if a dictionary has been passed (otherwise defaults to None)
-            proceed = True
             if isinstance(self.format_fields_min_thresholds, dict):
                 # ok to just do since we've already check in the constructor that these
                 #   fields exist in the VCF
-                for i in self.format_fields_min_thresholds:
-                    proceed = (
-                        proceed
-                        and record.values[i] >= self.format_fields_min_thresholds[i]
-                    )
-            if not proceed:
-                continue
+                proceed = all(
+                    record.values[i] >= self.format_fields_min_thresholds[i]
+                    for i in self.format_fields_min_thresholds
+                )
+                if not proceed:
+                    continue
 
             if (
                 len(self.minor_population_indices) > 0
@@ -526,6 +522,12 @@ class VCFFile(object):
             elif record.is_reference:
                 variant = record.ref
                 variant_type = "ref"
+
+            if index in record_positions:
+                raise ValueError(
+                    "Multiple calls at position " + str(index) + " in VCF file"
+                )
+            record_positions.add(index)
 
             # if the REF, ALT pair are the same length, check if we can decompose
             #   into SNPs

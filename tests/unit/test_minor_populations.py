@@ -1,5 +1,6 @@
 """Tests relating to minor populations
 """
+
 import pytest
 
 import gumpy

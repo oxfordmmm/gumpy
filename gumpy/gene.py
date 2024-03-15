@@ -1,6 +1,7 @@
 """
 Gene object
 """
+
 import copy
 import re
 
@@ -13,7 +14,6 @@ from typing import List
 
 # FIXME: problems with rrs, mfpB
 class Gene(object):
-
     """Gene object that uses underlying numpy arrays"""
 
     def __init__(
@@ -363,9 +363,11 @@ class Gene(object):
                 #   and mixed for mixed indels and SNPs
                 c = Counter(
                     [
-                        (nc_idx, "indel")
-                        if type_ in ["ins", "del"]
-                        else (nc_idx, type_)
+                        (
+                            (nc_idx, "indel")
+                            if type_ in ["ins", "del"]
+                            else (nc_idx, type_)
+                        )
                         for nc_idx, type_, bases, cov, frs in gene_pos_map[gene_pos]
                     ]
                 )
@@ -519,9 +521,11 @@ class Gene(object):
         # Check for promoters before the codons
         first_half = [self.nucleotide_number[i] for i in range(index)]
         second_half = [
-            self.nucleotide_number[i] + 1
-            if self.nucleotide_number[i] > 0
-            else self.nucleotide_number[i]
+            (
+                self.nucleotide_number[i] + 1
+                if self.nucleotide_number[i] > 0
+                else self.nucleotide_number[i]
+            )
             for i in range(index, len(self.nucleotide_number))
         ]
         self.nucleotide_number = numpy.array(
