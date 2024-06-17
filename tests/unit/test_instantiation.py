@@ -2731,7 +2731,7 @@ def test_instanciate_vcf_tb():
 
 
 def test_min_dp():
-    # All calls in this VCF have a DP of 1, so setting min_dp to 2 
+    # All calls in this VCF have a DP of 1, so setting min_dp to 2
     # should make all calls null
     before = gumpy.VCFFile("tests/test-cases/TEST-DNA-5.vcf")
     assert sorted(list(before.calls.keys())) == [
