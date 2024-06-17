@@ -37,7 +37,9 @@ class VCFRecord(object):
         * `is_alt` (bool): or, is the call for a single specified alt
     """
 
-    def __init__(self, record: pysam.libcbcf.VariantRecord, sample: str | int):
+    def __init__(
+        self, record: pysam.libcbcf.VariantRecord, sample: str | int, min_dp: int | None
+    ):
         """Constructor for the VCFRecord object.
 
         Parses the supplied pysam object and presents in a more Pythonic format
@@ -46,6 +48,7 @@ class VCFRecord(object):
             record (pysam.libcbcf.VariantRecord): The record object
             sample (str | int) : Name of the sample to consider. Used for possible cases
                                 where there is more than 1 sample per record
+            min_dp (int | None): Minimum depth to consider a call.
         """
 
         assert (
@@ -118,6 +121,28 @@ class VCFRecord(object):
                 item = round(item, 3)
             self.values[key] = item
         self.values["POS"] = self.pos
+
+        if min_dp is not None:
+            allelic_depth_tag = "COV" if "COV" in self.values.keys() else "AD"
+            if self.values[allelic_depth_tag] != (None,):
+                # If the depth given is below the threshold,
+                #   this row is a null call's row from the GVCF
+                # So treat it as such.
+                if len(self.values[allelic_depth_tag]) == 1:
+                    if self.values[allelic_depth_tag][0] < min_dp:
+                        # Odd case where GVCF only gives the depth of the alt
+                        self.is_null = True
+                        self.is_heterozygous = False
+                        self.is_alt = False
+                        self.is_reference = False
+                elif (
+                    self.values[allelic_depth_tag][self.call1] < min_dp
+                    or self.values[allelic_depth_tag][self.call2] < min_dp
+                ):
+                    self.is_null = True
+                    self.is_heterozygous = False
+                    self.is_alt = False
+                    self.is_reference = False
 
     def __repr__(self) -> str:
         """Pretty print the record
@@ -196,6 +221,7 @@ class VCFFile(object):
         bypass_reference_calls: bool = False,
         format_fields_min_thresholds: Dict[str, int] | None = None,
         minor_population_indices: Collection[int] = [],
+        min_dp: int | None = None,
     ):
         """
         Constructor for the VCFFile object.
@@ -213,6 +239,7 @@ class VCFFile(object):
                 FORMAT column and a minimum threshold to apply e.g. {'DP':5}
             minor_population_indices (set, optional): set of genome indices names
                 within which to look for minor populations
+            min_dp (int, optional): Minimum depth to consider a call. Default is None
         """
 
         self.ignore_filter = ignore_filter
@@ -284,7 +311,7 @@ class VCFFile(object):
         self.records = []
         for record in list(vcf):
             for sample in record.samples.keys():
-                self.records.append(VCFRecord(record, sample))
+                self.records.append(VCFRecord(record, sample, min_dp))
 
         # Find calls will ensure that no calls have same position
         self.__find_calls()
@@ -300,7 +327,10 @@ class VCFFile(object):
             assert (
                 "COV" in self.format_fields_metadata.keys()
                 or "AD" in self.format_fields_metadata.keys()
-            ), "'COV' and 'AD' not in VCF format fields. No minor populations can be found!"
+            ), (
+                "'COV' and 'AD' not in VCF format fields. "
+                "No minor populations can be found!"
+            )
             self._find_minor_populations()
         else:
             # Give a sensible default value otherwise
@@ -405,10 +435,14 @@ class VCFFile(object):
             # Reference base(s)
             ref = self.calls[(idx, type_)]["original_vcf_row"]["REF"]
 
-            # Get all of the calls
-            calls = [self.calls[(idx, type_)]["original_vcf_row"]["REF"]] + list(
-                self.calls[(idx, type_)]["original_vcf_row"]["ALTS"]
-            )
+            if self.calls[(idx, type_)]["original_vcf_row"]["ALTS"] is None:
+                # Case arrises from gvcf ref calls not giving any alts
+                calls = [self.calls[(idx, type_)]["original_vcf_row"]["REF"]]
+            else:
+                # Get all of the calls
+                calls = [self.calls[(idx, type_)]["original_vcf_row"]["REF"]] + list(
+                    self.calls[(idx, type_)]["original_vcf_row"]["ALTS"]
+                )
 
             # Break down the calls as appropriate
             simple = [self._simplify_call(ref, alt) for alt in calls]
@@ -416,8 +450,11 @@ class VCFFile(object):
             # Map each call to the corresponding read depth
             dps = list(self.calls[(idx, type_)]["original_vcf_row"][allelic_depth_tag])
 
-            # total_depth = self.calls[(idx, type_)]['original_vcf_row']['DP']
-            total_depth = sum(dps)
+            # GVCF null calls get None for depth, so catch (and skip) this
+            if dps == [None]:
+                continue
+            else:
+                total_depth = sum(dps)
 
             # idx here refers to the position of this call, NOT this vcf row, so adjust
             #   to avoid shifting when building minor calls
