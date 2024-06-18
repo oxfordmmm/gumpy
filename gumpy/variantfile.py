@@ -99,13 +99,23 @@ class VCFRecord(object):
         for key, item in record.samples[sample].items():
             # incorporate the logic from the old Genotype class here
             if key == "GT":
-                call1, call2 = item
-                self.call1 = call1 if call1 is not None else -1
-                self.call2 = self.call1 if call2 is None else call2
+                if len(item) == 2:
+                    # Ploidy 2 is expected here
+                    call1, call2 = item
+                    self.call1 = call1 if call1 is not None else -1
+                    self.call2 = self.call1 if call2 is None else call2
+                else:
+                    # GVCF edge case with ploidy 1
+                    call1 = item[0]
+                    self.call1 = call1 if call1 is not None else -1
+                    self.call2 = self.call1
                 self.is_reference = (
-                    True if call1 == 0 and (call1 == call2 or call2 == -1) else False
+                    True
+                    if self.call1 == 0
+                    and (self.call1 == self.call2 or self.call2 == -1)
+                    else False
                 )
-                self.is_heterozygous = True if call1 != call2 else False
+                self.is_heterozygous = True if self.call1 != self.call2 else False
                 self.is_null = True if set([self.call1, self.call2]) == {-1} else False
                 self.is_alt = (
                     True
@@ -124,6 +134,8 @@ class VCFRecord(object):
 
         if min_dp is not None:
             allelic_depth_tag = "COV" if "COV" in self.values.keys() else "AD"
+            # Ensure we have a COV tag for downstream analysis
+            self.values["COV"] = self.values[allelic_depth_tag]
             if self.values[allelic_depth_tag] != (None,):
                 # If the depth given is below the threshold,
                 #   this row is a null call's row from the GVCF
@@ -409,16 +421,21 @@ class VCFFile(object):
             simple_calls.append((idx, pos, t, bases))
         seen = []
 
-        allelic_depth_tag = (
-            "COV" if "COV" in self.format_fields_metadata.keys() else "AD"
-        )
-
         for idx, type_ in self.calls.keys():
             # Check if we've delt with this vcf already
             if self.calls[(idx, type_)]["original_vcf_row"] in seen:
                 continue
             else:
                 seen.append(self.calls[(idx, type_)]["original_vcf_row"])
+
+
+            # Pull out depth tag from the specific row's format fields
+            # as the file metadata isn't a guarantee of the actual fields of this row
+            allelic_depth_tag = (
+                "COV"
+                if self.calls[(idx, type_)]["original_vcf_row"].get("COV", None)
+                else "AD"
+            )
 
             # Checking for het calls
             if self.calls[(idx, type_)]["call"] == "z":
