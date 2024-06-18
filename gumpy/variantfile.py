@@ -428,7 +428,6 @@ class VCFFile(object):
             else:
                 seen.append(self.calls[(idx, type_)]["original_vcf_row"])
 
-
             # Pull out depth tag from the specific row's format fields
             # as the file metadata isn't a guarantee of the actual fields of this row
             allelic_depth_tag = (
