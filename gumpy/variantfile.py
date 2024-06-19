@@ -136,6 +136,7 @@ class VCFRecord(object):
             allelic_depth_tag = "COV" if "COV" in self.values.keys() else "AD"
             # Ensure we have a COV tag for downstream analysis
             self.values["COV"] = self.values[allelic_depth_tag]
+            print(self.values[allelic_depth_tag])
             if self.values[allelic_depth_tag] != (None,):
                 # If the depth given is below the threshold,
                 #   this row is a null call's row from the GVCF

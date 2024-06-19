@@ -2739,6 +2739,8 @@ def test_min_dp():
         (24, "ref"),
         (26, "snp"),
         (27, "snp"),
+        (28, "snp"),
+        (29, "ref"),
     ]
 
     after = gumpy.VCFFile("tests/test-cases/TEST-DNA-5.vcf", min_dp=2)
@@ -2747,6 +2749,8 @@ def test_min_dp():
         (24, "null"),
         (26, "null"),
         (27, "null"),
+        (28, "null"),
+        (29, "null"),
     ]
 
 
