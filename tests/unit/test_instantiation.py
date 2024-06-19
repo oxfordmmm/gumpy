@@ -2730,6 +2730,30 @@ def test_instanciate_vcf_tb():
     assert vcf.snp_distance == 6
 
 
+def test_min_dp():
+    # All calls in this VCF have a DP of 1, so setting min_dp to 2
+    # should make all calls null
+    before = gumpy.VCFFile("tests/test-cases/TEST-DNA-5.vcf")
+    assert sorted(list(before.calls.keys())) == [
+        (4, "ref"),
+        (24, "ref"),
+        (26, "snp"),
+        (27, "snp"),
+        (28, "snp"),
+        (29, "ref"),
+    ]
+
+    after = gumpy.VCFFile("tests/test-cases/TEST-DNA-5.vcf", min_dp=2)
+    assert sorted(list(after.calls.keys())) == [
+        (4, "null"),
+        (24, "null"),
+        (26, "null"),
+        (27, "null"),
+        (28, "null"),
+        (29, "null"),
+    ]
+
+
 def test_instanciate_genome_difference():
     g1 = gumpy.Genome("config/TEST-DNA.gbk")
     vcf = gumpy.VCFFile("tests/test-cases/TEST-DNA.vcf")
