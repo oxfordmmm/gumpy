@@ -191,7 +191,7 @@ class GenomeDifference(Difference):
 
     def get_gene_pos(
         self, gene: str, idx: int, variant: str, start: int | None = None
-    ) -> int:
+    ) -> int | None:
         """Find the gene position of a given nucleotide index.
         This is considerably faster than building a whole stacked_gene_pos array
             (takes ~4.5mins for tb)
@@ -203,7 +203,8 @@ class GenomeDifference(Difference):
             start (int): Start position. Defaults to None
 
         Returns:
-            int: Gene position of this nucleotide index
+            int | None: Gene position of this nucleotide index 
+                        (or None if it lies outside of the gene)
         """
         stacked_gene_mask = self.genome1.stacked_gene_name == gene
         nc_idx = self.genome1.stacked_nucleotide_index[stacked_gene_mask]
