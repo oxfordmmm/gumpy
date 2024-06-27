@@ -203,7 +203,7 @@ class GenomeDifference(Difference):
             start (int): Start position. Defaults to None
 
         Returns:
-            int | None: Gene position of this nucleotide index 
+            int | None: Gene position of this nucleotide index
                         (or None if it lies outside of the gene)
         """
         stacked_gene_mask = self.genome1.stacked_gene_name == gene
