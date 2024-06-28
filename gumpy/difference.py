@@ -191,7 +191,7 @@ class GenomeDifference(Difference):
 
     def get_gene_pos(
         self, gene: str, idx: int, variant: str, start: int | None = None
-    ) -> int:
+    ) -> int | None:
         """Find the gene position of a given nucleotide index.
         This is considerably faster than building a whole stacked_gene_pos array
             (takes ~4.5mins for tb)
@@ -203,7 +203,8 @@ class GenomeDifference(Difference):
             start (int): Start position. Defaults to None
 
         Returns:
-            int: Gene position of this nucleotide index
+            int | None: Gene position of this nucleotide index
+                        (or None if it lies outside of the gene)
         """
         stacked_gene_mask = self.genome1.stacked_gene_name == gene
         nc_idx = self.genome1.stacked_nucleotide_index[stacked_gene_mask]
@@ -238,6 +239,16 @@ class GenomeDifference(Difference):
             #   is reversed so starts at the end
             if self.genome2.genes[gene]["reverse_complement"]:
                 nc_num = nc_num - dels + 1
+
+                # Edge case of deletion starting in revcomp gene and extending
+                # past gene start, so return None
+                if (
+                    self.genome2.stacked_nucleotide_number[
+                        self.genome2.stacked_gene_name == gene
+                    ][-1]
+                    > nc_num
+                ):
+                    return None
 
         return nc_num
 
@@ -403,7 +414,11 @@ class GenomeDifference(Difference):
                         continue
                     gene_name.append(gene)
                     gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
-                    if self.genome2.genes[gene]["codes_protein"] and gene_pos[-1] > 0:
+                    if (
+                        self.genome2.genes[gene]["codes_protein"]
+                        and gene_pos[-1] is not None
+                        and gene_pos[-1] > 0
+                    ):
                         # Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[
                             self.genome1.stacked_gene_name == gene
@@ -438,7 +453,11 @@ class GenomeDifference(Difference):
                     # Single gene, so pull out data
                     gene_pos.append(self.get_gene_pos(gene, idx, variants[-1]))
 
-                    if self.genome2.genes[gene]["codes_protein"] and gene_pos[-1] > 0:
+                    if (
+                        self.genome2.genes[gene]["codes_protein"]
+                        and gene_pos[-1] is not None
+                        and gene_pos[-1] > 0
+                    ):
                         # Get codon idx
                         nc_idx = self.genome1.stacked_nucleotide_index[
                             self.genome1.stacked_gene_name == gene
@@ -553,6 +572,7 @@ class GenomeDifference(Difference):
                         )
                         if (
                             self.genome2.genes[gene]["codes_protein"]
+                            and gene_pos[-1] is not None
                             and gene_pos[-1] > 0
                         ):
                             # Get codon pos
@@ -599,6 +619,7 @@ class GenomeDifference(Difference):
 
                         if (
                             self.genome2.genes[gene]["codes_protein"]
+                            and gene_pos[-1] is not None
                             and gene_pos[-1] > 0
                         ):
                             # Get codon pos
@@ -710,6 +731,7 @@ class GenomeDifference(Difference):
                         )
                         if (
                             self.genome2.genes[gene]["codes_protein"]
+                            and gene_pos[-1] is not None
                             and gene_pos[-1] > 0
                         ):
                             # Get codon pos
@@ -756,6 +778,7 @@ class GenomeDifference(Difference):
 
                         if (
                             self.genome2.genes[gene]["codes_protein"]
+                            and gene_pos[-1] is not None
                             and gene_pos[-1] > 0
                         ):
                             # Get codon pos
