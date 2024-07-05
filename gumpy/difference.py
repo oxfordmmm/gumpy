@@ -25,6 +25,7 @@ import numpy
 from tqdm import tqdm
 import gumpy
 
+
 class FailedComparison(Exception):
     """Exception to be raised in cases of a failed comparion"""
 
@@ -36,6 +37,7 @@ class FailedComparison(Exception):
         """
         self.message = message
         super().__init__(self.message)
+
 
 class Difference(ABC):
     """
@@ -86,6 +88,7 @@ class Difference(ABC):
             return numpy.array([item2 for (item1, item2) in array], dtype=object)
         else:
             return numpy.array([])
+
 
 class GenomeDifference(Difference):
     """
@@ -367,11 +370,14 @@ class GenomeDifference(Difference):
 
         # for now we simply allow the ref and alt to be different e.g. can have a
         #   SNP on a NULL (x>t)
-        for r, idx, a in tqdm(zip(
-            self.genome1.nucleotide_sequence[mask],
-            self.genome1.nucleotide_index[mask],
-            self.genome2.nucleotide_sequence[mask],
-        ), total=len(self.genome1.nucleotide_sequence[mask])):
+        for r, idx, a in tqdm(
+            zip(
+                self.genome1.nucleotide_sequence[mask],
+                self.genome1.nucleotide_index[mask],
+                self.genome2.nucleotide_sequence[mask],
+            ),
+            total=len(self.genome1.nucleotide_sequence[mask]),
+        ):
             variants.append(str(idx) + r + ">" + a)
             refs.append(r)
             alts.append(a)

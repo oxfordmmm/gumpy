@@ -2739,7 +2739,7 @@ def test_min_dp():
         (21, "ref"),
         (25, "snp"),
         (26, "snp"),
-        (27, 'snp'),
+        (27, "snp"),
         (28, "snp"),
         (29, "ref"),
     ]
@@ -2750,7 +2750,7 @@ def test_min_dp():
         (21, "null"),
         (25, "null"),
         (26, "null"),
-        (27, 'null'),
+        (27, "null"),
         (28, "null"),
         (29, "null"),
     ]

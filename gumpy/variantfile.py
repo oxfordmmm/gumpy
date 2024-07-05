@@ -576,7 +576,6 @@ class VCFFile(object):
                 variant = record.ref
                 variant_type = "ref"
 
-
             # if the REF, ALT pair are the same length, check if we can decompose
             #   into SNPs
             if len(record.ref) == len(variant):
