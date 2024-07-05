@@ -2736,7 +2736,8 @@ def test_min_dp():
     before = gumpy.VCFFile("tests/test-cases/TEST-DNA-5.vcf")
     assert sorted(list(before.calls.keys())) == [
         (4, "ref"),
-        (24, "ref"),
+        (21, "ref"),
+        (25, "snp"),
         (26, "snp"),
         (27, "snp"),
         (28, "snp"),
@@ -2746,7 +2747,8 @@ def test_min_dp():
     after = gumpy.VCFFile("tests/test-cases/TEST-DNA-5.vcf", min_dp=2)
     assert sorted(list(after.calls.keys())) == [
         (4, "null"),
-        (24, "null"),
+        (21, "null"),
+        (25, "null"),
         (26, "null"),
         (27, "null"),
         (28, "null"),

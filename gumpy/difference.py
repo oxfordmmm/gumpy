@@ -22,7 +22,7 @@ import warnings
 from abc import ABC  # Python library for abstract classes
 from typing import Dict, List, Tuple
 import numpy
-
+from tqdm import tqdm
 import gumpy
 
 
@@ -370,10 +370,13 @@ class GenomeDifference(Difference):
 
         # for now we simply allow the ref and alt to be different e.g. can have a
         #   SNP on a NULL (x>t)
-        for r, idx, a in zip(
-            self.genome1.nucleotide_sequence[mask],
-            self.genome1.nucleotide_index[mask],
-            self.genome2.nucleotide_sequence[mask],
+        for r, idx, a in tqdm(
+            zip(
+                self.genome1.nucleotide_sequence[mask],
+                self.genome1.nucleotide_index[mask],
+                self.genome2.nucleotide_sequence[mask],
+            ),
+            total=len(self.genome1.nucleotide_sequence[mask]),
         ):
             variants.append(str(idx) + r + ">" + a)
             refs.append(r)
