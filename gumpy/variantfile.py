@@ -7,6 +7,7 @@ import pathlib
 import warnings
 from collections import defaultdict
 from typing import Collection, Dict, Iterable, List, Tuple
+from tqdm import tqdm
 
 import numpy
 import pandas
@@ -419,14 +420,14 @@ class VCFFile(object):
                 )
                 pos = self.calls[(idx, type_)]["pos"]
             simple_calls.append((idx, pos, t, bases))
-        seen = []
+        seen = set()
 
-        for idx, type_ in self.calls.keys():
+        for idx, type_ in tqdm(self.calls.keys()):
             # Check if we've delt with this vcf already
-            if self.calls[(idx, type_)]["original_vcf_row"] in seen:
+            if str(self.calls[(idx, type_)]["original_vcf_row"]) in seen:
                 continue
             else:
-                seen.append(self.calls[(idx, type_)]["original_vcf_row"])
+                seen.add(str(self.calls[(idx, type_)]["original_vcf_row"]))
 
             # Pull out depth tag from the specific row's format fields
             # as the file metadata isn't a guarantee of the actual fields of this row
@@ -515,7 +516,6 @@ class VCFFile(object):
         """
 
         self.calls = {}
-        record_positions = set()
 
         for record in self.records:
             # VCF files are 1 indexed but keep for now
@@ -576,11 +576,6 @@ class VCFFile(object):
                 variant = record.ref
                 variant_type = "ref"
 
-            if index in record_positions:
-                raise ValueError(
-                    "Multiple calls at position " + str(index) + " in VCF file"
-                )
-            record_positions.add(index)
 
             # if the REF, ALT pair are the same length, check if we can decompose
             #   into SNPs
@@ -595,6 +590,10 @@ class VCFFile(object):
                     vcf_info["REF"] = record.ref
                     vcf_info["ALTS"] = record.alts
                     metadata["original_vcf_row"] = vcf_info
+                    if self.calls.get((index + counter, variant_type)) is not None:
+                        raise ValueError(
+                            "Multiple calls at position " + str(index) + " in VCF file"
+                        )
                     self.calls[(index + counter, variant_type)] = metadata
 
             # otherwise the REF, ALT pair are different lengths
@@ -614,7 +613,12 @@ class VCFFile(object):
                         vcf_info["REF"] = record.ref
                         vcf_info["ALTS"] = record.alts
                         metadata["original_vcf_row"] = vcf_info
-
+                        if self.calls.get((index + p, "indel")) is not None:
+                            raise ValueError(
+                                "Multiple calls at position "
+                                + str(index)
+                                + " in VCF file"
+                            )
                         self.calls[(index + p, "indel")] = metadata
 
                     else:
@@ -627,7 +631,12 @@ class VCFFile(object):
                         vcf_info["REF"] = record.ref
                         vcf_info["ALTS"] = record.alts
                         metadata["original_vcf_row"] = vcf_info
-
+                        if self.calls.get((index + p, variant_type)) is not None:
+                            raise ValueError(
+                                "Multiple calls at position "
+                                + str(index)
+                                + " in VCF file"
+                            )
                         self.calls[(index + p, variant_type)] = metadata
 
     def _simplify_call(self, ref: str, alt: str) -> List[Tuple[int, str, str]]:
