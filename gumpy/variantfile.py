@@ -432,7 +432,8 @@ class VCFFile(object):
                     seen.add(str(item["original_vcf_row"]))
 
                 # Pull out depth tag from the specific row's format fields
-                # as the file metadata isn't a guarantee of the actual fields of this row
+                # as the file metadata isn't a guarantee of the actual 
+                # fields of this row
                 allelic_depth_tag = (
                     "COV" if item["original_vcf_row"].get("COV", None) else "AD"
                 )
@@ -440,12 +441,13 @@ class VCFFile(object):
                 # Checking for het calls
                 if item["call"] == "z":
                     if 0 not in item["original_vcf_row"]["GT"]:
-                        # Het call without a wildtype call, so warn about weird behaviour
+                        # Het call without a wildtype call, so warn about 
+                        # behaviour
                         warnings.warn(
-                            f"Minor population detected at position {idx}, which doesn't "
-                            f"include a wildtype call. Call: "
-                            f"{item['original_vcf_row']['GT']}. "
-                            "Note that there may be multiple mutations given at this index",
+                            f"Minor population detected at position {idx}, which "
+                            f"doesn't include a wildtype call. Call: "
+                            f"{item['original_vcf_row']['GT']}. Note that there "
+                            "may be multiple mutations given at this index",
                             UserWarning,
                         )
 
@@ -473,9 +475,8 @@ class VCFFile(object):
                 else:
                     total_depth = sum(dps)
 
-                # idx here refers to the position of this call, NOT this vcf row, so adjust
-                #   to avoid shifting when building minor calls
-                original_idx = idx
+                # idx here refers to the position of this call, NOT this vcf row, 
+                # so adjust to avoid shifting when building minor calls
                 idx = idx - item["pos"]
                 for calls, depth in zip(simple, dps):
                     # As we can have >1 call per simple, iter
