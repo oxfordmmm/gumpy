@@ -1021,7 +1021,7 @@ class Genome(object):
 
                 elif type_ == "ref":
                     # These only exist due to reference calls
-                    # They only made it this far as they are required to pull 
+                    # They only made it this far as they are required to pull
                     # out minors at these positions
                     pass
 

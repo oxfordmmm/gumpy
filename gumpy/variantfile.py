@@ -432,7 +432,7 @@ class VCFFile(object):
                     seen.add(str(item["original_vcf_row"]))
 
                 # Pull out depth tag from the specific row's format fields
-                # as the file metadata isn't a guarantee of the actual 
+                # as the file metadata isn't a guarantee of the actual
                 # fields of this row
                 allelic_depth_tag = (
                     "COV" if item["original_vcf_row"].get("COV", None) else "AD"
@@ -441,7 +441,7 @@ class VCFFile(object):
                 # Checking for het calls
                 if item["call"] == "z":
                     if 0 not in item["original_vcf_row"]["GT"]:
-                        # Het call without a wildtype call, so warn about 
+                        # Het call without a wildtype call, so warn about
                         # behaviour
                         warnings.warn(
                             f"Minor population detected at position {idx}, which "
@@ -475,7 +475,7 @@ class VCFFile(object):
                 else:
                     total_depth = sum(dps)
 
-                # idx here refers to the position of this call, NOT this vcf row, 
+                # idx here refers to the position of this call, NOT this vcf row,
                 # so adjust to avoid shifting when building minor calls
                 idx = idx - item["pos"]
                 for calls, depth in zip(simple, dps):
