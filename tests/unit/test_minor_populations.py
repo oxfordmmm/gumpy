@@ -30,13 +30,26 @@ def make_reproducable(list_: [str]) -> [str]:
 
 
 def test_double_del():
-    """Testing for expected crashes with deletions at the same base"""
-    with pytest.raises(ValueError):
-        gumpy.VCFFile(
+    """Testing for picking up deletions at the same base"""
+    ref = gumpy.Genome("config/TEST-DNA.gbk")
+    with pytest.warns(UserWarning):
+        vcf = gumpy.VCFFile(
             "tests/test-cases/TEST-DNA-double-del.vcf",
             ignore_filter=True,
             minor_population_indices={3, 4, 5, 6, 7},
         )
+    sample = ref + vcf
+
+    ref_a = ref.build_gene("A")
+    sample_a = sample.build_gene("A")
+
+    diff = ref_a - sample_a
+    assert sorted(diff.minor_populations()) == sorted(
+        ["1_del_aa:3", "2_indel:3", "3_del_a:3"]
+    )
+    assert sorted(sample_a.minority_populations_GARC()) == sorted(
+        diff.minor_populations()
+    )
 
 
 @pytest.mark.slow

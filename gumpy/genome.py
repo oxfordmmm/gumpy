@@ -999,34 +999,31 @@ class Genome(object):
 
         # use the calls dict to change the nucleotide indicies in the copy of the genome
         for idx, type_ in tqdm(vcf.calls.keys(), disable=(not self.show_progress_bar)):
-            genome.vcf_evidence[genome.nucleotide_index[idx - 1]] = vcf.calls[
-                (idx, type_)
-            ]["original_vcf_row"]
+            for item in vcf.calls[(idx, type_)]:
+                genome.vcf_evidence[genome.nucleotide_index[idx - 1]] = item[
+                    "original_vcf_row"
+                ]
 
-            # deal with changes at a single nucleotide site
-            if type_ in ["snp", "null", "het"]:
-                # only set values if the idx is to a single nucleotide
-                genome.nucleotide_sequence[idx - 1] = vcf.calls[(idx, type_)]["call"]
+                # deal with changes at a single nucleotide site
+                if type_ in ["snp", "null", "het"]:
+                    # only set values if the idx is to a single nucleotide
+                    genome.nucleotide_sequence[idx - 1] = item["call"]
 
-            # deal with insertions and deletions
-            elif type_ == "indel":
-                genome.is_indel[idx - 1] = True
-                genome.indel_nucleotides[idx - 1] = vcf.calls[(idx, type_)]["call"][1]
+                # deal with insertions and deletions
+                elif type_ == "indel":
+                    genome.is_indel[idx - 1] = True
+                    genome.indel_nucleotides[idx - 1] = item["call"][1]
 
-                if vcf.calls[(idx, type_)]["call"][0] == "ins":
-                    genome.indel_length[idx - 1] = len(
-                        vcf.calls[(idx, type_)]["call"][1]
-                    )
-                else:
-                    genome.indel_length[idx - 1] = -1 * len(
-                        vcf.calls[(idx, type_)]["call"][1]
-                    )
+                    if item["call"][0] == "ins":
+                        genome.indel_length[idx - 1] = len(item["call"][1])
+                    else:
+                        genome.indel_length[idx - 1] = -1 * len(item["call"][1])
 
-            elif type_ == "ref":
-                # These only exist due to reference calls
-                # They only made it this far as they are required to pull out minors at
-                #   these positions
-                pass
+                elif type_ == "ref":
+                    # These only exist due to reference calls
+                    # They only made it this far as they are required to pull
+                    # out minors at these positions
+                    pass
 
         genome.minor_populations = []
 

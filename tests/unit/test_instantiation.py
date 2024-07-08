@@ -2489,7 +2489,7 @@ def test_instanciate_vcf():
     }
 
     # could use assertDictEqual from unittest framework, but not using at present
-    assert vcf.calls == calls
+    assert {key: vcf.calls[key][0] for key in vcf.calls.keys()} == calls
     # Testing record objects
 
     # Features common to all record objects:

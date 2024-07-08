@@ -402,111 +402,112 @@ class VCFFile(object):
         self.minor_populations = []
         simple_calls = []
         for idx, type_ in self.calls.keys():
-            # Get the simple format of this call for comparison
-            if isinstance(self.calls[(idx, type_)]["call"], tuple):
-                # Indels
-                t = self.calls[(idx, type_)]["call"][0]
-                bases = self.calls[(idx, type_)]["call"][1]
-                pos = self.calls[(idx, type_)]["pos"]
-            else:
-                # Snps
-                if self.calls[(idx, type_)]["call"] == "x":
-                    # Null calls shouldn't have minor populations
-                    continue
-                t = "snp"
-                bases = (
-                    self.calls[(idx, type_)]["ref"],
-                    self.calls[(idx, type_)]["call"],
-                )
-                pos = self.calls[(idx, type_)]["pos"]
-            simple_calls.append((idx, pos, t, bases))
+            for item in self.calls[(idx, type_)]:
+                # Get the simple format of this call for comparison
+                if isinstance(item["call"], tuple):
+                    # Indels
+                    t = item["call"][0]
+                    bases = item["call"][1]
+                    pos = item["pos"]
+                else:
+                    # Snps
+                    if item["call"] == "x":
+                        # Null calls shouldn't have minor populations
+                        continue
+                    t = "snp"
+                    bases = (
+                        item["ref"],
+                        item["call"],
+                    )
+                    pos = item["pos"]
+                simple_calls.append((idx, pos, t, bases))
         seen = set()
 
         for idx, type_ in tqdm(self.calls.keys()):
-            # Check if we've delt with this vcf already
-            if str(self.calls[(idx, type_)]["original_vcf_row"]) in seen:
-                continue
-            else:
-                seen.add(str(self.calls[(idx, type_)]["original_vcf_row"]))
+            for item in self.calls[(idx, type_)]:
+                # Check if we've delt with this vcf already
+                if str(item["original_vcf_row"]) in seen:
+                    continue
+                else:
+                    seen.add(str(item["original_vcf_row"]))
 
-            # Pull out depth tag from the specific row's format fields
-            # as the file metadata isn't a guarantee of the actual fields of this row
-            allelic_depth_tag = (
-                "COV"
-                if self.calls[(idx, type_)]["original_vcf_row"].get("COV", None)
-                else "AD"
-            )
-
-            # Checking for het calls
-            if self.calls[(idx, type_)]["call"] == "z":
-                if 0 not in self.calls[(idx, type_)]["original_vcf_row"]["GT"]:
-                    # Het call without a wildtype call, so warn about weird behaviour
-                    warnings.warn(
-                        f"Minor population detected at position {idx}, which doesn't "
-                        f"include a wildtype call. Call: "
-                        f"{self.calls[(idx, type_)]['original_vcf_row']['GT']}. "
-                        "Note that there may be multiple mutations given at this index",
-                        UserWarning,
-                    )
-
-            # Reference base(s)
-            ref = self.calls[(idx, type_)]["original_vcf_row"]["REF"]
-
-            if self.calls[(idx, type_)]["original_vcf_row"]["ALTS"] is None:
-                # Case arrises from gvcf ref calls not giving any alts
-                calls = [self.calls[(idx, type_)]["original_vcf_row"]["REF"]]
-            else:
-                # Get all of the calls
-                calls = [self.calls[(idx, type_)]["original_vcf_row"]["REF"]] + list(
-                    self.calls[(idx, type_)]["original_vcf_row"]["ALTS"]
+                # Pull out depth tag from the specific row's format fields
+                # as the file metadata isn't a guarantee of the actual
+                # fields of this row
+                allelic_depth_tag = (
+                    "COV" if item["original_vcf_row"].get("COV", None) else "AD"
                 )
 
-            # Break down the calls as appropriate
-            simple = [self._simplify_call(ref, alt) for alt in calls]
-
-            # Map each call to the corresponding read depth
-            dps = list(self.calls[(idx, type_)]["original_vcf_row"][allelic_depth_tag])
-
-            # GVCF null calls get None for depth, so catch (and skip) this
-            if dps == [None]:
-                continue
-            else:
-                total_depth = sum(dps)
-
-            # idx here refers to the position of this call, NOT this vcf row, so adjust
-            #   to avoid shifting when building minor calls
-            original_idx = idx
-            idx = idx - self.calls[(idx, type_)]["pos"]
-            for calls, depth in zip(simple, dps):
-                # As we can have >1 call per simple, iter
-                for call in calls:
-                    # Check that this call isn't one of the actual calls
-                    if (idx + int(call[0]), *call) in simple_calls:
-                        # Is an actual call so we skip
-                        continue
-                    # Check if there are >=2 reads to support this call
-                    if depth >= 2:
-                        # These are minor calls!!
-                        pos = idx + int(call[0])
-                        if pos not in self.minor_population_indices:
-                            # We don't actually care though
-                            # This has to be done here as simplifying calls can move
-                            #   the position
-                            continue
-                        if call[1] == "snp" and call[2][0] == call[2][1]:
-                            # Ref calls aren't interesting
-                            continue
-                        # Only tracking absolute number of reads
-                        self.minor_populations.append(
-                            (
-                                pos,
-                                call[1],
-                                call[2],
-                                int(depth),
-                                round(depth / total_depth, 3),
-                                self.calls[(original_idx, type_)]["original_vcf_row"],
-                            )
+                # Checking for het calls
+                if item["call"] == "z":
+                    if 0 not in item["original_vcf_row"]["GT"]:
+                        # Het call without a wildtype call, so warn about
+                        # behaviour
+                        warnings.warn(
+                            f"Minor population detected at position {idx}, which "
+                            f"doesn't include a wildtype call. Call: "
+                            f"{item['original_vcf_row']['GT']}. Note that there "
+                            "may be multiple mutations given at this index",
+                            UserWarning,
                         )
+
+                # Reference base(s)
+                ref = item["original_vcf_row"]["REF"]
+
+                if item["original_vcf_row"]["ALTS"] is None:
+                    # Case arrises from gvcf ref calls not giving any alts
+                    calls = [item["original_vcf_row"]["REF"]]
+                else:
+                    # Get all of the calls
+                    calls = [item["original_vcf_row"]["REF"]] + list(
+                        item["original_vcf_row"]["ALTS"]
+                    )
+
+                # Break down the calls as appropriate
+                simple = [self._simplify_call(ref, alt) for alt in calls]
+
+                # Map each call to the corresponding read depth
+                dps = list(item["original_vcf_row"][allelic_depth_tag])
+
+                # GVCF null calls get None for depth, so catch (and skip) this
+                if dps == [None]:
+                    continue
+                else:
+                    total_depth = sum(dps)
+
+                # idx here refers to the position of this call, NOT this vcf row,
+                # so adjust to avoid shifting when building minor calls
+                idx = idx - item["pos"]
+                for calls, depth in zip(simple, dps):
+                    # As we can have >1 call per simple, iter
+                    for call in calls:
+                        # Check that this call isn't one of the actual calls
+                        if (idx + int(call[0]), *call) in simple_calls:
+                            # Is an actual call so we skip
+                            continue
+                        # Check if there are >=2 reads to support this call
+                        if depth >= 2:
+                            # These are minor calls!!
+                            pos = idx + int(call[0])
+                            if pos not in self.minor_population_indices:
+                                # We don't actually care though
+                                # This has to be done here as simplifying calls can move
+                                #   the position
+                                continue
+                            if call[1] == "snp" and call[2][0] == call[2][1]:
+                                # Ref calls aren't interesting
+                                continue
+                            # Only tracking absolute number of reads
+                            self.minor_populations.append(
+                                (
+                                    pos,
+                                    call[1],
+                                    call[2],
+                                    int(depth),
+                                    round(depth / total_depth, 3),
+                                    item["original_vcf_row"],
+                                )
+                            )
 
     def __find_calls(self):
         """
@@ -515,7 +516,7 @@ class VCFFile(object):
         Creates calls dict used elsewhere.
         """
 
-        self.calls = {}
+        self.calls = defaultdict(list)
 
         for record in self.records:
             # VCF files are 1 indexed but keep for now
@@ -590,10 +591,13 @@ class VCFFile(object):
                     vcf_info["ALTS"] = record.alts
                     metadata["original_vcf_row"] = vcf_info
                     if self.calls.get((index + counter, variant_type)) is not None:
-                        raise ValueError(
-                            "Multiple calls at position " + str(index) + " in VCF file"
+                        warnings.warn(
+                            UserWarning(
+                                f"Multiple calls at position {index}"
+                                + f" with type {variant_type} in VCF file"
+                            )
                         )
-                    self.calls[(index + counter, variant_type)] = metadata
+                    self.calls[(index + counter, variant_type)].append(metadata)
 
             # otherwise the REF, ALT pair are different lengths
             else:
@@ -613,12 +617,13 @@ class VCFFile(object):
                         vcf_info["ALTS"] = record.alts
                         metadata["original_vcf_row"] = vcf_info
                         if self.calls.get((index + p, "indel")) is not None:
-                            raise ValueError(
-                                "Multiple calls at position "
-                                + str(index)
-                                + " in VCF file"
+                            warnings.warn(
+                                UserWarning(
+                                    f"Multiple calls at position {index}"
+                                    + " with type indel in VCF file"
+                                )
                             )
-                        self.calls[(index + p, "indel")] = metadata
+                        self.calls[(index + p, "indel")].append(metadata)
 
                     else:
                         metadata = {}
@@ -631,12 +636,13 @@ class VCFFile(object):
                         vcf_info["ALTS"] = record.alts
                         metadata["original_vcf_row"] = vcf_info
                         if self.calls.get((index + p, variant_type)) is not None:
-                            raise ValueError(
-                                "Multiple calls at position "
-                                + str(index)
-                                + " in VCF file"
+                            warnings.warn(
+                                UserWarning(
+                                    f"Multiple calls at position {index}"
+                                    + f" with type {variant_type} in VCF file"
+                                )
                             )
-                        self.calls[(index + p, variant_type)] = metadata
+                        self.calls[(index + p, variant_type)].append(metadata)
 
     def _simplify_call(self, ref: str, alt: str) -> List[Tuple[int, str, str]]:
         """Private method to simplify a complex call into one indel and multiple SNPs.
@@ -808,70 +814,71 @@ class VCFFile(object):
         to_drop = []
 
         for index, type_ in sorted(list(self.calls.keys())):
-            call = self.calls[(index, type_)]["call"]
-            alt = call
-            ref = self.calls[(index, type_)]["ref"]
-            if ref == alt and self.bypass_reference_calls:
-                # If we have a call at a position which the alt is a reference call
-                # we should only care if we haven't tried to bypass ref calls
-                # Have to check here too i.e CCC->ATC will have a ref call at pos 3
-                to_drop.append((index, type_))
-                continue
-            indices.append(index)
-            refs.append(ref)
-            pos = self.calls[(index, type_)]["pos"]
-            positions.append(pos)
-            # Update the masks with the appropriate types
-            if type_ == "indel":
-                # Convert to ins_x or del_x rather than tuple
-                variant = str(index) + "_" + call[0] + "_" + str(call[1])
-                alt = call[1]
-                is_indel.append(True)
-                if call[0] == "ins":
-                    indel_length.append(len(call[1]))
-                else:
-                    indel_length.append(-1 * len(call[1]))
-                is_snp.append(False)
-                is_het.append(False)
-                is_null.append(False)
-            elif type_ == "snp":
-                variant = str(index) + ref + ">" + call
-                is_indel.append(False)
-                indel_length.append(0)
-                is_snp.append(True)
-                is_het.append(False)
-                is_null.append(False)
-            elif type_ == "het":
-                variant = str(index) + ref + ">" + call
-                is_indel.append(False)
-                indel_length.append(0)
-                is_snp.append(False)
-                is_het.append(True)
-                is_null.append(False)
-            elif type_ == "null":
-                variant = str(index) + ref + ">" + call
-                is_indel.append(False)
-                indel_length.append(0)
-                is_snp.append(False)
-                is_het.append(False)
-                is_null.append(True)
-            elif type_ == "ref":
-                variant = str(index) + ref + ">" + ref
-                is_indel.append(False)
-                indel_length.append(0)
-                is_snp.append(False)
-                is_het.append(False)
-                is_null.append(False)
-            alts.append(alt)
-            variants.append(variant)
-            for key in self.calls[(index, type_)]["original_vcf_row"]:
-                metadata[key].append(
-                    self.calls[(index, type_)]["original_vcf_row"][key]
-                )
+            for idx, item in enumerate(self.calls[(index, type_)]):
+                call = item["call"]
+                alt = call
+                ref = item["ref"]
+                if ref == alt and self.bypass_reference_calls:
+                    # If we have a call at a position which the alt is a reference call
+                    # we should only care if we haven't tried to bypass ref calls
+                    # Have to check here too i.e CCC->ATC will have a ref call at pos 3
+                    to_drop.append((idx, (index, type_)))
+                    continue
+                indices.append(index)
+                refs.append(ref)
+                pos = item["pos"]
+                positions.append(pos)
+                # Update the masks with the appropriate types
+                if type_ == "indel":
+                    # Convert to ins_x or del_x rather than tuple
+                    variant = str(index) + "_" + call[0] + "_" + str(call[1])
+                    alt = call[1]
+                    is_indel.append(True)
+                    if call[0] == "ins":
+                        indel_length.append(len(call[1]))
+                    else:
+                        indel_length.append(-1 * len(call[1]))
+                    is_snp.append(False)
+                    is_het.append(False)
+                    is_null.append(False)
+                elif type_ == "snp":
+                    variant = str(index) + ref + ">" + call
+                    is_indel.append(False)
+                    indel_length.append(0)
+                    is_snp.append(True)
+                    is_het.append(False)
+                    is_null.append(False)
+                elif type_ == "het":
+                    variant = str(index) + ref + ">" + call
+                    is_indel.append(False)
+                    indel_length.append(0)
+                    is_snp.append(False)
+                    is_het.append(True)
+                    is_null.append(False)
+                elif type_ == "null":
+                    variant = str(index) + ref + ">" + call
+                    is_indel.append(False)
+                    indel_length.append(0)
+                    is_snp.append(False)
+                    is_het.append(False)
+                    is_null.append(True)
+                elif type_ == "ref":
+                    variant = str(index) + ref + ">" + ref
+                    is_indel.append(False)
+                    indel_length.append(0)
+                    is_snp.append(False)
+                    is_het.append(False)
+                    is_null.append(False)
+                alts.append(alt)
+                variants.append(variant)
+                for key in item["original_vcf_row"]:
+                    metadata[key].append(item["original_vcf_row"][key])
 
         # Remove ref calls as required
-        for key in to_drop:
-            del self.calls[key]
+        for idx, key in to_drop:
+            del self.calls[key][idx]
+            if len(self.calls[key]) == 0:
+                del self.calls[key]
 
         # Convert to numpy arrays for neat indexing
         self.alt_nucleotides = numpy.array(alts)
