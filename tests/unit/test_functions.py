@@ -1612,8 +1612,8 @@ def test_large_deletions():
 
     diff = sample - sample2
 
-    c1 = {key[0]: vcf.calls[key]["original_vcf_row"] for key in vcf.calls.keys()}
-    c2 = {key[0]: vcf2.calls[key]["original_vcf_row"] for key in vcf2.calls.keys()}
+    c1 = {key[0]: vcf.calls[key][0]["original_vcf_row"] for key in vcf.calls.keys()}
+    c2 = {key[0]: vcf2.calls[key][0]["original_vcf_row"] for key in vcf2.calls.keys()}
 
     for idx, evidence in zip(diff.nucleotide_index, diff.vcf_evidences):
         if idx in c1.keys() and idx in c2.keys():
