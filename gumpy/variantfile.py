@@ -434,9 +434,7 @@ class VCFFile(object):
                 # Pull out depth tag from the specific row's format fields
                 # as the file metadata isn't a guarantee of the actual fields of this row
                 allelic_depth_tag = (
-                    "COV"
-                    if item["original_vcf_row"].get("COV", None)
-                    else "AD"
+                    "COV" if item["original_vcf_row"].get("COV", None) else "AD"
                 )
 
                 # Checking for het calls
@@ -852,9 +850,7 @@ class VCFFile(object):
                 alts.append(alt)
                 variants.append(variant)
                 for key in item["original_vcf_row"]:
-                    metadata[key].append(
-                        item["original_vcf_row"][key]
-                    )
+                    metadata[key].append(item["original_vcf_row"][key])
 
         # Remove ref calls as required
         for idx, key in to_drop:
