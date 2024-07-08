@@ -590,6 +590,13 @@ class VCFFile(object):
                     vcf_info["REF"] = record.ref
                     vcf_info["ALTS"] = record.alts
                     metadata["original_vcf_row"] = vcf_info
+                    if self.calls.get((index + counter, variant_type)) is not None:
+                        warnings.warn(
+                            UserWarning(
+                                f"Multiple calls at position {index}"
+                                + f" with type {variant_type} in VCF file"
+                            )
+                        )
                     self.calls[(index + counter, variant_type)].append(metadata)
 
             # otherwise the REF, ALT pair are different lengths
@@ -609,6 +616,13 @@ class VCFFile(object):
                         vcf_info["REF"] = record.ref
                         vcf_info["ALTS"] = record.alts
                         metadata["original_vcf_row"] = vcf_info
+                        if self.calls.get((index + p, "indel")) is not None:
+                            warnings.warn(
+                                UserWarning(
+                                    f"Multiple calls at position {index}"
+                                    + " with type indel in VCF file"
+                                )
+                            )
                         self.calls[(index + p, "indel")].append(metadata)
 
                     else:
@@ -621,6 +635,13 @@ class VCFFile(object):
                         vcf_info["REF"] = record.ref
                         vcf_info["ALTS"] = record.alts
                         metadata["original_vcf_row"] = vcf_info
+                        if self.calls.get((index + p, variant_type)) is not None:
+                            warnings.warn(
+                                UserWarning(
+                                    f"Multiple calls at position {index}"
+                                    + f" with type {variant_type} in VCF file"
+                                )
+                            )
                         self.calls[(index + p, variant_type)].append(metadata)
 
     def _simplify_call(self, ref: str, alt: str) -> List[Tuple[int, str, str]]:

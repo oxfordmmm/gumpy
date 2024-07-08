@@ -32,11 +32,12 @@ def make_reproducable(list_: [str]) -> [str]:
 def test_double_del():
     """Testing for picking up deletions at the same base"""
     ref = gumpy.Genome("config/TEST-DNA.gbk")
-    vcf = gumpy.VCFFile(
-        "tests/test-cases/TEST-DNA-double-del.vcf",
-        ignore_filter=True,
-        minor_population_indices={3, 4, 5, 6, 7},
-    )
+    with pytest.warns(UserWarning):
+        vcf = gumpy.VCFFile(
+            "tests/test-cases/TEST-DNA-double-del.vcf",
+            ignore_filter=True,
+            minor_population_indices={3, 4, 5, 6, 7},
+        )
     sample = ref + vcf
 
     ref_a = ref.build_gene("A")
