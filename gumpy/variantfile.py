@@ -133,10 +133,22 @@ class VCFRecord(object):
             self.values[key] = item
         self.values["POS"] = self.pos
 
-        if min_dp is not None:
-            allelic_depth_tag = "COV" if "COV" in self.values.keys() else "AD"
+        allelic_depth_tag = "COV" if "COV" in self.values.keys() else "AD"
+        if self.values.get(allelic_depth_tag, None) is None:
+            # Not AD either so construct from other fields if possible
+            self.values["COV"] = [
+                self.values["RO"] 
+                    if isinstance(self.values["RO"], int) 
+                    else self.values["RO"][0], 
+                self.values["AO"] 
+                    if isinstance(self.values["AO"], int) 
+                    else self.values["AO"][0]
+            ]
+        else:
             # Ensure we have a COV tag for downstream analysis
             self.values["COV"] = self.values[allelic_depth_tag]
+
+        if min_dp is not None:
             if self.values[allelic_depth_tag] != (None,):
                 # If the depth given is below the threshold,
                 #   this row is a null call's row from the GVCF
@@ -340,6 +352,10 @@ class VCFFile(object):
             assert (
                 "COV" in self.format_fields_metadata.keys()
                 or "AD" in self.format_fields_metadata.keys()
+                or (
+                    "RO" in self.format_fields_metadata.keys() 
+                    and "AO" in self.format_fields_metadata.keys()
+                )
             ), (
                 "'COV' and 'AD' not in VCF format fields. "
                 "No minor populations can be found!"
