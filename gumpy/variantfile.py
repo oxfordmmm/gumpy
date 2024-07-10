@@ -137,12 +137,12 @@ class VCFRecord(object):
         if self.values.get(allelic_depth_tag, None) is None:
             # Not AD either so construct from other fields if possible
             self.values["COV"] = [
-                self.values["RO"] 
-                    if isinstance(self.values["RO"], int) 
-                    else self.values["RO"][0], 
-                self.values["AO"] 
-                    if isinstance(self.values["AO"], int) 
-                    else self.values["AO"][0]
+                self.values["RO"]
+                if isinstance(self.values["RO"], int)
+                else self.values["RO"][0],
+                self.values["AO"]
+                if isinstance(self.values["AO"], int)
+                else self.values["AO"][0],
             ]
         else:
             # Ensure we have a COV tag for downstream analysis
@@ -353,7 +353,7 @@ class VCFFile(object):
                 "COV" in self.format_fields_metadata.keys()
                 or "AD" in self.format_fields_metadata.keys()
                 or (
-                    "RO" in self.format_fields_metadata.keys() 
+                    "RO" in self.format_fields_metadata.keys()
                     and "AO" in self.format_fields_metadata.keys()
                 )
             ), (

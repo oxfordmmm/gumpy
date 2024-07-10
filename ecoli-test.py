@@ -29,4 +29,3 @@ if __name__ == "__main__":
             print(minor_population)
     else:
         print("No minor alleles found at a genome level!")
-
