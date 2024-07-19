@@ -157,6 +157,10 @@ class VCFRecord(object):
                     self.is_alt = False
                     self.is_reference = False
 
+        if self.is_null:
+            # Override filter fails on nulls to enforce that they are detected
+            self.is_filter_pass = True
+
     def __repr__(self) -> str:
         """Pretty print the record
 

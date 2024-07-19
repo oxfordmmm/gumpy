@@ -2214,7 +2214,7 @@ def test_instanciate_vcf():
                 "POS": 4,
                 "GT": (None, None),
                 "DP": 4,
-                "COV": (1, 2, 2),
+                "COV": (1, 2, 1),
                 "GT_CONF": 3.77,
                 "REF": "a",
                 "ALTS": ("g", "t"),
@@ -2594,7 +2594,7 @@ def test_instanciate_vcf():
         cov
         == [
             (1, 1),
-            (1, 2, 2),
+            (1, 2, 1),
             (1, 1, 1, 1),
             (0, 50),
             (0, 2, 43),
