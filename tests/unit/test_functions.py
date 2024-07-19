@@ -290,7 +290,7 @@ def test_apply_vcf():
         g2.nucleotide_sequence
         == numpy.array(
             list(
-                "axaaaxxxaactcgctgcccgzgzgzzzzgttttttttataaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc"
+                "axaxaxxxaactcgctgcccgzgzgzzzzgttttttttataaaaaaaaaaccccccccccggggggggggttttttttttaaaaaaaaaaccccccccc"
             )
         )
     )
@@ -299,6 +299,7 @@ def test_apply_vcf():
     expected_vars = numpy.array(
         [
             "2a>x",
+            "4a>x",
             "6a>x",
             "7a>x",
             "8a>x",
@@ -328,6 +329,7 @@ def test_apply_vcf():
         == numpy.array(
             [
                 2,
+                4,
                 6,
                 7,
                 8,
@@ -373,6 +375,7 @@ def test_apply_vcf():
                 False,
                 False,
                 False,
+                False,
                 True,
                 True,
                 True,
@@ -385,6 +388,7 @@ def test_apply_vcf():
         diff.is_snp
         == numpy.array(
             [
+                False,
                 False,
                 False,
                 False,
@@ -413,7 +417,7 @@ def test_apply_vcf():
     assert numpy.all(
         diff.indel_length
         == numpy.array(
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, -1, 1, 2, 1]
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, -1, 1, 2, 1]
         )
     )
     assert diff.snp_distance == 5
@@ -505,6 +509,7 @@ def test_genome_difference():
         == numpy.array(
             [
                 2,
+                4,
                 6,
                 7,
                 8,
@@ -532,7 +537,24 @@ def test_genome_difference():
     assert numpy.all(
         diff.nucleotides
         == numpy.array(
-            ["x", "x", "x", "x", "t", "g", "t", "g", "z", "z", "z", "z", "z", "z", "a"],
+            [
+                "x",
+                "x",
+                "x",
+                "x",
+                "x",
+                "t",
+                "g",
+                "t",
+                "g",
+                "z",
+                "z",
+                "z",
+                "z",
+                "z",
+                "z",
+                "a",
+            ],
             dtype=object,
         )
     )
@@ -541,6 +563,7 @@ def test_genome_difference():
         == numpy.array(
             [
                 "2a>x",
+                "4a>x",
                 "6a>x",
                 "7a>x",
                 "8a>x",
@@ -581,6 +604,7 @@ def test_genome_difference():
                 ["a", "x"],
                 ["a", "x"],
                 ["a", "x"],
+                ["a", "x"],
                 ["c", "t"],
                 ["c", "g"],
                 ["c", "t"],
@@ -603,6 +627,7 @@ def test_genome_difference():
         == numpy.array(
             [
                 "2x>a",
+                "4x>a",
                 "6x>a",
                 "7x>a",
                 "8x>a",
@@ -642,6 +667,7 @@ def test_vcf_genetic_variation():
         == numpy.array(
             [
                 "2a>x",
+                "4a>x",
                 "6a>x",
                 "7a>x",
                 "8a>x",
@@ -667,12 +693,35 @@ def test_vcf_genetic_variation():
     assert numpy.all(
         vcf.nucleotide_index
         == numpy.array(
-            [2, 6, 7, 8, 12, 14, 16, 17, 22, 24, 26, 27, 28, 29, 33, 37, 39, 39, 64, 73]
+            [
+                2,
+                4,
+                6,
+                7,
+                8,
+                12,
+                14,
+                16,
+                17,
+                22,
+                24,
+                26,
+                27,
+                28,
+                29,
+                33,
+                37,
+                39,
+                39,
+                64,
+                73,
+            ]
         )
     )
     assert numpy.all(
         vcf.is_snp
         == [
+            False,
             False,
             False,
             False,
@@ -698,6 +747,7 @@ def test_vcf_genetic_variation():
     assert numpy.all(
         vcf.is_het
         == [
+            False,
             False,
             False,
             False,
@@ -737,6 +787,7 @@ def test_vcf_genetic_variation():
             False,
             False,
             False,
+            False,
             True,
             True,
             True,
@@ -748,6 +799,7 @@ def test_vcf_genetic_variation():
     assert numpy.all(
         vcf.is_null
         == [
+            True,
             True,
             True,
             True,
@@ -778,6 +830,7 @@ def test_vcf_genetic_variation():
                 (None, None),
                 (None, None),
                 (None, None),
+                (None, None),
                 (1, 1),
                 (2, 2),
                 (1, 1),
@@ -802,6 +855,7 @@ def test_vcf_genetic_variation():
                 4,
                 4,
                 4,
+                4,
                 50,
                 45,
                 70,
@@ -823,6 +877,7 @@ def test_vcf_genetic_variation():
         "COV": numpy.array(
             [
                 (1, 1),
+                (1, 2, 1),
                 (1, 1, 1, 1),
                 (1, 1, 1, 1),
                 (1, 1, 1, 1),
@@ -848,6 +903,7 @@ def test_vcf_genetic_variation():
         "GT_CONF": numpy.array(
             [
                 2.05,
+                3.77,
                 2.76,
                 2.76,
                 2.76,
@@ -871,6 +927,7 @@ def test_vcf_genetic_variation():
         ),
         "REF": numpy.array(
             [
+                "a",
                 "a",
                 "aaa",
                 "aaa",
@@ -897,6 +954,7 @@ def test_vcf_genetic_variation():
         "ALTS": numpy.array(
             [
                 ("g",),
+                ("g", "t"),
                 ("ggt", "gta", "ata"),
                 ("ggt", "gta", "ata"),
                 ("ggt", "gta", "ata"),
@@ -982,7 +1040,7 @@ def test_vcf_genetic_variation():
             assert numpy.all(
                 g_diff.alt_nucleotides
                 == numpy.array(
-                    ["aax", "xxa", "act", "t", "cgc", "tgc", "zgz", "gzz", "zzg", "x"]
+                    ["xax", "xxa", "act", "t", "cgc", "tgc", "zgz", "gzz", "zzg", "x"]
                 )
             )
 
@@ -1060,7 +1118,7 @@ def test_gene_difference():
     assert isinstance(diff, gumpy.GeneDifference)
     assert numpy.all(
         diff.nucleotides
-        == ["x", "x", "x", "x", "t", "g", "t", "g", "z", "z", "z", "z", "z", "z"]
+        == ["x", "x", "x", "x", "x", "t", "g", "t", "g", "z", "z", "z", "z", "z", "z"]
     )
     assert numpy.all(
         diff.mutations
@@ -1077,7 +1135,7 @@ def test_gene_difference():
     assert isinstance(diff, gumpy.GeneDifference)
     assert numpy.all(
         diff.nucleotides
-        == ["a", "a", "a", "a", "c", "c", "c", "c", "g", "g", "g", "g", "g", "g"]
+        == ["a", "a", "a", "a", "a", "c", "c", "c", "c", "g", "g", "g", "g", "g", "g"]
     )
     assert numpy.all(
         diff.mutations
@@ -1085,7 +1143,7 @@ def test_gene_difference():
     )
     assert numpy.all(
         diff.ref_nucleotides
-        == ["aax", "xxa", "act", "t", "cgc", "tgc", "zgz", "gzz", "zzg", "x"]
+        == ["xax", "xxa", "act", "t", "cgc", "tgc", "zgz", "gzz", "zzg", "x"]
     )
     assert numpy.all(diff.amino_acid_number == [1, 2, 3, None, 4, 5, 7, 8, 9, None])
 
@@ -1100,13 +1158,14 @@ def test_gene_difference():
     assert isinstance(diff, gumpy.GeneDifference)
     assert numpy.all(
         diff.nucleotides
-        == ["x", "x", "x", "x", "t", "g", "t", "g", "z", "z", "z", "z", "z", "z"]
+        == ["x", "x", "x", "x", "x", "t", "g", "t", "g", "z", "z", "z", "z", "z", "z"]
     )
     assert numpy.all(
         sorted(diff.mutations)
         == sorted(
             [
                 "a-2x",
+                "a1x",
                 "a3x",
                 "a4x",
                 "a5x",
@@ -1404,7 +1463,7 @@ def test_vcf_to_df():
         "DP": [2, 4, 4, 50, 45, 70, 202, 202, 100, 100, 200, 200, 200, 200, 200, 200],
         "COV": [
             (1, 1),
-            (1, 2, 2),
+            (1, 2, 1),
             (1, 1, 1, 1),
             (0, 50),
             (0, 2, 43),
@@ -1726,6 +1785,7 @@ def test_no_overlap():
     diff = ref - sample
     assert diff.variants.tolist() == [
         "2a>x",
+        "4a>x",
         "6a>x",
         "7a>x",
         "8a>x",
@@ -1761,6 +1821,7 @@ def test_no_overlap():
         "A",
         "A",
         "A",
+        "A",
         "B",
         "B",
         "B",
@@ -1770,6 +1831,7 @@ def test_no_overlap():
     ]
     assert diff.gene_pos == [
         -2,
+        1,
         1,
         2,
         2,
@@ -1792,6 +1854,7 @@ def test_no_overlap():
     ]
     assert diff.codon_idx == [
         None,
+        0,
         2,
         0,
         1,
@@ -1817,6 +1880,7 @@ def test_no_overlap():
     diff = sample - ref
     assert diff.variants.tolist() == [
         "2x>a",
+        "4x>a",
         "6x>a",
         "7x>a",
         "8x>a",
@@ -1852,6 +1916,7 @@ def test_no_overlap():
         "A",
         "A",
         "A",
+        "A",
         "B",
         "B",
         "B",
@@ -1861,6 +1926,7 @@ def test_no_overlap():
     ]
     assert diff.gene_pos == [
         -2,
+        1,
         1,
         2,
         2,
@@ -1883,6 +1949,7 @@ def test_no_overlap():
     ]
     assert diff.codon_idx == [
         None,
+        0,
         2,
         0,
         1,
@@ -1910,6 +1977,7 @@ def test_no_overlap():
 
     assert diff.variants.tolist() == [
         "2a>x",
+        "4a>x",
         "6a>x",
         "7a>x",
         "8a>x",
@@ -1941,16 +2009,18 @@ def test_no_overlap():
         "A",
         "A",
         "A",
+        "A",
         "B",
         "B",
     ]
-    assert diff.gene_pos == [-2, 1, 2, 2, 3, 4, 5, 5, 7, 7, 8, 8, 9, 9, 1, 5]
-    assert diff.codon_idx == [None, 2, 0, 1, 2, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1]
+    assert diff.gene_pos == [-2, 1, 1, 2, 2, 3, 4, 5, 5, 7, 7, 8, 8, 9, 9, 1, 5]
+    assert diff.codon_idx == [None, 0, 2, 0, 1, 2, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1]
 
     diff = sample - ref
 
     assert diff.variants.tolist() == [
         "2x>a",
+        "4x>a",
         "6x>a",
         "7x>a",
         "8x>a",
@@ -1982,11 +2052,12 @@ def test_no_overlap():
         "A",
         "A",
         "A",
+        "A",
         "B",
         "B",
     ]
-    assert diff.gene_pos == [-2, 1, 2, 2, 3, 4, 5, 5, 7, 7, 8, 8, 9, 9, 1, 5]
-    assert diff.codon_idx == [None, 2, 0, 1, 2, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1]
+    assert diff.gene_pos == [-2, 1, 1, 2, 2, 3, 4, 5, 5, 7, 7, 8, 8, 9, 9, 1, 5]
+    assert diff.codon_idx == [None, 0, 2, 0, 1, 2, 1, 0, 1, 0, 2, 1, 2, 0, 1, 0, 1]
 
     # Try again with non-coding changes to ensure that works too
     ref.genes["A"]["codes_protein"] = False
@@ -1996,6 +2067,7 @@ def test_no_overlap():
     diff = ref - sample
     assert diff.variants.tolist() == [
         "2a>x",
+        "4a>x",
         "6a>x",
         "7a>x",
         "8a>x",
@@ -2027,11 +2099,31 @@ def test_no_overlap():
         "A",
         "A",
         "A",
+        "A",
         "B",
         "B",
     ]
-    assert diff.gene_pos == [-2, 3, 4, 5, 9, 11, 13, 14, 19, 21, 23, 24, 25, 26, 1, 5]
+    assert diff.gene_pos == [
+        -2,
+        1,
+        3,
+        4,
+        5,
+        9,
+        11,
+        13,
+        14,
+        19,
+        21,
+        23,
+        24,
+        25,
+        26,
+        1,
+        5,
+    ]
     assert diff.codon_idx == [
+        None,
         None,
         None,
         None,
@@ -2053,6 +2145,7 @@ def test_no_overlap():
     diff = sample - ref
     assert diff.variants.tolist() == [
         "2x>a",
+        "4x>a",
         "6x>a",
         "7x>a",
         "8x>a",
@@ -2084,11 +2177,31 @@ def test_no_overlap():
         "A",
         "A",
         "A",
+        "A",
         "B",
         "B",
     ]
-    assert diff.gene_pos == [-2, 3, 4, 5, 9, 11, 13, 14, 19, 21, 23, 24, 25, 26, 1, 5]
+    assert diff.gene_pos == [
+        -2,
+        1,
+        3,
+        4,
+        5,
+        9,
+        11,
+        13,
+        14,
+        19,
+        21,
+        23,
+        24,
+        25,
+        26,
+        1,
+        5,
+    ]
     assert diff.codon_idx == [
+        None,
         None,
         None,
         None,
