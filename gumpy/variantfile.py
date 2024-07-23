@@ -87,7 +87,9 @@ class VCFRecord(object):
         else:
             self.filter = list(record.filter.keys())
             self.is_filter_pass = (
-                True if len(self.filter) == 1 and record.filter.items()[0][0] == "PASS" else False
+                True
+                if len(self.filter) == 1 and record.filter.items()[0][0] == "PASS"
+                else False
             )
 
         # Get the info field
