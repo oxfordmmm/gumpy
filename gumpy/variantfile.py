@@ -88,7 +88,7 @@ class VCFRecord(object):
             self.filter = [str(x) for x in record.filter.keys()]
             self.is_filter_pass = (
                 True
-                if len(self.filter) == 1 and record.filter.items()[0][0] == "PASS"
+                if len(self.filter) == 1 and self.filter == ["PASS"]
                 else False
             )
 
