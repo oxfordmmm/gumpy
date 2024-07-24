@@ -80,14 +80,14 @@ class VCFRecord(object):
 
         # Get the filter attribute value
         assert len(record.filter.items()) >= 0, "A record has more than 1 filter set!"
-        self.filter: str | None
+        self.filter: list[str] | None
         if len(record.filter.items()) == 0:
             self.filter = None
             self.is_filter_pass = False
         else:
-            self.filter = str(record.filter.items()[0][0])
+            self.filter = [str(x) for x in record.filter.keys()]
             self.is_filter_pass = (
-                True if record.filter.items()[0][0] == "PASS" else False
+                True if len(self.filter) == 1 and self.filter == ["PASS"] else False
             )
 
         # Get the info field
@@ -157,8 +157,8 @@ class VCFRecord(object):
                     self.is_alt = False
                     self.is_reference = False
 
-        if self.is_null:
-            # Override filter fails on nulls to enforce that they are detected
+        if self.is_null and self.filter == ["MIN_FRS"]:
+            # Override MIN_FRS filter fails on nulls to enforce that they are detected
             self.is_filter_pass = True
 
     def __repr__(self) -> str:
@@ -178,7 +178,7 @@ class VCFRecord(object):
         if self.filter is None:
             s += ".\t"
         else:
-            s += self.filter + "\t"
+            s += ",".join(self.filter) + "\t"
         for val in self.values.keys():
             if val == "POS":
                 continue
@@ -561,7 +561,7 @@ class VCFFile(object):
                 not record.is_filter_pass
             ):
                 # We only want to allow these through if the filter fail is MIN_FRS
-                if record.filter == "MIN_FRS":
+                if record.filter == ["MIN_FRS"]:
                     # Allow MIN_FRS
                     variant = record.ref
                     variant_type = "ref"
