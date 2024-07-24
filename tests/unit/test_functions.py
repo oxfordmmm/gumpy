@@ -1408,7 +1408,7 @@ def test_vcf_to_df():
         ],
         "FILTER": [
             ["PASS"],
-            ["MIN_FRS"],
+            ["MIN_GCP", "MIN_DP", "MIN_FRS"],
             ["PASS"],
             ["PASS"],
             ["PASS"],
