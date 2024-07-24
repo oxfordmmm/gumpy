@@ -566,7 +566,7 @@ class VCFFile(object):
                 not record.is_filter_pass
             ):
                 # We only want to allow these through if the filter fail contains MIN_FRS
-                if "MIN_FRS" in record.filter:
+                if record.filter is not None and "MIN_FRS" in record.filter:
                     # Allow MIN_FRS
                     variant = record.ref
                     variant_type = "ref"
