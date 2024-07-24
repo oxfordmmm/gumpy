@@ -2554,7 +2554,7 @@ def test_instanciate_vcf():
 
     for i in range(15):
         if i == 1:
-            assert vcf.records[i].filter == ["MIN_FRS"]
+            assert vcf.records[i].filter == ["MIN_GCP", "MIN_DP", "MIN_FRS"]
         else:
             assert vcf.records[i].filter == ["PASS"]
 

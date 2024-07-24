@@ -157,8 +157,13 @@ class VCFRecord(object):
                     self.is_alt = False
                     self.is_reference = False
 
-        if self.is_null and self.filter == ["MIN_FRS"]:
-            # Override MIN_FRS filter fails on nulls to enforce that they are detected
+        if self.is_null and self.filter is not None:
+            # Override specifc filters for nulls to ensure they are detected
+            allowed_filters = ["MIN_FRS", "MIN_DP", "MIN_GCP", "NO_DATA"]
+            for f in self.filter:
+                if f not in allowed_filters:
+                    self.is_filter_pass = False
+                    break
             self.is_filter_pass = True
 
     def __repr__(self) -> str:
@@ -560,8 +565,8 @@ class VCFFile(object):
                 # set this to be a ref call if it is filter fail
                 not record.is_filter_pass
             ):
-                # We only want to allow these through if the filter fail is MIN_FRS
-                if record.filter == ["MIN_FRS"]:
+                # We only want to allow these through if the filter fail contains MIN_FRS
+                if "MIN_FRS" in record.filter:
                     # Allow MIN_FRS
                     variant = record.ref
                     variant_type = "ref"
